@@ -20,6 +20,7 @@ describe("e2e_mongodb_create_and_get", () => {
     const client = await MongoClient.connect("mongodb://127.1:27017");
     const db = client.db(dbName);
     await db.dropDatabase();
+    await client.close();
 
     const ctrl = new AbortController();
 
