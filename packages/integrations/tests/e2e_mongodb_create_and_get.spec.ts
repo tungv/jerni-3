@@ -1,68 +1,12 @@
 import { makeMongoDBStore } from "@jerni/store-mongodb";
-import createJourney from "jerni";
 import { describe, it, expect } from "bun:test";
 import createServer from "src/events-server";
-import { JourneyInstance, LocalEvents } from "jerni/type";
+import { LocalEvents } from "jerni/type";
 import BankAccountModel from "./fixtures/BankAccountModel";
 import { MongoClient } from "mongodb";
+import initJourney from "./makeTestJourney";
 
 describe("e2e_mongodb_create_and_get", () => {
-  function makeTestLogger() {
-    const logs: string[][] = [];
-    return {
-      debug: (...msg: any[]) => {
-        // logs.push(msg);
-      },
-      log: (...msg: any[]) => {
-        // logs.push(msg);
-      },
-      warn: (...msg: any[]) => {
-        // logs.push(msg);
-      },
-      info: (...msg: any[]) => {
-        logs.push(msg);
-      },
-      error: (...msg: any[]) => {
-        logs.push(msg);
-      },
-      logs,
-    };
-  }
-
-  async function initJourney(dbName: string, serverPort: number) {
-    const mongodbStore = await makeMongoDBStore({
-      url: `mongodb://127.0.0.1:27017/`,
-      dbName,
-      name: "test",
-
-      models: [BankAccountModel],
-    });
-
-    const logger = makeTestLogger();
-
-    const journey = createJourney({
-      server: `http://localhost:${serverPort}`,
-      // server,
-      stores: [mongodbStore],
-      onError: (error) => {
-        logger.error(error);
-      },
-      onReport: (reportType, reportData) => {
-        console.info(
-          "REPORT :: [%s] | %s",
-          reportType,
-          JSON.stringify(reportData),
-        );
-      },
-      logger,
-    });
-
-    return {
-      journey,
-      logger,
-    };
-  }
-
   it("should pass", async () => {
     const server = createServer();
     const port = server.port;
@@ -78,8 +22,22 @@ describe("e2e_mongodb_create_and_get", () => {
 
     const ctrl = new AbortController();
 
-    const app = await initJourney(dbName, port);
-    const worker = await initJourney(dbName, port);
+    const storeMongoDbForApp = await makeMongoDBStore({
+      name: "mongodb-app",
+      url: `mongodb://127.1:27017/`,
+      dbName,
+      models: [BankAccountModel],
+    });
+
+    const storeMongoDbForWorker = await makeMongoDBStore({
+      name: "mongodb-worker",
+      url: `mongodb://127.1:27017/`,
+      dbName,
+      models: [BankAccountModel],
+    });
+
+    const app = await initJourney(dbName, [storeMongoDbForApp], port);
+    const worker = await initJourney(dbName, [storeMongoDbForWorker], port);
 
     // start worker
     startWorker(worker.journey, ctrl.signal);
