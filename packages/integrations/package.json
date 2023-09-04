@@ -1,0 +1,12 @@
+{
+  "name": "integration-test-jerni",
+  "private": true,
+  "version": "3.0.0",
+  "description": "Integration test for jerni",
+  "dependencies": {
+    "@jerni/store-mongodb": "link:@jerni/store-mongodb",
+    "jerni": "link:jerni",
+    "mongodb": "^6.0.0",
+    "mongodb-client-encryption": "^6.0.0"
+  }
+}
