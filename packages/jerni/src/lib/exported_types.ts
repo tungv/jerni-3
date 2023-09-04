@@ -5,7 +5,10 @@ import {
   TypedJourneyEvent,
   TypedJourneyCommittedEvent,
 } from "src/types/events";
+
 import { JourneyInstance } from "src/types/journey";
+
+import { JourneyConfig } from "src/types/config";
 
 export {
   LocalEvents,
@@ -14,4 +17,5 @@ export {
   TypedJourneyEvent,
   TypedJourneyCommittedEvent,
   JourneyInstance,
+  JourneyConfig,
 };
