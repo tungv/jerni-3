@@ -15,6 +15,9 @@ const MyEventSource = getEventSource();
 export default function createJourney(config: JourneyConfig): JourneyInstance {
   let serverLatest = 0;
   let clientLatest = 0;
+
+  let hasStartedWaiting = false;
+
   const modelToStoreMap = new Map<any, JourneyConfig["stores"][number]>();
 
   const { logger, onReport, onError } = config;
@@ -34,16 +37,6 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
 
   const waiter = createWaiter(config.stores.length);
 
-  for (let storeIndex = 0; storeIndex < config.stores.length; storeIndex++) {
-    const store = config.stores[storeIndex];
-
-    (async () => {
-      for await (const checkpoint of store.listen()) {
-        waiter.increment(storeIndex, checkpoint);
-      }
-    })();
-  }
-
   return {
     async commit<T extends string>(
       uncommittedEvent: TypedJourneyEvent<T>,
@@ -62,6 +55,24 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
       timeoutOrSignal?: number | AbortSignal,
     ) {
       logger.debug("waiting for event", event.id);
+
+      if (!hasStartedWaiting) {
+        hasStartedWaiting = true;
+
+        for (
+          let storeIndex = 0;
+          storeIndex < config.stores.length;
+          storeIndex++
+        ) {
+          const store = config.stores[storeIndex];
+
+          (async () => {
+            for await (const checkpoint of store.listen()) {
+              waiter.increment(storeIndex, checkpoint);
+            }
+          })();
+        }
+      }
 
       const { id } = event;
       if (timeoutOrSignal) {
