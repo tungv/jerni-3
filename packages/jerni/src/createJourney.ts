@@ -111,9 +111,7 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
       }
     },
 
-    async *begin() {
-      const ctrl = new AbortController();
-
+    async *begin(signal?: AbortSignal) {
       logger.debug("[JERNI | INF] Starting journey...");
 
       // $SERVER/subscribe
@@ -125,6 +123,7 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
         headers: {
           "content-type": "application/json",
         },
+        signal,
       });
       const latestEvent: JourneyCommittedEvent<any, any> =
         await response.json();
@@ -139,7 +138,7 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
       }
 
       subscriptionUrl.searchParams.set("lastEventId", clientLatest.toString());
-      const ev = new MyEventSource(subscriptionUrl.toString());
+      const ev = new MyEventSource(subscriptionUrl.toString(), signal);
 
       ev.addEventListener("open", (event) => {
         logger.info("start receiving data");
@@ -149,10 +148,12 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
         logger.debug("event", event.data);
       });
 
-      ev.addEventListener("INCMSG", (event) => {
+      ev.addEventListener("INCMSG", async (event) => {
         const data = JSON.parse(event.data) as JourneyCommittedEvent[];
         logger.debug("received events", data);
-        const output = config.stores.map((store) => store.handleEvents(data));
+        const output = await Promise.all(
+          config.stores.map((store) => store.handleEvents(data)),
+        );
         console.info("output", output);
       });
 

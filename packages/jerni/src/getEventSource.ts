@@ -441,13 +441,19 @@ export function getEventSource() {
       }
       return self;
     }
-    constructor(url: string, options = undefined) {
+    constructor(url: string, signal?: AbortSignal) {
       super();
       const uri = new URL(url);
       this.#is_tls = uri.protocol === "https:";
       this.#url = uri;
       this.#state = 2;
       process.nextTick(EventSource.#ConnectNextTick, this);
+
+      if (signal) {
+        signal.addEventListener("abort", () => {
+          this.close();
+        });
+      }
     }
 
     // Not web standard
