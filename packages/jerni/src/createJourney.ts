@@ -102,7 +102,14 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
 
       return store.getDriver(model);
     },
-    dispose: async () => {},
+    dispose: async () => {
+      logger.debug("[JERNI | INF] Disposing journey...");
+
+      // dispose all stores
+      for (const store of config.stores) {
+        await store.dispose();
+      }
+    },
 
     async *begin() {
       const ctrl = new AbortController();
