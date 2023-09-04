@@ -23,7 +23,7 @@ declare module "jerni/type" {
 
 const model = new MongoDBModel<BankAccountDocumentModel>({
   name: "bank_accounts",
-  version: "1",
+  version: "2",
   transform: mapEvents({
     NEW_ACCOUNT_REGISTERED(event) {
       return {
@@ -31,6 +31,15 @@ const model = new MongoDBModel<BankAccountDocumentModel>({
           id: event.payload.id,
           name: event.payload.name,
           balance: 0,
+        },
+      };
+    },
+
+    ACCOUNT_DEPOSITED(event) {
+      return {
+        updateOne: {
+          where: { id: event.payload.id },
+          changes: { $inc: { balance: event.payload.amount } },
         },
       };
     },

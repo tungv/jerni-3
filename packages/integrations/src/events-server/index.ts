@@ -85,6 +85,7 @@ export default function createServer(subscriptionInterval: number = 300) {
 
       return new Response("404");
     },
+    port: Math.floor(Math.random() * 10000) + 30000,
   });
 
   return server;
