@@ -1,10 +1,4 @@
-import {
-  JourneyEvent,
-  JourneyCommittedEvent,
-  TypedJourneyEvent,
-  LocalEvents,
-  TypedJourneyCommittedEvent,
-} from "./events";
+import { JourneyEvent, JourneyCommittedEvent } from "./events";
 
 export interface JourneyInstance {
   commit<P extends Record<string, any>, M = unknown>(
