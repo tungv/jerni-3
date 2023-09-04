@@ -5,6 +5,7 @@ import { LocalEvents } from "jerni/type";
 import BankAccountModel from "./fixtures/BankAccountModel";
 import { MongoClient } from "mongodb";
 import initJourney from "./makeTestJourney";
+import startWorker from "./startWorker";
 
 describe("e2e_mongodb_create_and_get", () => {
   it("should pass", async () => {
@@ -104,9 +105,3 @@ describe("e2e_mongodb_create_and_get", () => {
     });
   });
 });
-
-async function startWorker(journey: JourneyInstance, signal: AbortSignal) {
-  for await (const events of journey.begin(signal)) {
-    console.log("events", events);
-  }
-}
