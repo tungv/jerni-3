@@ -25,6 +25,7 @@ export interface JourneyInstance {
 
   waitFor<P = any, M = undefined>(
     event: JourneyCommittedEvent<P, M>,
+    timeoutOrSignal?: number | AbortSignal,
   ): Promise<void>;
   getReader: GetReaderFn;
   dispose: () => Promise<void>;
