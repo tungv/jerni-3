@@ -77,7 +77,7 @@ export default function createWaiter(
   async function wait(number: number, abortOrTimeout?: number | AbortSignal) {
     if (abortOrTimeout) {
       if (typeof abortOrTimeout === "number") {
-        return waitUntilDeadline(number, Date.now() + abortOrTimeout);
+        return waitUntilDeadline(number, abortOrTimeout);
       }
 
       return waitUntilAborted(number, abortOrTimeout);
@@ -89,31 +89,31 @@ export default function createWaiter(
     }
   }
 
-  async function waitUntilDeadline(number: number, deadline: number) {
-    if (isAllReached(number)) {
-      return;
-    }
+  async function waitUntilDeadline(number: number, timeoutMs: number) {
+    const ctrl = new AbortController();
+    const signal = ctrl.signal;
 
-    if (Date.now() > deadline) {
-      throw new Error("waiter timeout");
-    }
+    const timeout = setTimeout(() => {
+      ctrl.abort();
+    }, timeoutMs);
 
-    const [value] = (await EventEmitter.once(emitter, "increment")) as [number];
-    if (value >= number) {
-      return waitUntilDeadline(number, deadline);
+    try {
+      await waitUntilAborted(number, signal);
+    } finally {
+      clearTimeout(timeout);
     }
   }
 
   async function waitUntilAborted(number: number, signal: AbortSignal) {
+    // if all slots have reached the number, return immediately
     if (isAllReached(number)) {
       return;
     }
 
-    if (signal.aborted) {
-      throw new Error("waiter aborted");
-    }
+    const [value] = (await EventEmitter.once(emitter, "increment", {
+      signal,
+    })) as [number];
 
-    const [value] = (await EventEmitter.once(emitter, "increment")) as [number];
     if (value >= number) {
       return waitUntilAborted(number, signal);
     }
