@@ -1,3 +1,4 @@
+import skip from "src/lib/skip";
 import { Logger } from "./Logger";
 import { JourneyCommittedEvent } from "./events";
 
@@ -32,7 +33,7 @@ interface StoreMeta {
   includes: string[];
 }
 
-interface Store {
+export interface Store {
   name: string;
   meta: StoreMeta;
 
@@ -63,7 +64,7 @@ interface Store {
 }
 
 interface OnError {
-  (error: Error): void;
+  (error: Error, event: JourneyCommittedEvent): undefined | typeof skip;
 }
 
 interface OnReport {
