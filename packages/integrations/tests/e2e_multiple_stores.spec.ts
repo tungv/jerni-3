@@ -1,7 +1,6 @@
 import { makeMongoDBStore } from "@jerni/store-mongodb";
 import { describe, it, expect } from "bun:test";
 import createServer from "src/events-server";
-import { LocalEvents } from "jerni/type";
 import BankAccountModel from "./fixtures/BankAccountModel";
 import BankAccountModel_2 from "./fixtures/BankAccountModel_2";
 import { MongoClient } from "mongodb";
@@ -61,9 +60,7 @@ describe("e2e_multiple_stores", () => {
     startWorker(worker.journey, ctrl.signal);
 
     // commit event
-    const event1 = await app.journey.commit<
-      LocalEvents["NEW_ACCOUNT_REGISTERED"]
-    >({
+    await app.journey.append({
       type: "NEW_ACCOUNT_REGISTERED",
       payload: {
         id: "123",
@@ -71,7 +68,7 @@ describe("e2e_multiple_stores", () => {
       },
     });
 
-    const event2 = await app.journey.commit<LocalEvents["ACCOUNT_DEPOSITED"]>({
+    const event2 = await app.journey.append({
       type: "ACCOUNT_DEPOSITED",
       payload: {
         id: "123",
