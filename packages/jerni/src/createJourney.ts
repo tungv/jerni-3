@@ -2,6 +2,7 @@ import { getEventSource } from "./getEventSource";
 import { JourneyConfig } from "./types/config";
 import {
   JourneyCommittedEvent,
+  LocalEvents,
   TypedJourneyCommittedEvent,
   TypedJourneyEvent,
 } from "./types/events";
@@ -50,6 +51,21 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
         uncommittedEvent,
       );
     },
+
+    async append<T extends keyof LocalEvents>(uncommittedEvent: {
+      type: Exclude<T, number>;
+      payload: LocalEvents[T];
+    }) {
+      return commitToServer(
+        logger,
+        url,
+        logSafeUrl,
+        onReport,
+        onError,
+        uncommittedEvent,
+      );
+    },
+
     async waitFor(
       event: Pick<JourneyCommittedEvent, "id" | "meta">,
       timeoutOrSignal?: number | AbortSignal,
