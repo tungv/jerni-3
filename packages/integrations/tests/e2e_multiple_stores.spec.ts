@@ -53,8 +53,8 @@ describe("e2e_multiple_stores", () => {
       }),
     ];
 
-    const app = await initJourney(dbName, storeMongoDbForAppArray, port);
-    const worker = await initJourney(dbName, storeMongoDbForWorkerArray, port);
+    const app = await initJourney(storeMongoDbForAppArray, port);
+    const worker = await initJourney(storeMongoDbForWorkerArray, port);
 
     // start worker
     startWorker(worker.journey, ctrl.signal);

@@ -1,11 +1,12 @@
 import makeTestLogger from "./makeTestLogger";
 import { JourneyConfig } from "jerni/type";
 import createJourney from "jerni";
+import { JourneyCommittedEvent } from "@jerni/store-mongodb/lib/src/types";
 
 export default async function initJourney(
-  dbName: string,
   stores: JourneyConfig["stores"],
   serverPort: number,
+  onError?: (error: Error, event: JourneyCommittedEvent) => void,
 ) {
   const logger = makeTestLogger();
 
@@ -13,8 +14,8 @@ export default async function initJourney(
     server: `http://localhost:${serverPort}`,
     // server,
     stores,
-    onError: (error) => {
-      logger.error(error);
+    onError: (error, event) => {
+      onError?.(error, event);
     },
     onReport: (reportType, reportData) => {
       console.info(

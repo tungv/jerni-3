@@ -38,8 +38,8 @@ describe("e2e_mongodb_create_and_get", () => {
       models: [BankAccountModel],
     });
 
-    const app = await initJourney(dbName, [storeMongoDbForApp], port);
-    const worker = await initJourney(dbName, [storeMongoDbForWorker], port);
+    const app = await initJourney([storeMongoDbForApp], port);
+    const worker = await initJourney([storeMongoDbForWorker], port);
 
     // start worker
     startWorker(worker.journey, ctrl.signal);

@@ -1,5 +1,5 @@
 import { getEventSource } from "./getEventSource";
-import { JourneyConfig } from "./types/config";
+import { JourneyConfig, Store } from "./types/config";
 import {
   JourneyCommittedEvent,
   LocalEvents,
@@ -10,6 +10,10 @@ import { JourneyInstance } from "./types/journey";
 import createWaiter from "./waiter";
 import normalizeUrl from "./lib/normalize-url";
 import commitToServer from "./lib/commit";
+import skip from "./lib/skip";
+import UnrecoverableError from "./UnrecoverableError";
+import EventEmitter from "events";
+import JerniPersistenceError from "./JerniPersistenceError";
 
 const MyEventSource = getEventSource();
 
@@ -28,15 +32,72 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
     url: logSafeUrl.toString(),
   });
 
-  logger.debug("[JERNI | DBG] using server url: %s", logSafeUrl.toString());
+  logger.debug("using server url: %s", logSafeUrl.toString());
 
   // loop through all stores and map them to their models
-  logger.debug("[JERNI | DBG] registering models...");
+  logger.debug("registering models...");
   for (const store of config.stores) {
     store.registerModels(modelToStoreMap);
   }
 
   const waiter = createWaiter(config.stores.length);
+
+  async function handleEvents(events: JourneyCommittedEvent[]) {
+    logger.debug("received events", events);
+    const output = await Promise.all(
+      config.stores.map((store) => singleStoreHandleEvents(store, events)),
+    );
+    console.info("output", output);
+  }
+
+  async function singleStoreHandleEvents(
+    store: Store,
+    events: JourneyCommittedEvent[],
+  ) {
+    if (events.length === 0) {
+      return [];
+    }
+
+    logger.debug(
+      "store: %s is handling events [%d - %d]",
+      store.name,
+      events[0].id,
+      events[events.length - 1].id,
+    );
+    try {
+      const output = await store.handleEvents(events);
+
+      return output;
+    } catch (ex) {
+      // if there is only one event, we don't need to bisect
+      if (events.length === 1) {
+        const resolution = onError(wrapError(ex), events[0]);
+        if (resolution === skip) {
+          return [];
+        }
+        throw new UnrecoverableError(events[0]);
+      }
+
+      // bisect events
+      const mid = Math.floor(events.length / 2);
+      const left = events.slice(0, mid);
+      const right = events.slice(mid);
+
+      // retry left
+      try {
+        const leftOutput = await singleStoreHandleEvents(store, left);
+      } catch (retryEx) {
+        // if left fails
+      }
+
+      // if left succeeds, retry right
+      try {
+        const rightOutput = await singleStoreHandleEvents(store, right);
+      } catch (retryEx) {
+        // if right fails
+      }
+    }
+  }
 
   return {
     async commit<T extends string>(
@@ -67,7 +128,7 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
     },
 
     async waitFor(
-      event: Pick<JourneyCommittedEvent, "id" | "meta">,
+      event: JourneyCommittedEvent,
       timeoutOrSignal?: number | AbortSignal,
     ) {
       logger.debug("waiting for event", event.id);
@@ -91,10 +152,24 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
       }
 
       const { id } = event;
-      if (timeoutOrSignal) {
-        await waiter.wait(id, timeoutOrSignal);
-      } else {
-        await waiter.wait(id, 3_000);
+      const start = Date.now();
+      try {
+        if (timeoutOrSignal) {
+          await waiter.wait(id, timeoutOrSignal);
+        } else {
+          await waiter.wait(id, 3_000);
+        }
+      } catch (ex) {
+        if (ex instanceof Error && ex.name === "AbortError") {
+          const end = Date.now();
+          const elapsed = end - start;
+          logger.error("event", event.id, "is not ready in", elapsed, "ms");
+          onReport("event_wait_timeout", {
+            event_id: event.id,
+            elapsed,
+          });
+          throw new JerniPersistenceError(event, elapsed);
+        }
       }
 
       logger.debug("event", event.id, "is ready");
@@ -119,7 +194,7 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
       return store.getDriver(model);
     },
     dispose: async () => {
-      logger.debug("[JERNI | INF] Disposing journey...");
+      logger.debug("Disposing journey...");
 
       // dispose all stores
       for (const store of config.stores) {
@@ -128,7 +203,8 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
     },
 
     async *begin(signal?: AbortSignal) {
-      logger.debug("[JERNI | INF] Starting journey...");
+      const emitter = new EventEmitter();
+      logger.debug("Starting journey...");
 
       // $SERVER/subscribe
       const subscriptionUrl = new URL("subscribe", url);
@@ -166,11 +242,19 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
 
       ev.addEventListener("INCMSG", async (event) => {
         const data = JSON.parse(event.data) as JourneyCommittedEvent[];
-        logger.debug("received events", data);
-        const output = await Promise.all(
-          config.stores.map((store) => store.handleEvents(data)),
-        );
-        console.info("output", output);
+        try {
+          await handleEvents(data);
+        } catch (ex) {
+          if (ex instanceof UnrecoverableError) {
+            logger.error(ex);
+
+            logger.info(
+              "connection forcefully closed because of unrecoverable error",
+            );
+            ev.close();
+            emitter.emit("close");
+          }
+        }
       });
 
       ev.addEventListener("error", (event) => {
@@ -179,7 +263,41 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
         ev.close();
       });
 
+      await EventEmitter.once(emitter, "close");
+      console.log("closed");
+
       return;
     },
   };
+}
+
+function wrapError(errorOrUnknown: unknown): Error {
+  if (errorOrUnknown instanceof Error) {
+    return errorOrUnknown;
+  }
+
+  if (typeof errorOrUnknown === "string") {
+    return new Error(errorOrUnknown);
+  }
+
+  if (typeof errorOrUnknown !== "object") {
+    return new Error(JSON.stringify(errorOrUnknown));
+  }
+
+  if (errorOrUnknown == null) {
+    return new Error("UnknownError");
+  }
+
+  if ("name" in errorOrUnknown && typeof errorOrUnknown.name === "string") {
+    return new Error(errorOrUnknown.name);
+  }
+
+  if (
+    "message" in errorOrUnknown &&
+    typeof errorOrUnknown.message === "string"
+  ) {
+    return new Error(errorOrUnknown.message);
+  }
+
+  return new Error(JSON.stringify(errorOrUnknown));
 }

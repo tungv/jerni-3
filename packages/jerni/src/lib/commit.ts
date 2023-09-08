@@ -2,6 +2,7 @@ import { nanoid } from "nanoid";
 import { readPackageUpSync } from "read-pkg-up";
 import { Logger } from "src/types/Logger";
 import {
+  JourneyCommittedEvent,
   TypedJourneyCommittedEvent,
   TypedJourneyEvent,
 } from "src/types/events";
@@ -13,10 +14,10 @@ export default async function commitToServer<T extends string>(
   url: URL,
   logSafeUrl: URL,
   onReport: (type: string, payload: any) => void,
-  onError: (error: Error) => void,
+  onError: (error: Error, event: JourneyCommittedEvent) => void,
   eventToCommit: TypedJourneyEvent<T>,
 ): Promise<TypedJourneyCommittedEvent<T>> {
-  logger.log("committing...");
+  logger.debug("committing...");
   const commitUrl = new URL("commit", url);
 
   const localId = nanoid();
@@ -74,7 +75,7 @@ export default async function commitToServer<T extends string>(
   });
 
   logger.info(
-    "[JERNI | INF] committed event: #%d - %s",
+    "committed event: #%d - %s",
     committedEvent.id,
     committedEvent.type,
   );
