@@ -2,7 +2,7 @@ export default function makeTestLogger() {
   const logs: string[][] = [];
   return {
     debug: (...msg: any[]) => {
-      logs.push(msg);
+      // logs.push(msg);
     },
     log: (...msg: any[]) => {
       logs.push(msg);
