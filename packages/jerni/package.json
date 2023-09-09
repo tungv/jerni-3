@@ -13,6 +13,7 @@
     "./type": "./src/lib/exported_types.ts",
     "./lib/mapEvents": "./src/lib/mapEvents.ts",
     "./lib/errors/JerniPersistenceError": "./src/JerniPersistenceError.ts",
-    "./lib/errors/UnrecoverableError": "./src/UnrecoverableError.ts"
+    "./lib/errors/UnrecoverableError": "./src/UnrecoverableError.ts",
+    "./lib/skip": "./src/lib/skip.ts"
   }
 }
