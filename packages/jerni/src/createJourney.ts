@@ -44,15 +44,24 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
 
   async function handleEvents(events: JourneyCommittedEvent[]) {
     logger.debug("received events", events);
-    const output = await Promise.all(
-      config.stores.map((store) => singleStoreHandleEvents(store, events)),
-    );
-    logger.info("output", output);
+    try {
+      const output = await Promise.all(
+        config.stores.map((store) => singleStoreHandleEvents(store, events)),
+      );
+      logger.info("output", output);
+    } catch (ex) {
+      if (ex instanceof UnrecoverableError) {
+        throw ex;
+      }
+      console.log("ex", ex);
+    }
   }
 
   async function singleStoreHandleEvents(
     store: Store,
     events: JourneyCommittedEvent[],
+    indent = 0,
+    total = events.length,
   ) {
     if (events.length === 0) {
       return [];
@@ -60,68 +69,113 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
 
     const firstId = events[0].id;
     const lastId = events[events.length - 1].id;
+    const conclusion = "└";
+    const intermediateStep = "├";
+    const indentStr = "│ ".repeat(indent);
+    const maxLog = Math.log2(events.length) | 0;
+    const tab = "..".repeat(3 + Math.max(0, maxLog));
+    const I = `${indentStr}${intermediateStep}`;
+    const C = `${indentStr}${conclusion}`;
 
-    logger.debug(
-      "store: %s is handling events [%d - %d]",
-      store.name,
-      firstId,
-      lastId,
-    );
+    if (indent === 0) {
+      logger.info(
+        "%s store: %s is handling events [#%d - #%d]",
+        intermediateStep,
+        store.name,
+        firstId,
+        lastId,
+      );
+    }
+
     try {
       const output = await store.handleEvents(events);
 
       return output;
     } catch (ex) {
-      logger.log(
-        `store ${store.name}: encountered error [${firstId} - ${lastId}]`,
-      );
-
       // if there is only one event, we don't need to bisect
       if (events.length === 1) {
-        logger.info("Identified offending event");
+        logger.info(
+          `${I} 🔍 Identified offending event:  #${events[0].id} - ${events[0].type}`,
+        );
         const resolution = onError(wrapError(ex), events[0]);
 
         if (resolution === skip) {
-          logger.log('resolution is "skip". Move on!');
+          logger.log(`${I} ▶️ Resolution is SKIP .......... MOVE ON!`);
           return [];
         }
-        logger.log('resolution is not "skip". Stop worker!');
+        logger.log(`${C} 💀 Resolution is not SKIP       STOP WORKER!`);
         throw new UnrecoverableError(events[0]);
+      } else {
+        logger.log(
+          `${I} 🔴 Encountered error ....${tab} between #${firstId} and #${lastId}`,
+        );
       }
-      logger.debug("trying to bisect events");
 
       // bisect events
       const mid = Math.floor(events.length / 2);
-      logger.debug("[BISECT] mid", mid);
+      const midId = events[mid].id;
+      const maxStep = Math.log2(total) | 0;
+      const bisectDescription = `step ${indent + 1} of ${maxStep}`;
+      logger.info(`${I} Bisecting ...............${tab} ${bisectDescription}`);
       const left = events.slice(0, mid);
       const right = events.slice(mid);
 
       // retry left
       try {
-        const leftOutput = await singleStoreHandleEvents(store, left);
-        logger.debug("[BISECT] left succeeds");
+        if (left.length === 1) {
+          logger.info(
+            `${I} Retry LEFT ..............${tab} #${firstId} - ${events[0].type}`,
+          );
+        } else {
+          logger.info(
+            `${I} Retry LEFT ..............${tab} [#${firstId} - #${
+              midId - 1
+            }]`,
+          );
+        }
+        const start = Date.now();
+        const leftOutput = await singleStoreHandleEvents(
+          store,
+          left,
+          indent + 1,
+          total,
+        );
+        const end = Date.now();
+        logger.log(
+          `${I} 🟢    LEFT SUCCESS ......${tab} took ${end - start}ms`,
+        );
       } catch (retryEx) {
-        // if left fails
-        logger.debug("[BISECT] left fails");
-
         // is it recoverable?
         if (retryEx instanceof UnrecoverableError) {
-          logger.warn("[BISECT] left is unrecoverable");
+          logger.debug(`${C} left is unrecoverable`);
           throw retryEx;
         }
       }
 
       // if left succeeds, retry right
       try {
-        const rightOutput = await singleStoreHandleEvents(store, right);
-        logger.debug("[BISECT] right succeeds");
+        if (right.length === 1) {
+          logger.info(
+            `${I} Retry RIGHT .............${tab} 1 event on from #${midId}`,
+          );
+        } else {
+          logger.info(
+            `${I} Retry RIGHT .............${tab} [#${midId} - #${lastId}]`,
+          );
+        }
+        const start = Date.now();
+        const rightOutput = await singleStoreHandleEvents(
+          store,
+          right,
+          indent + 1,
+          total,
+        );
+        const end = Date.now();
+        logger.log(`${I} 🟢 RIGHT SUCCESS ......${tab} took ${end - start}ms`);
       } catch (retryEx) {
-        // if right fails
-        logger.debug("[BISECT] right fails");
-
         // is it recoverable?
         if (retryEx instanceof UnrecoverableError) {
-          logger.warn("[BISECT] right is unrecoverable");
+          logger.debug(`${C} right is unrecoverable`);
           throw retryEx;
         }
       }
