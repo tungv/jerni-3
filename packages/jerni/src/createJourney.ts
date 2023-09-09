@@ -47,7 +47,7 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
     const output = await Promise.all(
       config.stores.map((store) => singleStoreHandleEvents(store, events)),
     );
-    console.info("output", output);
+    logger.info("output", output);
   }
 
   async function singleStoreHandleEvents(
@@ -58,43 +58,72 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
       return [];
     }
 
+    const firstId = events[0].id;
+    const lastId = events[events.length - 1].id;
+
     logger.debug(
       "store: %s is handling events [%d - %d]",
       store.name,
-      events[0].id,
-      events[events.length - 1].id,
+      firstId,
+      lastId,
     );
     try {
       const output = await store.handleEvents(events);
 
       return output;
     } catch (ex) {
+      logger.log(
+        `store ${store.name}: encountered error [${firstId} - ${lastId}]`,
+      );
+
       // if there is only one event, we don't need to bisect
       if (events.length === 1) {
+        logger.info("Identified offending event");
         const resolution = onError(wrapError(ex), events[0]);
+
         if (resolution === skip) {
+          logger.log('resolution is "skip". Move on!');
           return [];
         }
+        logger.log('resolution is not "skip". Stop worker!');
         throw new UnrecoverableError(events[0]);
       }
+      logger.debug("trying to bisect events");
 
       // bisect events
       const mid = Math.floor(events.length / 2);
+      logger.debug("[BISECT] mid", mid);
       const left = events.slice(0, mid);
       const right = events.slice(mid);
 
       // retry left
       try {
         const leftOutput = await singleStoreHandleEvents(store, left);
+        logger.debug("[BISECT] left succeeds");
       } catch (retryEx) {
         // if left fails
+        logger.debug("[BISECT] left fails");
+
+        // is it recoverable?
+        if (retryEx instanceof UnrecoverableError) {
+          logger.warn("[BISECT] left is unrecoverable");
+          throw retryEx;
+        }
       }
 
       // if left succeeds, retry right
       try {
         const rightOutput = await singleStoreHandleEvents(store, right);
+        logger.debug("[BISECT] right succeeds");
       } catch (retryEx) {
         // if right fails
+        logger.debug("[BISECT] right fails");
+
+        // is it recoverable?
+        if (retryEx instanceof UnrecoverableError) {
+          logger.warn("[BISECT] right is unrecoverable");
+          throw retryEx;
+        }
       }
     }
   }
@@ -246,8 +275,6 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
           await handleEvents(data);
         } catch (ex) {
           if (ex instanceof UnrecoverableError) {
-            logger.error(ex);
-
             logger.info(
               "connection forcefully closed because of unrecoverable error",
             );
