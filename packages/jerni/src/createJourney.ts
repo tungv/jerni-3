@@ -287,6 +287,11 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
       const emitter = new EventEmitter();
       logger.debug("Starting journey...");
 
+      signal?.addEventListener("abort", () => {
+        logger.debug("aborting journey...");
+        emitter.emit("close");
+      });
+
       // $SERVER/subscribe
       const subscriptionUrl = new URL("subscribe", url);
       // $SERVER/events/latest
@@ -343,7 +348,6 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
       });
 
       await EventEmitter.once(emitter, "close");
-      console.log("closed");
 
       return;
     },
