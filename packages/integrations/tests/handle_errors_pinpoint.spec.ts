@@ -66,17 +66,11 @@ describe("e2e_handle_errors", () => {
     function onError(err: Error, event: JourneyCommittedEvent) {
       expect(err.message).toEqual("failure");
       expect(event.type).toEqual("FAILURE_EVENT");
-      expect(event.id).toEqual(3);
+      expect(event.id).toEqual(8);
     }
 
     const app = await initJourney([appStore], port);
     const worker = await initJourney([workerStore], port, onError);
-
-    // commit a 4 events before the worker starts
-    // PASS
-    // PASS
-    // FAILED
-    // PASS
 
     const OK_EVENT = {
       type: "OK_EVENT",
@@ -88,11 +82,17 @@ describe("e2e_handle_errors", () => {
       payload: {},
     } as const;
 
-    await app.journey.append(OK_EVENT);
-    await app.journey.append(OK_EVENT);
+    await app.journey.append(OK_EVENT); // 1
+    await app.journey.append(OK_EVENT); // 2
+    await app.journey.append(OK_EVENT); // 3
+    await app.journey.append(OK_EVENT); // 4
+    await app.journey.append(OK_EVENT); // 5
+    await app.journey.append(OK_EVENT); // 6
+    await app.journey.append(OK_EVENT); // 7
     await app.journey.append(FAILURE_EVENT);
     await app.journey.append(OK_EVENT);
-    console.log("committed 4 events");
+    await app.journey.append(OK_EVENT);
+    console.log("committed 10 events");
 
     // close app because we only want to test the worker
     await app.journey.dispose();
