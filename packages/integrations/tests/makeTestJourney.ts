@@ -15,7 +15,7 @@ export default async function initJourney(
     // server,
     stores,
     onError: (error, event) => {
-      onError?.(error, event);
+      return onError?.(error, event);
     },
     onReport: (reportType, reportData) => {
       console.info(
