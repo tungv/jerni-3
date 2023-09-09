@@ -116,7 +116,7 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
       const midId = events[mid].id;
       const maxStep = Math.log2(total) | 0;
       const bisectDescription = `step ${indent + 1} of ${maxStep}`;
-      logger.info(`${I} Bisecting ...............${tab} ${bisectDescription}`);
+      logger.info(`${I} Bisecting: ${bisectDescription}`);
       const left = events.slice(0, mid);
       const right = events.slice(mid);
 
@@ -141,9 +141,7 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
           total,
         );
         const end = Date.now();
-        logger.log(
-          `${I} 🟢    LEFT SUCCESS ......${tab} took ${end - start}ms`,
-        );
+        logger.log(`${I} 🟢    LEFT SUCCESS (took ${end - start}ms)`);
       } catch (retryEx) {
         // is it recoverable?
         if (retryEx instanceof UnrecoverableError) {
@@ -171,7 +169,7 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
           total,
         );
         const end = Date.now();
-        logger.log(`${I} 🟢 RIGHT SUCCESS ......${tab} took ${end - start}ms`);
+        logger.log(`${I} 🟢 RIGHT SUCCESS (took ${end - start}ms)`);
       } catch (retryEx) {
         // is it recoverable?
         if (retryEx instanceof UnrecoverableError) {
