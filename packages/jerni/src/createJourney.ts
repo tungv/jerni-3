@@ -76,6 +76,7 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
     const tab = "..".repeat(3 + Math.max(0, maxLog));
     const I = `${indentStr}${intermediateStep}`;
     const C = `${indentStr}${conclusion}`;
+    const T = "└─".repeat(indent); // termination line
 
     if (indent === 0) {
       logger.info(
@@ -103,7 +104,7 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
           logger.log(`${I} ▶️ Resolution is SKIP .......... MOVE ON!`);
           return [];
         }
-        logger.log(`${C} 💀 Resolution is not SKIP       STOP WORKER!`);
+        logger.log(`${T} 💀 Resolution is not SKIP       STOP WORKER!`);
         throw new UnrecoverableError(events[0]);
       } else {
         logger.log(
@@ -114,7 +115,7 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
       // bisect events
       const mid = Math.floor(events.length / 2);
       const midId = events[mid].id;
-      const maxStep = Math.log2(total) | 0;
+      const maxStep = Math.ceil(Math.log2(total));
       const bisectDescription = `step ${indent + 1} of ${maxStep}`;
       logger.info(`${I} Bisecting: ${bisectDescription}`);
       const left = events.slice(0, mid);
