@@ -73,6 +73,27 @@ describe("e2e_mongodb_create_and_get", () => {
 
     await app.journey.waitFor(event1);
 
+    // check report
+    // because bun doesn't support toHaveBeenCalledWith, we need to check the mock calls
+    const reports = worker.onReport.mock.calls;
+    const outputReport = reports.find(([type]) => {
+      return type === "store_output";
+    });
+
+    expect(outputReport).toEqual([
+      "store_output",
+      {
+        output: {
+          bank_accounts_v1: {
+            added: 1,
+            updated: 0,
+            deleted: 0,
+          },
+        },
+        store: storeMongoDbForWorker,
+      },
+    ]);
+
     // read
     const BankAccounts = await app.journey.getReader(BankAccountModel);
 
