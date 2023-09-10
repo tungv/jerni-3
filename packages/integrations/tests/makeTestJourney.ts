@@ -2,6 +2,7 @@ import makeTestLogger from "./makeTestLogger";
 import { JourneyConfig } from "jerni/type";
 import createJourney from "jerni";
 import { JourneyCommittedEvent } from "@jerni/store-mongodb/lib/src/types";
+import { mock } from "bun:test";
 
 export default async function initJourney(
   stores: JourneyConfig["stores"],
@@ -9,6 +10,8 @@ export default async function initJourney(
   onError?: (error: Error, event: JourneyCommittedEvent) => void,
 ) {
   const logger = makeTestLogger();
+
+  const onReport = mock((type: string, payload: any) => {});
 
   const journey = createJourney({
     server: `http://localhost:${serverPort}`,
@@ -23,6 +26,8 @@ export default async function initJourney(
         reportType,
         JSON.stringify(reportData),
       );
+
+      onReport(reportType, reportData);
     },
     logger,
   });
@@ -30,5 +35,6 @@ export default async function initJourney(
   return {
     journey,
     logger,
+    onReport,
   };
 }
