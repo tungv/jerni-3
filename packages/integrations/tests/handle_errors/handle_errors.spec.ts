@@ -2,8 +2,8 @@ import { MongoDBModel, makeMongoDBStore } from "@jerni/store-mongodb";
 import { describe, it, expect } from "bun:test";
 import createServer from "src/events-server";
 import { MongoClient } from "mongodb";
-import initJourney from "./makeTestJourney";
-import startWorker from "./startWorker";
+import initJourney from "../makeTestJourney";
+import startWorker from "../startWorker";
 import mapEvents from "jerni/lib/mapEvents";
 import { JourneyCommittedEvent } from "@jerni/store-mongodb/lib/src/types";
 import JerniPersistenceError from "jerni/lib/errors/JerniPersistenceError";
@@ -11,35 +11,27 @@ import JerniPersistenceError from "jerni/lib/errors/JerniPersistenceError";
 declare module "jerni/type" {
   export interface LocalEvents {
     FAILURE_EVENT: {};
-    OK_EVENT: {};
   }
 }
 
-const FailureModel = new MongoDBModel<{ text: string }>({
+const FailureModel = new MongoDBModel<{}>({
   name: "failure",
   version: "1",
   transform: mapEvents({
     FAILURE_EVENT(_event) {
       throw new Error("failure");
     },
-    OK_EVENT(_event) {
-      return {
-        insertOne: {
-          text: "hello",
-        },
-      };
-    },
   }),
 });
 
 describe("e2e_handle_errors", () => {
-  it("should pinpoint the offending event", async () => {
+  it("should report error", async () => {
     const server = createServer();
     const port = server.port;
 
     console.log("events server port", port);
 
-    const dbName = "handle_errors_pin_point";
+    const dbName = "handle_errors";
 
     // clean up the database
     const client = await MongoClient.connect("mongodb://127.1:27017");
@@ -49,15 +41,8 @@ describe("e2e_handle_errors", () => {
 
     const ctrl = new AbortController();
 
-    const appStore = await makeMongoDBStore({
+    const store = await makeMongoDBStore({
       name: "mongodb-app-1",
-      url: `mongodb://127.1:27017/`,
-      dbName,
-      models: [FailureModel],
-    });
-
-    const workerStore = await makeMongoDBStore({
-      name: "mongodb-worker-1",
       url: `mongodb://127.1:27017/`,
       dbName,
       models: [FailureModel],
@@ -66,41 +51,35 @@ describe("e2e_handle_errors", () => {
     function onError(err: Error, event: JourneyCommittedEvent) {
       expect(err.message).toEqual("failure");
       expect(event.type).toEqual("FAILURE_EVENT");
-      expect(event.id).toEqual(8);
+      expect(event.id).toEqual(1);
     }
 
-    const app = await initJourney([appStore], port);
-    const worker = await initJourney([workerStore], port, onError);
+    const app = await initJourney([store], port);
+    const worker = await initJourney([store], port, onError);
 
-    const OK_EVENT = {
-      type: "OK_EVENT",
-      payload: {},
-    } as const;
+    // start worker
+    const stopped = startWorker(worker.journey, ctrl.signal);
 
-    const FAILURE_EVENT = {
+    // commit event
+    const event1 = await app.journey.append({
       type: "FAILURE_EVENT",
       payload: {},
-    } as const;
+    });
 
-    await app.journey.append(OK_EVENT); // 1
-    await app.journey.append(OK_EVENT); // 2
-    await app.journey.append(OK_EVENT); // 3
-    await app.journey.append(OK_EVENT); // 4
-    await app.journey.append(OK_EVENT); // 5
-    await app.journey.append(OK_EVENT); // 6
-    await app.journey.append(OK_EVENT); // 7
-    await app.journey.append(FAILURE_EVENT);
-    await app.journey.append(OK_EVENT);
-    await app.journey.append(OK_EVENT);
-    console.log("committed 10 events");
-
-    // close app because we only want to test the worker
-    await app.journey.dispose();
-
-    // start worker and wait for it to stop
-    // worker should stop because of the error not the signal, we intentionally avoid sending signal
-    await startWorker(worker.journey, ctrl.signal);
+    await stopped;
     console.log("stopped");
+
+    try {
+      // this should never be reached
+      await app.journey.waitFor(event1, 100);
+    } catch (ex) {
+      expect(ex instanceof JerniPersistenceError).toEqual(true);
+    }
+    console.log("waited");
+
+    ctrl.abort();
+
+    await app.journey.dispose();
     await worker.journey.dispose();
 
     console.log("APP LOGS");
