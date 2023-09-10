@@ -46,7 +46,13 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
     logger.debug("received events", events);
     try {
       const output = await Promise.all(
-        config.stores.map((store) => singleStoreHandleEvents(store, events)),
+        config.stores.map(async (store) => {
+          const output = await singleStoreHandleEvents(store, events);
+          onReport("store_output", {
+            store,
+            output,
+          });
+        }),
       );
       logger.info("output", output);
     } catch (ex) {
