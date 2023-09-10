@@ -21,12 +21,6 @@ export default async function initJourney(
       return onError?.(error, event);
     },
     onReport: (reportType, reportData) => {
-      console.info(
-        "REPORT :: [%s] | %s",
-        reportType,
-        JSON.stringify(reportData),
-      );
-
       onReport(reportType, reportData);
     },
     logger,

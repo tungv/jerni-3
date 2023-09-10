@@ -7,5 +7,4 @@ export default async function startWorker(
   for await (const events of journey.begin(signal)) {
     console.log("events", events);
   }
-  console.log("worker stopped");
 }

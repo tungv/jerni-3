@@ -38,8 +38,6 @@ describe("e2e_handle_errors", () => {
     const server = createServer();
     const port = server.port;
 
-    console.log("events server port", port);
-
     const dbName = "handle_errors_with_skip";
 
     // clean up the database
@@ -115,7 +113,6 @@ describe("e2e_handle_errors", () => {
     await app.journey.append(OK_EVENT);
 
     const lastEvent = await app.journey.append(OK_EVENT);
-    console.log("committed 10 events");
 
     // start worker
     const stopped = startWorker(worker.journey, ctrl.signal);
@@ -132,16 +129,5 @@ describe("e2e_handle_errors", () => {
 
     await app.journey.dispose();
     await worker.journey.dispose();
-
-    console.log("APP LOGS");
-    app.logger.logs.forEach((log) => {
-      console.log("app >>", ...log);
-    });
-
-    console.log("----------");
-    console.log("WORKER LOGS");
-    worker.logger.logs.forEach((log) => {
-      console.log("worker >>", ...log);
-    });
   });
 });

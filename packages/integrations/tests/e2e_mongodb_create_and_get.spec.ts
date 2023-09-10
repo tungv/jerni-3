@@ -12,8 +12,6 @@ describe("e2e_mongodb_create_and_get", () => {
     const server = createServer();
     const port = server.port;
 
-    console.log("events server port", port);
-
     const dbName = "testsss";
 
     // clean up the database
@@ -114,16 +112,5 @@ describe("e2e_mongodb_create_and_get", () => {
 
     await app.journey.dispose();
     await worker.journey.dispose();
-
-    console.log("APP LOGS");
-    app.logger.logs.forEach((log) => {
-      console.log("app >>", ...log);
-    });
-
-    console.log("----------");
-    console.log("WORKER LOGS");
-    worker.logger.logs.forEach((log) => {
-      console.log("worker >>", ...log);
-    });
   });
 });

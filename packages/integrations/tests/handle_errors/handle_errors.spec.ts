@@ -29,8 +29,6 @@ describe("e2e_handle_errors", () => {
     const server = createServer();
     const port = server.port;
 
-    console.log("events server port", port);
-
     const dbName = "handle_errors";
 
     // clean up the database
@@ -67,7 +65,6 @@ describe("e2e_handle_errors", () => {
     });
 
     await stopped;
-    console.log("stopped");
 
     try {
       // this should never be reached
@@ -75,22 +72,10 @@ describe("e2e_handle_errors", () => {
     } catch (ex) {
       expect(ex instanceof JerniPersistenceError).toEqual(true);
     }
-    console.log("waited");
 
     ctrl.abort();
 
     await app.journey.dispose();
     await worker.journey.dispose();
-
-    console.log("APP LOGS");
-    app.logger.logs.forEach((log) => {
-      console.log("app >>", ...log);
-    });
-
-    console.log("----------");
-    console.log("WORKER LOGS");
-    worker.logger.logs.forEach((log) => {
-      console.log("worker >>", ...log);
-    });
   });
 });

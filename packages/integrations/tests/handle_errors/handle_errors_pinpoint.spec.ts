@@ -37,8 +37,6 @@ describe("e2e_handle_errors", () => {
     const server = createServer();
     const port = server.port;
 
-    console.log("events server port", port);
-
     const dbName = "handle_errors_pin_point";
 
     // clean up the database
@@ -92,7 +90,6 @@ describe("e2e_handle_errors", () => {
     await app.journey.append(FAILURE_EVENT);
     await app.journey.append(OK_EVENT);
     await app.journey.append(OK_EVENT);
-    console.log("committed 10 events");
 
     // close app because we only want to test the worker
     await app.journey.dispose();
@@ -100,18 +97,6 @@ describe("e2e_handle_errors", () => {
     // start worker and wait for it to stop
     // worker should stop because of the error not the signal, we intentionally avoid sending signal
     await startWorker(worker.journey, ctrl.signal);
-    console.log("stopped");
     await worker.journey.dispose();
-
-    console.log("APP LOGS");
-    app.logger.logs.forEach((log) => {
-      console.log("app >>", ...log);
-    });
-
-    console.log("----------");
-    console.log("WORKER LOGS");
-    worker.logger.logs.forEach((log) => {
-      console.log("worker >>", ...log);
-    });
   });
 });

@@ -12,8 +12,6 @@ describe("e2e_multiple_stores", () => {
     const server = createServer();
     const port = server.port;
 
-    console.log("events server port", port);
-
     const dbName = "test-multiple-stores";
 
     // clean up the database
@@ -106,16 +104,5 @@ describe("e2e_multiple_stores", () => {
 
     await app.journey.dispose();
     await worker.journey.dispose();
-
-    console.log("APP LOGS");
-    app.logger.logs.forEach((log) => {
-      console.log("app >>", ...log);
-    });
-
-    console.log("----------");
-    console.log("WORKER LOGS");
-    worker.logger.logs.forEach((log) => {
-      console.log("worker >>", ...log);
-    });
   });
 });
