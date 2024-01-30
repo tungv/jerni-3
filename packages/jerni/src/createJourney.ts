@@ -16,6 +16,7 @@ import EventEmitter from "events";
 import JerniPersistenceError from "./JerniPersistenceError";
 
 const MyEventSource = getEventSource();
+const defaultLogger = console;
 
 export default function createJourney(config: JourneyConfig): JourneyInstance {
   let serverLatest = 0;
@@ -25,7 +26,7 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
 
   const modelToStoreMap = new Map<any, JourneyConfig["stores"][number]>();
 
-  const { logger, onReport, onError } = config;
+  const { logger = defaultLogger, onReport, onError } = config;
   const { url, logSafeUrl } = normalizeUrl(config);
 
   onReport("server_url_resolved", {
