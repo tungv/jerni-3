@@ -3,7 +3,7 @@ import createJourney from "jerni";
 export default async function simpleWorker() {
   console.log("Hello from worker!");
 
-  const journey = await createJourney({
+  const journey = createJourney({
     logger: console,
     stores: [],
     server: {
