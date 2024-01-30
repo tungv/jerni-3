@@ -5,6 +5,7 @@
   "main": "src/index.ts",
   "dependencies": {
     "nanoid": "^4.0.2",
+    "picocolors": "^1.0.0",
     "read-pkg-up": "^10.1.0",
     "typescript": "^5.2.2"
   },
