@@ -1,31 +1,58 @@
+import { bold, green, red } from "picocolors";
+import InvalidInputError from "./InvalidInputError";
+import { ERR, INF } from "./cli-utils/log-headers";
+import { assertFilePath } from "./assertFilePath";
+import { printErrorObject } from "./printErrorObject";
+
 interface Job {
   start: () => Promise<void>;
   stop: () => Promise<void>;
 }
 
-export default async function initWorker(filePath: string) {
-  console.log(`Starting worker ${filePath}...`);
-  const { default: initializer } = await import(filePath);
+export default async function initWorker(filePath: string | undefined) {
+  // validate file path
 
-  console.log("initializer", initializer);
+  const validFilePath = await assertFilePath(filePath);
 
-  const journey = await initializer();
+  console.log("%s jerni start %s", INF, bold(validFilePath));
 
-  console.log("journey", journey);
+  const { default: initializer } = await import(validFilePath);
 
-  const ctrl = new AbortController();
+  // check if initializer is an async function
+  if (typeof initializer !== "function") {
+    throw new InvalidInputError(
+      `Input file does not export a function as its default export
 
-  const job: Job = {
-    async start() {
-      for await (const events of journey.begin(ctrl.signal)) {
-        console.log("events", events);
-      }
-    },
+ ${red("- expected")}: export default async function initializer() { ... }
+ ${green("+   actual")}: export ${printErrorObject(initializer)}`,
+      "start",
+    );
+  }
 
-    async stop() {
-      ctrl.abort();
-    },
-  };
+  try {
+    // try to run initializer to get the journey object
+    const journey = await initializer();
 
-  return job;
+    console.log("journey", journey);
+
+    const ctrl = new AbortController();
+
+    const job: Job = {
+      async start() {
+        for await (const events of journey.begin(ctrl.signal)) {
+          console.log("events", events);
+        }
+      },
+
+      async stop() {
+        ctrl.abort();
+      },
+    };
+
+    return job;
+  } catch (error) {
+    console.error("%s cannot initialize journey object", ERR);
+
+    throw error;
+  }
 }
