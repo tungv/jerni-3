@@ -1,14 +1,12 @@
 {
   "name": "jerni-repo",
   "version": "3.0.0",
-  "workspaces": [
-    "packages/*"
-  ],
-  "type": "module",
   "devDependencies": {
     "bun-types": "latest"
   },
   "peerDependencies": {
-    "typescript": "5.2"
-  }
+    "typescript": "5.3"
+  },
+  "type": "module",
+  "workspaces": ["packages/*"]
 }
