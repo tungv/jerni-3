@@ -15,9 +15,11 @@ import UnrecoverableError from "./UnrecoverableError";
 import EventEmitter from "events";
 import JerniPersistenceError from "./JerniPersistenceError";
 import { DBG, INF } from "./cli-utils/log-headers";
+import { bold } from "picocolors";
 
 const MyEventSource = getEventSource();
 const defaultLogger = console;
+const noop = () => {};
 
 export default function createJourney(config: JourneyConfig): JourneyInstance {
   let serverLatest = 0;
@@ -27,36 +29,40 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
 
   const modelToStoreMap = new Map<any, JourneyConfig["stores"][number]>();
 
-  const { logger = defaultLogger, onReport, onError } = config;
+  const { logger = defaultLogger, onReport = noop, onError } = config;
   const { url, logSafeUrl } = normalizeUrl(config);
 
   onReport("server_url_resolved", {
     url: logSafeUrl.toString(),
   });
 
-  logger.debug("using server url: %s", logSafeUrl.toString());
+  logger.log("%s using server url: %s", INF, logSafeUrl.toString());
 
   // loop through all stores and map them to their models
-  logger.debug("registering models...");
+  logger.debug("%s registering models...", DBG);
   for (const store of config.stores) {
     store.registerModels(modelToStoreMap);
+    console.log("%s store %s complete", DBG, bold(store.toString()));
   }
 
   const waiter = createWaiter(config.stores.length);
 
   async function handleEvents(events: JourneyCommittedEvent[]) {
-    logger.debug("received events", events);
+    logger.debug("%s received %d events", DBG, events.length);
     try {
       const output = await Promise.all(
         config.stores.map(async (store) => {
           const output = await singleStoreHandleEvents(store, events);
+          console.log("output", output);
           onReport("store_output", {
             store,
             output,
           });
         }),
       );
-      logger.info("output", output);
+      if (output.some((output) => output)) {
+        logger.info("output", output);
+      }
     } catch (ex) {
       if (ex instanceof UnrecoverableError) {
         throw ex;
@@ -327,36 +333,50 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
       } else {
         logger.debug("%s include all", DBG);
       }
+
       // $SERVER/events/latest
       const getLatestUrl = new URL("events/latest", url);
 
+      logger.log("%s sync'ing with server...", INF);
       const response = await fetch(getLatestUrl.toString(), {
         headers: {
           "content-type": "application/json",
         },
         signal,
       });
-      const latestEvent: JourneyCommittedEvent<any, any> =
-        await response.json();
+      const latestEvent = (await response.json()) as JourneyCommittedEvent<
+        any,
+        any
+      >;
 
       serverLatest = latestEvent.id;
 
-      logger.debug("server latest event id:", serverLatest);
-      logger.debug("client latest event id:", clientLatest);
+      // get latest client
+
+      const lastSeens = await Promise.all(
+        config.stores.map((store) => store.getLastSeenId()),
+      );
+
+      const furthest = Math.min(...lastSeens.filter((id) => id !== null));
+      clientLatest = furthest === Infinity ? 0 : furthest;
+
+      logger.debug("%s server latest event id:", DBG, serverLatest);
+      logger.debug("%s client latest event id:", DBG, clientLatest);
 
       if (serverLatest > clientLatest) {
-        logger.debug("catching up...");
+        logger.debug("%s catching up...", DBG);
       }
 
       subscriptionUrl.searchParams.set("lastEventId", clientLatest.toString());
+
       const ev = new MyEventSource(subscriptionUrl.toString(), signal);
 
       ev.addEventListener("open", (event) => {
-        logger.info("start receiving data");
+        logger.info("%s start receiving data", INF);
       });
 
       ev.addEventListener("START", (event) => {
-        logger.debug("event", event.data);
+        // logger.debug("event", event.data);
       });
 
       ev.addEventListener("INCMSG", async (event) => {

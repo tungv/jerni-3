@@ -6,7 +6,7 @@ export type JourneyConfig = ServerOrWriteTo & {
   stores: Store[];
   dev?: boolean;
   onError: OnError;
-  onReport: OnReport;
+  onReport?: OnReport;
   logger?: Logger;
 };
 
