@@ -14,6 +14,7 @@ import skip from "./lib/skip";
 import UnrecoverableError from "./UnrecoverableError";
 import EventEmitter from "events";
 import JerniPersistenceError from "./JerniPersistenceError";
+import { DBG, INF } from "./cli-utils/log-headers";
 
 const MyEventSource = getEventSource();
 const defaultLogger = console;
@@ -292,8 +293,22 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
     },
 
     async *begin(signal?: AbortSignal) {
+      // we need to resolve all the event types needed
+      const includedTypes = new Set<string>();
+      let includeAll = false;
+      for (const store of config.stores) {
+        if (store.meta.includes.length === 0) {
+          includeAll = true;
+          break;
+        }
+        store.meta.includes.forEach((type) => includedTypes.add(type));
+      }
+
+      if (includedTypes.size === 0) {
+        includeAll = true;
+      }
+
       const emitter = new EventEmitter();
-      logger.debug("Starting journey...");
 
       signal?.addEventListener("abort", () => {
         logger.debug("aborting journey...");
@@ -302,6 +317,16 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
 
       // $SERVER/subscribe
       const subscriptionUrl = new URL("subscribe", url);
+      // subscribe url may have a include filter
+      if (!includeAll) {
+        logger.debug("%s includes", DBG, Array.from(includedTypes).join(","));
+        subscriptionUrl.searchParams.set(
+          "includes",
+          Array.from(includedTypes).join(","),
+        );
+      } else {
+        logger.debug("%s include all", DBG);
+      }
       // $SERVER/events/latest
       const getLatestUrl = new URL("events/latest", url);
 
