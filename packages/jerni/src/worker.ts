@@ -33,8 +33,6 @@ export default async function initWorker(filePath: string | undefined) {
     // try to run initializer to get the journey object
     const journey = await initializer();
 
-    console.log("journey", journey);
-
     const ctrl = new AbortController();
 
     const job: Job = {
