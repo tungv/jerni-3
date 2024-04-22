@@ -24,14 +24,6 @@ export default async function initJourney() {
     onError(err, event) {
       console.error(err, event);
     },
-    onReport(name, msg) {
-      // don't log in test env
-      if (process.env.NODE_ENV === "test") {
-        return;
-      }
-
-      console.log("%s > %s | %j", "JERNI", name, msg.data ?? "");
-    },
   });
 
   return journey;
