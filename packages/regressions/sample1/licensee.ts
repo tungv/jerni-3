@@ -1,5 +1,5 @@
 import { MongoDBModel } from "@jerni/store-mongodb";
-import { MongoOps } from "@jerni/store-mongodb/lib/src/types";
+import type { MongoOps } from "@jerni/store-mongodb/lib/src/types";
 import mapEvents from "jerni/lib/mapEvents";
 import { omitBy, isNil } from "lodash/fp";
 
@@ -11,8 +11,8 @@ export interface LicenseeDocumentModel {
   createdAt: number;
 }
 
-declare module "jerni" {
-  interface JerniSubscribedEvents {
+declare module "jerni/type" {
+  export interface LocalEvents {
     "SCANNER:LICENSEE_CREATED": {
       id: string;
       name: string;
