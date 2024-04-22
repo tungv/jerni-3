@@ -55,5 +55,13 @@ export default function mapEvents(eventsMap: any): any {
   }
 
   metaMap.set(transform, meta);
-  return transform;
+  return new Proxy(transform, {
+    get(target, prop: keyof typeof transform) {
+      if (prop === "meta") {
+        return meta;
+      }
+
+      return target[prop];
+    },
+  });
 }
