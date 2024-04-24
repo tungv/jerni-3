@@ -1,37 +1,11 @@
 {
   "name": "@jerni/store-mongodb",
-  "publishConfig": {
-    "access": "public"
-  },
   "version": "1.0.0-beta.12",
-  "description": "MongoDB store for jerni using mongodb native driver v4",
-  "main": "lib/src/index.js",
-  "types": "lib/src/index.d.ts",
+  "type": "module",
+  "main": "/src/index.ts",
   "files": [
-    "lib/src"
+    "src"
   ],
-  "scripts": {
-    "build": "tsc",
-    "prebuild": "rm -rf lib",
-    "prepare": "npm run build"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/tungv/jerni-store-mongodb.git"
-  },
-  "keywords": [
-    "jerni",
-    "store",
-    "heq",
-    "mongodb",
-    "events"
-  ],
-  "author": "Tung Vu <me@tungv.com>",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/tungv/jerni-store-mongodb/issues"
-  },
-  "homepage": "https://github.com/tungv/jerni-store-mongodb#readme",
   "dependencies": {
     "jerni": "^1.1.4",
     "mongodb": "^4.11.0",
@@ -42,5 +16,9 @@
     "jerni-dev": "^1.0.4",
     "ts-node": "^10.9.1",
     "typescript": "^5.1.6"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./lib/src/types": "./src/types.ts"
   }
 }
