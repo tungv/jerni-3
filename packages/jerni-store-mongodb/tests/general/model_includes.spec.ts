@@ -1,76 +1,79 @@
-import test from "ava";
+import { describe, expect, test } from "bun:test";
 import makeMongoDBStore from "../../src/store";
 import { JourneyCommittedEvent } from "../../src/types";
 
-test("it should register included event types from all models if they all specify their interested events", async (t) => {
-  const model1 = {
-    name: "model_1",
-    version: "1",
-    transform(_event: JourneyCommittedEvent) {
-      return [];
-    },
-    meta: {
-      includes: ["event_3", "event_2"],
-    },
-  };
+describe("Register events", () => {
+  test("it should register included event types from all models if they all specify their interested events", async () => {
+    const model1 = {
+      name: "model_1",
+      version: "1",
+      transform(_event: JourneyCommittedEvent) {
+        return [];
+      },
+      meta: {
+        includes: ["event_3", "event_2"],
+      },
+    };
 
-  const model2 = {
-    name: "model_2",
-    version: "1",
-    transform(_event: JourneyCommittedEvent) {
-      return [];
-    },
-    meta: {
-      includes: ["event_1", "event_2"],
-    },
-  };
+    const model2 = {
+      name: "model_2",
+      version: "1",
+      transform(_event: JourneyCommittedEvent) {
+        return [];
+      },
+      meta: {
+        includes: ["event_1", "event_2"],
+      },
+    };
 
-  const store = await makeMongoDBStore({
-    name: "test_register_models",
-    dbName: "mongodb_store_driver_v4_test_register_models",
-    url: "mongodb://127.0.0.1:27017",
-    models: [model1, model2],
+    const store = await makeMongoDBStore({
+      name: "test_register_models",
+      dbName: "mongodb_store_driver_v4_test_register_models",
+      url: "mongodb://127.0.0.1:27017",
+      models: [model1, model2],
+    });
+
+    const map = new Map();
+    store.registerModels(map);
+
+    expect(store.meta.includes).toEqual(["event_1", "event_2", "event_3"]);
+
+    await store.dispose();
   });
 
-  const map = new Map();
-  store.registerModels(map);
+  test("it should register all events if at least one model does not specify its interested events", async () => {
+    const model1 = {
+      name: "model_1",
+      version: "1",
+      transform(_event: JourneyCommittedEvent) {
+        return [];
+      },
+      meta: {
+        includes: ["event_3", "event_2"],
+      },
+    };
 
-  t.deepEqual(store.meta.includes, ["event_1", "event_2", "event_3"]);
+    const model2 = {
+      name: "model_2",
+      version: "1",
+      transform(_event: JourneyCommittedEvent) {
+        return [];
+      },
+    };
 
-  await store.dispose();
-});
+    const store = await makeMongoDBStore({
+      name: "test_register_models",
+      dbName: "mongodb_store_driver_v4_test_register_models",
+      url: "mongodb://127.0.0.1:27017",
+      models: [model1, model2],
+    });
 
-test("it should register all events if at least one model does not specify its interested events", async (t) => {
-  const model1 = {
-    name: "model_1",
-    version: "1",
-    transform(_event: JourneyCommittedEvent) {
-      return [];
-    },
-    meta: {
-      includes: ["event_3", "event_2"],
-    },
-  };
+    const map = new Map();
+    store.registerModels(map);
 
-  const model2 = {
-    name: "model_2",
-    version: "1",
-    transform(_event: JourneyCommittedEvent) {
-      return [];
-    },
-  };
+    // empty array means all events
+    expect(store.meta.includes).toEqual([]);
 
-  const store = await makeMongoDBStore({
-    name: "test_register_models",
-    dbName: "mongodb_store_driver_v4_test_register_models",
-    url: "mongodb://127.0.0.1:27017",
-    models: [model1, model2],
+    await store.dispose();
   });
-
-  const map = new Map();
-  store.registerModels(map);
-
-  t.deepEqual(store.meta.includes, []);
-
-  await store.dispose();
 });

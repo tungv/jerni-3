@@ -1,127 +1,131 @@
-import test from "ava";
 import makeMongoDBStore from "../../src/store";
 import MongoDBModel from "../../src/model";
 import { JourneyCommittedEvent } from "../../src/types";
+import { describe, expect, test } from "bun:test";
 
-test("it should not apply an insertOne twice", async (t) => {
-  interface TestCollection {
-    id: number;
-    name: string;
-  }
+describe("Optimistic Locking - Insert", () => {
+  test("it should not apply an insertOne twice", async () => {
+    interface TestCollection {
+      id: number;
+      name: string;
+    }
 
-  const model: MongoDBModel<TestCollection> = {
-    name: "model_2",
-    version: "1",
-    transform(event: JourneyCommittedEvent) {
-      return [
-        {
-          insertOne: { id: event.id, name: "test_" + event.type },
-        },
-      ];
-    },
-  };
+    const model: MongoDBModel<TestCollection> = {
+      name: "model_2",
+      version: "1",
+      transform(event: JourneyCommittedEvent) {
+        return [
+          {
+            insertOne: { id: event.id, name: "test_" + event.type },
+          },
+        ];
+      },
+    };
 
-  const store = await makeMongoDBStore({
-    name: "optimistic_locking",
-    dbName: "mongodb_store_driver_v4_optimistic",
-    url: "mongodb://127.0.0.1:27017",
-    models: [model],
+    const store = await makeMongoDBStore({
+      name: "optimistic_locking",
+      dbName: "mongodb_store_driver_v4_optimistic",
+      url: "mongodb://127.0.0.1:27017",
+      models: [model],
+    });
+
+    await store.clean();
+
+    await store.handleEvents([
+      {
+        id: 1,
+        type: "event_1",
+        payload: {},
+      },
+      {
+        id: 2,
+        type: "event_2",
+        payload: {},
+      },
+      {
+        id: 2,
+        type: "event_2",
+        payload: {},
+      },
+      {
+        id: 2,
+        type: "event_2",
+        payload: {},
+      },
+      {
+        id: 3,
+        type: "event_3",
+        payload: {},
+      },
+    ]);
+
+    const collection = store.getDriver(model);
+    const result = await collection.find().toArray();
+
+    expect(result.length).toBe(3);
   });
 
-  await store.clean();
+  test("it should not apply an insertMany twice", async () => {
+    interface TestCollection {
+      id: number;
+      name: string;
+    }
 
-  await store.handleEvents([
-    {
-      id: 1,
-      type: "event_1",
-      payload: {},
-    },
-    {
-      id: 2,
-      type: "event_2",
-      payload: {},
-    },
-    {
-      id: 2,
-      type: "event_2",
-      payload: {},
-    },
-    {
-      id: 2,
-      type: "event_2",
-      payload: {},
-    },
-    {
-      id: 3,
-      type: "event_3",
-      payload: {},
-    },
-  ]);
+    const model: MongoDBModel<TestCollection> = {
+      name: "model_3",
+      version: "1",
+      transform(event: JourneyCommittedEvent) {
+        return [
+          {
+            insertMany: [
+              { id: event.id, name: "test_" + event.type + "_first_pass" },
+              { id: event.id, name: "test_" + event.type + "_second_pass" },
+            ],
+          },
+        ];
+      },
+    };
 
-  const collection = store.getDriver(model);
-  const result = await collection.find().toArray();
-  t.is(result.length, 3);
-});
+    const store = await makeMongoDBStore({
+      name: "optimistic_locking",
+      dbName: "mongodb_store_driver_v4_optimistic",
+      url: "mongodb://127.0.0.1:27017",
+      models: [model],
+    });
 
-test("it should not apply an insertMany twice", async (t) => {
-  interface TestCollection {
-    id: number;
-    name: string;
-  }
+    await store.clean();
 
-  const model: MongoDBModel<TestCollection> = {
-    name: "model_3",
-    version: "1",
-    transform(event: JourneyCommittedEvent) {
-      return [
-        {
-          insertMany: [
-            { id: event.id, name: "test_" + event.type + "_first_pass" },
-            { id: event.id, name: "test_" + event.type + "_second_pass" },
-          ],
-        },
-      ];
-    },
-  };
+    await store.handleEvents([
+      {
+        id: 1,
+        type: "event_1",
+        payload: {},
+      },
+      {
+        id: 2,
+        type: "event_2",
+        payload: {},
+      },
+      {
+        id: 2,
+        type: "event_2",
+        payload: {},
+      },
+      {
+        id: 1,
+        type: "event_1",
+        payload: {},
+      },
+      {
+        id: 3,
+        type: "event_3",
+        payload: {},
+      },
+    ]);
 
-  const store = await makeMongoDBStore({
-    name: "optimistic_locking",
-    dbName: "mongodb_store_driver_v4_optimistic",
-    url: "mongodb://127.0.0.1:27017",
-    models: [model],
+    const collection = store.getDriver(model);
+    const result = await collection.find().toArray();
+
+    expect(result.length).toBe(6);
   });
-
-  await store.clean();
-
-  await store.handleEvents([
-    {
-      id: 1,
-      type: "event_1",
-      payload: {},
-    },
-    {
-      id: 2,
-      type: "event_2",
-      payload: {},
-    },
-    {
-      id: 2,
-      type: "event_2",
-      payload: {},
-    },
-    {
-      id: 1,
-      type: "event_1",
-      payload: {},
-    },
-    {
-      id: 3,
-      type: "event_3",
-      payload: {},
-    },
-  ]);
-
-  const collection = store.getDriver(model);
-  const result = await collection.find().toArray();
-  t.is(result.length, 6);
 });
