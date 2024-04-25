@@ -7,7 +7,7 @@
     "moduleDetection": "force",
     "allowImportingTsExtensions": true,
     "strict": true,
-    "strictNullCheck": true,
+    "strictNullChecks": true,
     "downlevelIteration": true,
     "skipLibCheck": true,
     "jsx": "preserve",

@@ -43,9 +43,7 @@ describe("e2e_mongodb_create_and_get", () => {
     startWorker(worker.journey, ctrl.signal);
 
     // commit event
-    const event1 = await app.journey.commit<
-      LocalEvents["NEW_ACCOUNT_REGISTERED"]
-    >({
+    const event1 = await app.journey.commit<LocalEvents["NEW_ACCOUNT_REGISTERED"]>({
       type: "NEW_ACCOUNT_REGISTERED",
       payload: {
         id: "123",
@@ -56,7 +54,7 @@ describe("e2e_mongodb_create_and_get", () => {
     expect(event1).toEqual({
       id: 1,
       meta: {
-        client: "integration-test-jerni",
+        client: "jerni",
         client_version: "3.0.0",
         committed_at: expect.any(Number),
         local_id: expect.any(String),

@@ -1,13 +1,12 @@
 import { nanoid } from "nanoid";
-import { readPackageUpSync } from "read-pkg-up";
+import { readPackageUpSync } from "read-package-up";
 import { Logger } from "src/types/Logger";
-import {
-  JourneyCommittedEvent,
-  TypedJourneyCommittedEvent,
-  TypedJourneyEvent,
-} from "src/types/events";
+import { JourneyCommittedEvent, TypedJourneyCommittedEvent, TypedJourneyEvent } from "src/types/events";
+import { URL } from "url";
 
-const parentPackage = readPackageUpSync();
+const parentPackage = readPackageUpSync({
+  cwd: __dirname,
+});
 
 export default async function commitToServer<T extends string>(
   logger: Logger,
@@ -67,17 +66,13 @@ export default async function commitToServer<T extends string>(
   const committedSuccessfullyAt = Date.now();
   const duration = committedSuccessfullyAt - event.meta.committed_at;
 
-  const committedEvent: TypedJourneyCommittedEvent<T> = await res.json();
+  const committedEvent = (await res.json()) as TypedJourneyCommittedEvent<T>;
   onReport("committed", {
     event_local_id: localId,
     event_server_id: committedEvent.id,
     duration,
   });
 
-  logger.info(
-    "committed event: #%d - %s",
-    committedEvent.id,
-    committedEvent.type,
-  );
+  logger.info("committed event: #%d - %s", committedEvent.id, committedEvent.type);
   return committedEvent;
 }

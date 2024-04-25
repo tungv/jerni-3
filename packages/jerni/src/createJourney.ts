@@ -1,11 +1,6 @@
 import { getEventSource } from "./getEventSource";
 import { JourneyConfig, Store } from "./types/config";
-import {
-  JourneyCommittedEvent,
-  LocalEvents,
-  TypedJourneyCommittedEvent,
-  TypedJourneyEvent,
-} from "./types/events";
+import { JourneyCommittedEvent, LocalEvents, TypedJourneyCommittedEvent, TypedJourneyEvent } from "./types/events";
 import { JourneyInstance } from "./types/journey";
 import createWaiter from "./waiter";
 import normalizeUrl from "./lib/normalize-url";
@@ -42,7 +37,7 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
   logger.debug("%s registering models...", DBG);
   for (const store of config.stores) {
     store.registerModels(modelToStoreMap);
-    console.log("%s store %s complete", DBG, bold(store.toString()));
+    logger.log("%s store %s complete", DBG, bold(store.toString()));
   }
 
   const waiter = createWaiter(config.stores.length);
@@ -53,7 +48,6 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
       const output = await Promise.all(
         config.stores.map(async (store) => {
           const output = await singleStoreHandleEvents(store, events);
-          console.log("output", output);
           onReport("store_output", {
             store,
             output,
@@ -93,13 +87,7 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
     const T = "└─".repeat(indent); // termination line
 
     if (indent === 0) {
-      logger.info(
-        "%s store: %s is handling events [#%d - #%d]",
-        intermediateStep,
-        store.name,
-        firstId,
-        lastId,
-      );
+      logger.info("%s store: %s is handling events [#%d - #%d]", intermediateStep, store.name, firstId, lastId);
     }
 
     try {
@@ -109,9 +97,7 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
     } catch (ex) {
       // if there is only one event, we don't need to bisect
       if (events.length === 1) {
-        logger.info(
-          `${I} 🔍 Identified offending event:  #${events[0].id} - ${events[0].type}`,
-        );
+        logger.info(`${I} 🔍 Identified offending event:  #${events[0].id} - ${events[0].type}`);
         const resolution = onError(wrapError(ex), events[0]);
 
         if (resolution === skip) {
@@ -121,9 +107,7 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
         logger.log(`${T} 💀 Resolution is not SKIP       STOP WORKER!`);
         throw new UnrecoverableError(events[0]);
       } else {
-        logger.log(
-          `${I} 🔴 Encountered error ....${tab} between #${firstId} and #${lastId}`,
-        );
+        logger.log(`${I} 🔴 Encountered error ....${tab} between #${firstId} and #${lastId}`);
       }
 
       // bisect events
@@ -138,23 +122,12 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
       // retry left
       try {
         if (left.length === 1) {
-          logger.info(
-            `${I} Retry LEFT ..............${tab} #${firstId} - ${events[0].type}`,
-          );
+          logger.info(`${I} Retry LEFT ..............${tab} #${firstId} - ${events[0].type}`);
         } else {
-          logger.info(
-            `${I} Retry LEFT ..............${tab} [#${firstId} - #${
-              midId - 1
-            }]`,
-          );
+          logger.info(`${I} Retry LEFT ..............${tab} [#${firstId} - #${midId - 1}]`);
         }
         const start = Date.now();
-        const leftOutput = await singleStoreHandleEvents(
-          store,
-          left,
-          indent + 1,
-          total,
-        );
+        const leftOutput = await singleStoreHandleEvents(store, left, indent + 1, total);
         const end = Date.now();
         logger.log(`${I} 🟢    LEFT SUCCESS (took ${end - start}ms)`);
       } catch (retryEx) {
@@ -168,21 +141,12 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
       // if left succeeds, retry right
       try {
         if (right.length === 1) {
-          logger.info(
-            `${I} Retry RIGHT .............${tab} 1 event on from #${midId}`,
-          );
+          logger.info(`${I} Retry RIGHT .............${tab} 1 event on from #${midId}`);
         } else {
-          logger.info(
-            `${I} Retry RIGHT .............${tab} [#${midId} - #${lastId}]`,
-          );
+          logger.info(`${I} Retry RIGHT .............${tab} [#${midId} - #${lastId}]`);
         }
         const start = Date.now();
-        const rightOutput = await singleStoreHandleEvents(
-          store,
-          right,
-          indent + 1,
-          total,
-        );
+        const rightOutput = await singleStoreHandleEvents(store, right, indent + 1, total);
         const end = Date.now();
         logger.log(`${I} 🟢 RIGHT SUCCESS (took ${end - start}ms)`);
       } catch (retryEx) {
@@ -196,47 +160,21 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
   }
 
   return {
-    async commit<T extends string>(
-      uncommittedEvent: TypedJourneyEvent<T>,
-    ): Promise<TypedJourneyCommittedEvent<T>> {
-      return commitToServer(
-        logger,
-        url,
-        logSafeUrl,
-        onReport,
-        onError,
-        uncommittedEvent,
-      );
+    async commit<T extends string>(uncommittedEvent: TypedJourneyEvent<T>): Promise<TypedJourneyCommittedEvent<T>> {
+      return commitToServer(logger, url, logSafeUrl, onReport, onError, uncommittedEvent);
     },
 
-    async append<T extends keyof LocalEvents>(uncommittedEvent: {
-      type: Exclude<T, number>;
-      payload: LocalEvents[T];
-    }) {
-      return commitToServer(
-        logger,
-        url,
-        logSafeUrl,
-        onReport,
-        onError,
-        uncommittedEvent,
-      );
+    async append<T extends keyof LocalEvents>(uncommittedEvent: { type: Exclude<T, number>; payload: LocalEvents[T] }) {
+      return commitToServer(logger, url, logSafeUrl, onReport, onError, uncommittedEvent);
     },
 
-    async waitFor(
-      event: JourneyCommittedEvent,
-      timeoutOrSignal?: number | AbortSignal,
-    ) {
+    async waitFor(event: JourneyCommittedEvent, timeoutOrSignal?: number | AbortSignal) {
       logger.debug("waiting for event", event.id);
 
       if (!hasStartedWaiting) {
         hasStartedWaiting = true;
 
-        for (
-          let storeIndex = 0;
-          storeIndex < config.stores.length;
-          storeIndex++
-        ) {
+        for (let storeIndex = 0; storeIndex < config.stores.length; storeIndex++) {
           const store = config.stores[storeIndex];
 
           (async () => {
@@ -326,10 +264,7 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
       // subscribe url may have a include filter
       if (!includeAll) {
         logger.debug("%s includes", DBG, Array.from(includedTypes).join(","));
-        subscriptionUrl.searchParams.set(
-          "includes",
-          Array.from(includedTypes).join(","),
-        );
+        subscriptionUrl.searchParams.set("includes", Array.from(includedTypes).join(","));
       } else {
         logger.debug("%s include all", DBG);
       }
@@ -344,18 +279,13 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
         },
         signal,
       });
-      const latestEvent = (await response.json()) as JourneyCommittedEvent<
-        any,
-        any
-      >;
+      const latestEvent = (await response.json()) as JourneyCommittedEvent<any, any>;
 
       serverLatest = latestEvent.id;
 
       // get latest client
 
-      const lastSeens = await Promise.all(
-        config.stores.map((store) => store.getLastSeenId()),
-      );
+      const lastSeens = await Promise.all(config.stores.map((store) => store.getLastSeenId()));
 
       const furthest = Math.min(...lastSeens.filter((id) => id !== null));
       clientLatest = furthest === Infinity ? 0 : furthest;
@@ -385,9 +315,7 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
           await handleEvents(data);
         } catch (ex) {
           if (ex instanceof UnrecoverableError) {
-            logger.info(
-              "connection forcefully closed because of unrecoverable error",
-            );
+            logger.info("connection forcefully closed because of unrecoverable error");
             ev.close();
             emitter.emit("close");
           }
@@ -428,10 +356,7 @@ function wrapError(errorOrUnknown: unknown): Error {
     return new Error(errorOrUnknown.name);
   }
 
-  if (
-    "message" in errorOrUnknown &&
-    typeof errorOrUnknown.message === "string"
-  ) {
+  if ("message" in errorOrUnknown && typeof errorOrUnknown.message === "string") {
     return new Error(errorOrUnknown.message);
   }
 
