@@ -3,9 +3,9 @@ import { describe, it, expect } from "bun:test";
 import createServer from "src/events-server";
 import { LocalEvents } from "jerni/type";
 import BankAccountModel from "./fixtures/BankAccountModel";
-import { MongoClient } from "mongodb";
 import initJourney from "./makeTestJourney";
 import startWorker from "./startWorker";
+import cleanUpTestDatabase from "./cleanUpTestDatabase";
 
 describe("e2e_mongodb_create_and_get", () => {
   it("should pass", async () => {
@@ -15,10 +15,7 @@ describe("e2e_mongodb_create_and_get", () => {
     const dbName = "testsss";
 
     // clean up the database
-    const client = await MongoClient.connect("mongodb://127.1:27017");
-    const db = client.db(dbName);
-    await db.dropDatabase();
-    await client.close();
+    await cleanUpTestDatabase(dbName);
 
     const ctrl = new AbortController();
 

@@ -1,11 +1,11 @@
 import { MongoDBModel, makeMongoDBStore } from "@jerni/store-mongodb";
 import { describe, it, expect } from "bun:test";
 import createServer from "src/events-server";
-import { MongoClient } from "mongodb";
 import initJourney from "../makeTestJourney";
 import startWorker from "../startWorker";
-import mapEvents from "jerni/lib/mapEvents";
+import cleanUpTestDatabase from "../cleanUpTestDatabase";
 
+import mapEvents from "jerni/lib/mapEvents";
 import SKIP from "jerni/lib/skip";
 import { JourneyCommittedEvent } from "@jerni/store-mongodb/lib/src/types";
 
@@ -41,10 +41,7 @@ describe("e2e_handle_errors", () => {
     const dbName = "handle_errors_with_skip";
 
     // clean up the database
-    const client = await MongoClient.connect("mongodb://127.1:27017");
-    const db = client.db(dbName);
-    await db.dropDatabase();
-    await client.close();
+    await cleanUpTestDatabase(dbName);
 
     const ctrl = new AbortController();
 

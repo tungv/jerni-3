@@ -1,12 +1,12 @@
 import { MongoDBModel, makeMongoDBStore } from "@jerni/store-mongodb";
 import { describe, it, expect } from "bun:test";
 import createServer from "src/events-server";
-import { MongoClient } from "mongodb";
 import initJourney from "../makeTestJourney";
 import startWorker from "../startWorker";
 import mapEvents from "jerni/lib/mapEvents";
 import { JourneyCommittedEvent } from "@jerni/store-mongodb/lib/src/types";
 import JerniPersistenceError from "jerni/lib/errors/JerniPersistenceError";
+import cleanUpTestDatabase from "../cleanUpTestDatabase";
 
 declare module "jerni/type" {
   export interface LocalEvents {
@@ -32,10 +32,7 @@ describe("e2e_handle_errors", () => {
     const dbName = "handle_errors";
 
     // clean up the database
-    const client = await MongoClient.connect("mongodb://127.1:27017");
-    const db = client.db(dbName);
-    await db.dropDatabase();
-    await client.close();
+    await cleanUpTestDatabase(dbName);
 
     const ctrl = new AbortController();
 
