@@ -1,4 +1,4 @@
-import { JourneyCommittedEvent } from "jerni/type";
+import type { JourneyCommittedEvent } from "jerni/type";
 import getSqliteDb from "src/events-storage/sqlite-database";
 import setup from "src/asynclocal";
 

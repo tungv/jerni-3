@@ -1,4 +1,4 @@
-import { JourneyCommittedEvent } from "./types/events";
+import type { JourneyCommittedEvent } from "./types/events";
 
 export default class JerniPersistenceError extends Error {
   #event: JourneyCommittedEvent;

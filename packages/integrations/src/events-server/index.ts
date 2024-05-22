@@ -1,7 +1,7 @@
 import { Database } from "bun:sqlite";
-import { JourneyCommittedEvent, JourneyEvent } from "jerni/type";
+import type { JourneyCommittedEvent, JourneyEvent } from "jerni/type";
 
-export default function createServer(subscriptionInterval: number = 300) {
+export default function createServer(subscriptionInterval = 300) {
   const db = createDb();
 
   const server = Bun.serve({
@@ -54,8 +54,15 @@ export default function createServer(subscriptionInterval: number = 300) {
 
         const latest = db.query<{ id: number }, []>("SELECT id FROM events ORDER BY id DESC LIMIT 1").get();
 
+        if (!latest) {
+          return Response.json({
+            error: "internal_server_error",
+            message: "Failed to commit event",
+          });
+        }
+
         const eventsWithId = events.map((event, index) => ({
-          id: latest!.id - events.length + index + 1,
+          id: latest.id - events.length + index + 1,
           ...event,
         }));
 
@@ -93,7 +100,7 @@ export default function createServer(subscriptionInterval: number = 300) {
       new ReadableStream({
         type: "direct",
         async pull(controller) {
-          const lastEventIdNumber = parseInt(lastEventId || "0", 10);
+          const lastEventIdNumber = Number.parseInt(lastEventId || "0", 10);
           const query = db.query<JourneyCommittedEvent, [number]>("SELECT * FROM events WHERE id > ?");
 
           let lastReturned = lastEventIdNumber;

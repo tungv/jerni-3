@@ -1,6 +1,6 @@
-import skip from "src/lib/skip";
-import { Logger } from "./Logger";
-import { JourneyCommittedEvent } from "./events";
+import type skip from "src/lib/skip";
+import type { Logger } from "./Logger";
+import type { JourneyCommittedEvent } from "./events";
 
 export type JourneyConfig = ServerOrWriteTo & {
   stores: Store[];
@@ -43,17 +43,13 @@ export interface Store {
    *
    * This is useful when journey.getReader() is called.
    */
-  registerModels: (
-    map: Map<
-      {
-        name: string;
-        version: string;
-      },
-      Store
-    >,
-  ) => void;
 
+  // biome-ignore lint/suspicious/noExplicitAny: Jerni can take any model and store, there is no way to enforce the type here. However, the type of mongodb store is enforced in the store-mongodb package
+  registerModels: (map: Map<any, Store>) => void;
+
+  // biome-ignore lint/suspicious/noExplicitAny: Jerni can take any model and store, there is no way to enforce the type here. However, the type of mongodb store is enforced in the store-mongodb package
   getDriver(model: any): any;
+  // biome-ignore lint/suspicious/noExplicitAny: the return type is dependent on the implementation of the store
   handleEvents: (events: JourneyCommittedEvent[]) => Promise<any>;
   getLastSeenId: () => Promise<number>;
   toString(): string;
@@ -63,10 +59,6 @@ export interface Store {
   dispose: () => Promise<void>;
 }
 
-interface OnError {
-  (error: Error, event: JourneyCommittedEvent): undefined | typeof skip;
-}
+type OnError = (error: Error, event: JourneyCommittedEvent) => undefined | typeof skip;
 
-interface OnReport {
-  (name: string, msg?: any): void;
-}
+type OnReport = (name: string, msg?: unknown) => void;

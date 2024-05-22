@@ -1,24 +1,17 @@
-import { Collection, Document, MongoClient } from "mongodb";
+import { type Collection, type Document, MongoClient } from "mongodb";
 import getCollectionName from "./getCollectionName";
-import MongoDBModel from "./model";
+import type MongoDBModel from "./model";
 import getBulkOperations from "./optimistic/getBulkOperations";
 import { clearModelSlots, runWithModel, Signal } from "./read";
-import {
-  JourneyCommittedEvent,
-  MongoDBStoreConfig,
-  MongoDBStore,
-  Changes,
-} from "./types";
-import { setTimeout } from "timers/promises";
+import type { JourneyCommittedEvent, MongoDBStoreConfig, MongoDBStore, Changes } from "./types";
+import { setTimeout } from "node:timers/promises";
 
 interface SnapshotDocument {
   __v: number;
   full_collection_name: string;
 }
 
-export default async function makeMongoDBStore(
-  config: MongoDBStoreConfig,
-): Promise<MongoDBStore> {
+export default async function makeMongoDBStore(config: MongoDBStoreConfig): Promise<MongoDBStore> {
   const client = await MongoClient.connect(config.url);
   const db = client.db(config.dbName);
   let hasStopped = false;
@@ -73,45 +66,45 @@ export default async function makeMongoDBStore(
 
   return store;
 
-  function registerModels(map: Map<any, MongoDBStore>) {
-    let includes = new Set<string>();
+  function registerModels(
+    map: Map<
+      {
+        name: string;
+        version: string;
+      },
+      MongoDBStore
+    >,
+  ) {
+    const includes = new Set<string>();
     let includesAll = false;
 
-    models.forEach((model) => {
+    for (const model of models) {
       map.set(model, store);
 
       // handle meta.includes
       const modelSpecificMeta = model.meta || model.transform.meta;
-      if (
-        !modelSpecificMeta ||
-        !modelSpecificMeta.includes ||
-        modelSpecificMeta.includes.length === 0
-      ) {
+      if (!modelSpecificMeta || !modelSpecificMeta.includes || modelSpecificMeta.includes.length === 0) {
         includesAll = true;
-        return;
+        continue;
       }
 
-      modelSpecificMeta.includes.forEach((type) => includes.add(type));
-    });
+      for (const type of modelSpecificMeta.includes) {
+        includes.add(type);
+      }
+    }
 
     if (includesAll) {
       store.meta.includes = [];
     } else {
-      store.meta.includes = [...Array.from(includes)].sort((a, z) =>
-        a.localeCompare(z),
-      );
+      store.meta.includes = [...Array.from(includes)].sort((a, z) => a.localeCompare(z));
     }
   }
 
-  function getDriver<T extends Document>(
-    model: MongoDBModel<T>,
-  ): Collection<T> {
+  function getDriver<T extends Document>(model: MongoDBModel<T>): Collection<T> {
     return db.collection(getCollectionName(model));
   }
 
-  async function handleEvents(
-    events: JourneyCommittedEvent[],
-  ): Promise<{ [modelIdentifier: string]: Changes }> {
+  async function handleEvents(events: JourneyCommittedEvent[]): Promise<{ [modelIdentifier: string]: Changes }> {
     const changes = models.map(() => ({
       added: 0,
       updated: 0,
@@ -121,20 +114,14 @@ export default async function makeMongoDBStore(
 
     return Object.fromEntries(
       models.map((model, modelIndex) => {
-        return [
-          `${model.name}_v${model.version}`,
-          changes[modelIndex] ?? { added: 0, updated: 0, deleted: 0 },
-        ];
+        return [`${model.name}_v${model.version}`, changes[modelIndex] ?? { added: 0, updated: 0, deleted: 0 }];
       }),
     );
   }
 
-  async function handleEventsRecursive(
-    events: JourneyCommittedEvent[],
-    changes: Changes[],
-  ) {
+  async function handleEventsRecursive(events: JourneyCommittedEvent[], changes: Changes[]) {
     let interruptedIndex = -1;
-    const signals: Signal<any>[] = [];
+    const signals: Signal<Document>[] = [];
 
     const outputs = events.map((event, index) => {
       if (interruptedIndex !== -1) {
@@ -222,7 +209,7 @@ export default async function makeMongoDBStore(
       console.debug(
         "priming data for these %d event(s):\n%s",
         events.slice(interruptedIndex).length,
-        require("util").inspect(signals, { depth: null, colors: true }),
+        require("node:util").inspect(signals, { depth: null, colors: true }),
       );
 
       // execute signals
@@ -235,8 +222,7 @@ export default async function makeMongoDBStore(
   }
 
   async function getLastSeenId() {
-    const snapshotCollection =
-      db.collection<SnapshotDocument>("jerni__snapshot");
+    const snapshotCollection = db.collection<SnapshotDocument>("jerni__snapshot");
 
     const registeredModels = await snapshotCollection
       .find({

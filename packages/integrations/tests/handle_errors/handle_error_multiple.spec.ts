@@ -7,12 +7,12 @@ import cleanUpTestDatabase from "../cleanUpTestDatabase";
 
 import mapEvents from "jerni/lib/mapEvents";
 import SKIP from "jerni/lib/skip";
-import { JourneyCommittedEvent } from "@jerni/store-mongodb/lib/src/types";
+import type { JourneyCommittedEvent } from "@jerni/store-mongodb/lib/src/types";
 
 declare module "jerni/type" {
-  export interface LocalEvents {
-    FAILURE_EVENT: {};
-    OK_EVENT: {};
+  interface LocalEvents {
+    FAILURE_EVENT: { [k: string]: never };
+    OK_EVENT: { [k: string]: never };
   }
 }
 
@@ -47,14 +47,14 @@ describe("e2e_handle_errors", () => {
 
     const appStore = await makeMongoDBStore({
       name: "mongodb-app-1",
-      url: `mongodb://127.1:27017/`,
+      url: "mongodb://127.1:27017/",
       dbName,
       models: [FailureModel],
     });
 
     const workerStore = await makeMongoDBStore({
       name: "mongodb-worker-1",
-      url: `mongodb://127.1:27017/`,
+      url: "mongodb://127.1:27017/",
       dbName,
       models: [FailureModel],
     });

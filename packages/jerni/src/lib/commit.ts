@@ -1,18 +1,23 @@
 import { nanoid } from "nanoid";
 import { readPackageUpSync } from "read-package-up";
-import { Logger } from "src/types/Logger";
-import { JourneyCommittedEvent, TypedJourneyCommittedEvent, TypedJourneyEvent } from "src/types/events";
-import { URL } from "url";
+import type { Logger } from "src/types/Logger";
+import type {
+  JourneyCommittedEvent,
+  JourneyCommittedEvents,
+  TypedJourneyCommittedEvent,
+  TypedJourneyEvent,
+} from "src/types/events";
+import { URL } from "node:url";
 
 const parentPackage = readPackageUpSync({
   cwd: __dirname,
 });
 
-export default async function commitToServer<T extends string>(
+export default async function commitToServer<T extends keyof JourneyCommittedEvents>(
   logger: Logger,
   url: URL,
   logSafeUrl: URL,
-  onReport: (type: string, payload: any) => void,
+  onReport: (type: string, payload: unknown) => void,
   onError: (error: Error, event: JourneyCommittedEvent) => void,
   eventToCommit: TypedJourneyEvent<T>,
 ): Promise<TypedJourneyCommittedEvent<T>> {
@@ -23,10 +28,15 @@ export default async function commitToServer<T extends string>(
   const event = {
     ...eventToCommit,
     meta: {
-      ...eventToCommit.meta,
+      ...(typeof eventToCommit.meta === "object" ? eventToCommit.meta : { eventMeta: eventToCommit.meta }),
       local_id: localId,
       committed_at: Date.now(),
       server_url: logSafeUrl.toString(),
+    } as {
+      local_id: string;
+      committed_at: number;
+      server_url: string;
+      [key: string]: unknown;
     },
   };
 

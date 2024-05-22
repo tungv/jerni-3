@@ -1,40 +1,21 @@
-import { JourneyCommittedEvent, LocalEvents } from "./exported_types";
+import type { JourneyCommittedEvent, LocalEvents } from "./exported_types";
 
-interface MapEventsReturnType<OperationTypes> {
-  (event: JourneyCommittedEvent): OperationTypes[];
-}
+type MapEventsReturnType<OperationTypes> = (event: JourneyCommittedEvent) => OperationTypes[];
 
-const metaMap = new WeakMap<Function, MetaIncludes>();
+type EventSpecificHandler<ReturnType> = (event: JourneyCommittedEvent) => ReturnType | ReturnType[] | undefined;
 
-interface MetaIncludes {
-  // only include those event names when sending query or subscribe
-  includes: string[];
-}
-
-type EventSpecificHandler<EventType, EventPayload, ReturnType> = (event: {
-  id: number;
-  type: EventType;
-  payload: Exclude<EventPayload, undefined>;
-}) => ReturnType | ReturnType[] | void;
-
-type EventsMapInput<EventTypes, ReturnType> = {
-  [key in keyof EventTypes]: EventSpecificHandler<
-    key,
-    EventTypes[key],
-    ReturnType
-  >;
+type EventsMapInput<ReturnType> = {
+  [key in keyof Partial<LocalEvents>]: EventSpecificHandler<ReturnType>;
 };
 
-export default function mapEvents<ReturnType, EventTypes = LocalEvents>(
-  eventsMap: EventsMapInput<Partial<EventTypes>, ReturnType>,
-): MapEventsReturnType<ReturnType>;
+export default function mapEvents<ReturnType>(eventsMap: EventsMapInput<ReturnType>): MapEventsReturnType<ReturnType>;
 
-export default function mapEvents(eventsMap: any): any {
+export default function mapEvents<ReturnType>(eventsMap: EventsMapInput<ReturnType>): MapEventsReturnType<ReturnType> {
   const meta = {
     includes: Object.keys(eventsMap),
   };
 
-  function transform(event: any) {
+  function transform(event: JourneyCommittedEvent) {
     const eventType = event.type as keyof typeof eventsMap;
     const handler = eventsMap[eventType];
     if (typeof handler !== "function") {
@@ -54,7 +35,6 @@ export default function mapEvents(eventsMap: any): any {
     return [result];
   }
 
-  metaMap.set(transform, meta);
   return new Proxy(transform, {
     get(target, prop: keyof typeof transform) {
       if (prop === "meta") {

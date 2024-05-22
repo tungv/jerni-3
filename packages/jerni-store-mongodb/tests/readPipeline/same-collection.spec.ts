@@ -1,7 +1,7 @@
 import readPipeline from "../../src/read";
 import makeMongoDBStore from "../../src/store";
-import MongoDBModel from "../../src/model";
-import { JourneyCommittedEvent } from "../../src/types";
+import type MongoDBModel from "../../src/model";
+import type { JourneyCommittedEvent } from "../../src/types";
 import { describe, expect, test } from "bun:test";
 
 interface TestCollection {
@@ -195,7 +195,7 @@ describe("Read Pipeline Same Collection", () => {
           for (let i = 0; i < 3; i++) {
             const res = readPipeline([{ $match: { id: i + 1 } }, { $project: { name: 1 } }]);
 
-            expect(res[0].name).toBe("test-model-1--item-" + (i + 1));
+            expect(res[0].name).toBe(`test-model-1--item-${i + 1}`);
           }
 
           return [];

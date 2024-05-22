@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { MongoDBModel } from "../../src";
 import makeMongoDBStore from "../../src/store";
-import { JourneyCommittedEvent } from "../../src/types";
+import type { JourneyCommittedEvent } from "../../src/types";
 
 describe("Multiple models", () => {
   test("it should insert data to all models", async () => {

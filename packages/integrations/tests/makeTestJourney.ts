@@ -1,7 +1,7 @@
 import makeTestLogger from "./makeTestLogger";
-import { JourneyConfig } from "jerni/type";
+import type { JourneyConfig } from "jerni/type";
 import createJourney from "jerni";
-import { JourneyCommittedEvent } from "@jerni/store-mongodb/lib/src/types";
+import type { JourneyCommittedEvent } from "@jerni/store-mongodb/lib/src/types";
 import { mock } from "bun:test";
 
 export default async function initJourney(
@@ -11,7 +11,7 @@ export default async function initJourney(
 ) {
   const logger = makeTestLogger();
 
-  const onReport = mock((type: string, payload: any) => {});
+  const onReport = mock((type: string, payload: unknown) => {});
 
   const journey = createJourney({
     server: `http://localhost:${serverPort}`,
