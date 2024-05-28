@@ -16,13 +16,13 @@ export default function getSqliteDb(): EventDatabase {
   createQuery.get();
 
   return {
-    getEventsFrom: async (lastEventId: number): Promise<JourneyCommittedEvent[]> => {
-      const query = db.query("SELECT * FROM events WHERE id > $lastEventId ORDER BY id ASC");
-      const events = query.all({ $lastEventId: lastEventId }) as JourneyCommittedEvent[];
+    getEventsFrom: async (lastEventId: number, limit = 200): Promise<JourneyCommittedEvent[]> => {
+      const query = db.query("SELECT * FROM events WHERE id > $lastEventId ORDER BY id ASC LIMIT $limit");
+      const events = query.all({ $lastEventId: lastEventId, $limit: limit }) as JourneyCommittedEvent[];
 
       return events.map((event) => ({
         ...event,
-        payload: JSON.parse(event.payload),
+        payload: JSON.parse(event.payload as string),
       }));
     },
 
