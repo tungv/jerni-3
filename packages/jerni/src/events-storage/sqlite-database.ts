@@ -58,5 +58,12 @@ export default function getSqliteDb(): EventDatabase {
         });
       }
     },
+
+    getLatestEventId: async () => {
+      const query = db.query("SELECT MAX(id) as maxId FROM events");
+      const { maxId } = query.get() as { maxId: number };
+
+      return maxId || 0;
+    },
   };
 }
