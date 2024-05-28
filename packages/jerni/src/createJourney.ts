@@ -137,7 +137,16 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
       }
     },
 
-    async *begin(signal?: AbortSignal) {
+    async *begin(externalSignal?: AbortSignal) {
+      // we need another controller so that the background projection can stop the event stream
+      const projectionAbortController = new AbortController();
+
+      // if the external signal is aborted, we should stop the projection
+      externalSignal?.addEventListener("abort", () => {
+        projectionAbortController.abort();
+      });
+
+      const signal = projectionAbortController.signal;
       // we need to resolve all the event types needed
       const includedTypes = new Set<string>();
       let includeAll = false;
