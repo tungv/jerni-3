@@ -22,6 +22,9 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
+import { URL } from "url";
+
 export function getEventSource() {
   type Socket = Awaited<ReturnType<typeof Bun.connect<EventSource>>>;
 
@@ -39,9 +42,9 @@ export function getEventSource() {
     #reconnection_time = 0;
     #reconnection_timer: Timer | null = null;
 
-    addEventListener<K extends keyof EventSourceEventMap>(
+    addEventListener<K extends keyof Bun.EventSourceEventMap>(
       type: K,
-      listener: (this: EventSource, ev: EventSourceEventMap[K]) => any,
+      listener: (this: EventSource, ev: Bun.EventSourceEventMap[K]) => any,
       options?: boolean | AddEventListenerOptions,
     ): void;
     addEventListener(
@@ -51,15 +54,11 @@ export function getEventSource() {
     ): void;
     addEventListener(
       type: string,
-      listener: EventListenerOrEventListenerObject,
+      listener: Bun.EventListenerOrEventListenerObject,
       options?: boolean | AddEventListenerOptions,
     ): void;
 
-    addEventListener(
-      type: string,
-      listener: (...p: any[]) => any,
-      options?: boolean | AddEventListenerOptions,
-    ) {
+    addEventListener(type: string, listener: (...p: any[]) => any, options?: boolean | AddEventListenerOptions) {
       super.addEventListener(type, listener, options);
     }
 
@@ -68,13 +67,9 @@ export function getEventSource() {
     }
     static #SendRequest(socket: Socket, url: URL) {
       const self = socket.data;
-      const last_event_header = self.#lastEventID
-        ? `Last-Event-ID: ${self.#lastEventID}\r\n`
-        : "";
+      const last_event_header = self.#lastEventID ? `Last-Event-ID: ${self.#lastEventID}\r\n` : "";
 
-      const authorization = url.username
-        ? `Authorization: Basic ${btoa(`${url.username}:${url.password}`)}\r\n`
-        : "";
+      const authorization = url.username ? `Authorization: Basic ${btoa(`${url.username}:${url.password}`)}\r\n` : "";
 
       const request = `GET ${url.pathname}${url.search} HTTP/1.1\r\nHost: ${url.host}\r\n${authorization}Content-length: 0\r\n${last_event_header}\r\n`;
 
@@ -94,10 +89,7 @@ export function getEventSource() {
         const chunk_start_idx = start_idx + 2;
         if (start_idx > 0) {
           if (self.#content_length === 0) {
-            const chunk_size = parseInt(
-              chunks.substring(offset, start_idx),
-              16,
-            );
+            const chunk_size = parseInt(chunks.substring(offset, start_idx), 16);
             if (chunk_size === 0) {
               // no more chunks
               self.#state = 2;
@@ -257,9 +249,7 @@ export function getEventSource() {
             const status = headers.substring(0, status_idx);
             if (status !== "HTTP/1.1 200 OK") {
               self.#state = 2;
-              self.dispatchEvent(
-                new ErrorEvent("error", { error: new Error(status) }),
-              );
+              self.dispatchEvent(new ErrorEvent("error", { error: new Error(status) }));
               socket.end();
               return;
             }
@@ -320,16 +310,11 @@ export function getEventSource() {
                     sensitivity: "accent",
                   }) === 0;
                 if (is_content_length) {
-                  content_length = parseInt(
-                    header.substring(header_name_idx + 1).trim(),
-                    10,
-                  );
+                  content_length = parseInt(header.substring(header_name_idx + 1).trim(), 10);
                   if (isNaN(content_length) || content_length <= 0) {
                     self.dispatchEvent(
                       new ErrorEvent("error", {
-                        error: new Error(
-                          `EventSource's Content-Length is invalid. Aborting the connection.`,
-                        ),
+                        error: new Error(`EventSource's Content-Length is invalid. Aborting the connection.`),
                       }),
                     );
                     socket.end();
@@ -344,14 +329,10 @@ export function getEventSource() {
                       sensitivity: "accent",
                     }) === 0;
                   if (is_transfer_encoding) {
-                    if (
-                      header.substring(header_name_idx + 1).trim() !== "chunked"
-                    ) {
+                    if (header.substring(header_name_idx + 1).trim() !== "chunked") {
                       self.dispatchEvent(
                         new ErrorEvent("error", {
-                          error: new Error(
-                            `EventSource's Transfer-Encoding is invalid. Aborting the connection.`,
-                          ),
+                          error: new Error(`EventSource's Transfer-Encoding is invalid. Aborting the connection.`),
                         }),
                       );
                       socket.end();
@@ -417,9 +398,7 @@ export function getEventSource() {
         );
       },
       timeout(socket: Socket) {
-        EventSource.#Close(socket).dispatchEvent(
-          new ErrorEvent("error", { error: new Error("Timeout") }),
-        );
+        EventSource.#Close(socket).dispatchEvent(new ErrorEvent("error", { error: new Error("Timeout") }));
       },
       binaryType: "buffer",
     };
@@ -433,11 +412,7 @@ export function getEventSource() {
         if (self.#reconnection_timer) {
           clearTimeout(self.#reconnection_timer);
         }
-        self.#reconnection_timer = setTimeout(
-          EventSource.#ConnectNextTick,
-          self.#reconnection_time,
-          self,
-        );
+        self.#reconnection_timer = setTimeout(EventSource.#ConnectNextTick, self.#reconnection_time, self);
       }
       return self;
     }
@@ -492,11 +467,7 @@ export function getEventSource() {
             this.#reconnection_timer.unref?.();
           }
 
-          this.#reconnection_timer = setTimeout(
-            EventSource.#ConnectNextTick,
-            1000,
-            this,
-          );
+          this.#reconnection_timer = setTimeout(EventSource.#ConnectNextTick, 1000, this);
         }
       });
     }

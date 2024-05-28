@@ -1,11 +1,10 @@
-import { ServerOrWriteTo } from "./types/config";
+import { ServerOrWriteTo } from "../types/config";
+import { URL } from "url";
 
 export default function normalizeUrl(config: ServerOrWriteTo) {
   const serverUrlOrServer = "server" in config ? config.server : config.writeTo;
   const server =
-    typeof serverUrlOrServer === "string"
-      ? { url: serverUrlOrServer, key: "", secret: "" }
-      : serverUrlOrServer;
+    typeof serverUrlOrServer === "string" ? { url: serverUrlOrServer, key: "", secret: "" } : serverUrlOrServer;
 
   const url = new URL(server.url);
   // add trailing slash if needed

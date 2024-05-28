@@ -170,3 +170,6 @@ dist
 
 
 .history
+
+# for jerni-store-mongodb
+**/.DS_Store

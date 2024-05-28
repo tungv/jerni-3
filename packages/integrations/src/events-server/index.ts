@@ -17,11 +17,7 @@ export default function createServer(subscriptionInterval: number = 300) {
 
       // 1. GET /events/latest
       if (req.method === "GET" && url.pathname === "/events/latest") {
-        const latest = db
-          .query<JourneyCommittedEvent, []>(
-            "SELECT * FROM events ORDER BY id DESC LIMIT 1",
-          )
-          .get();
+        const latest = db.query<JourneyCommittedEvent, []>("SELECT * FROM events ORDER BY id DESC LIMIT 1").get();
 
         if (!latest) {
           return Response.json({
@@ -48,25 +44,15 @@ export default function createServer(subscriptionInterval: number = 300) {
 
         const events = Array.isArray(event) ? event : [event];
 
-        const stmt = db.prepare(
-          "INSERT INTO events (type, payload, meta) VALUES ($1, $2, $3);",
-        );
+        const stmt = db.prepare("INSERT INTO events (type, payload, meta) VALUES ($1, $2, $3);");
 
         db.transaction(() => {
           for (const event of events) {
-            stmt.run(
-              event.type,
-              JSON.stringify(event.payload),
-              JSON.stringify(event.meta),
-            );
+            stmt.run(event.type, JSON.stringify(event.payload), JSON.stringify(event.meta));
           }
         })();
 
-        const latest = db
-          .query<{ id: number }, []>(
-            "SELECT id FROM events ORDER BY id DESC LIMIT 1",
-          )
-          .get();
+        const latest = db.query<{ id: number }, []>("SELECT id FROM events ORDER BY id DESC LIMIT 1").get();
 
         const eventsWithId = events.map((event, index) => ({
           id: latest!.id - events.length + index + 1,
@@ -108,9 +94,7 @@ export default function createServer(subscriptionInterval: number = 300) {
         type: "direct",
         async pull(controller) {
           const lastEventIdNumber = parseInt(lastEventId || "0", 10);
-          const query = db.query<JourneyCommittedEvent, [number]>(
-            "SELECT * FROM events WHERE id > ?",
-          );
+          const query = db.query<JourneyCommittedEvent, [number]>("SELECT * FROM events WHERE id > ?");
 
           let lastReturned = lastEventIdNumber;
 
@@ -143,11 +127,7 @@ export default function createServer(subscriptionInterval: number = 300) {
             }
 
             // flush to client
-            controller.write(
-              `id: ${last.id}\nevent: INCMSG\ndata: ${JSON.stringify(
-                events,
-              )}\n\n`,
-            );
+            controller.write(`id: ${last.id}\nevent: INCMSG\ndata: ${JSON.stringify(events)}\n\n`);
 
             // flush immediately
             controller.flush();
