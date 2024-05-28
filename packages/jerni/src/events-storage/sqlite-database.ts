@@ -26,6 +26,27 @@ export default function getSqliteDb(): EventDatabase {
       }));
     },
 
+    streamEventsFrom: async function* (lastEventId: number, limit = 200): AsyncGenerator<JourneyCommittedEvent[]> {
+      const query = db.query("SELECT * FROM events WHERE id > $lastEventId ORDER BY id ASC LIMIT $limit");
+
+      let currentId = lastEventId;
+
+      while (true) {
+        const events = query.all({ $lastEventId: currentId, $limit: limit }) as JourneyCommittedEvent[];
+
+        if (events.length === 0) {
+          return;
+        }
+
+        yield events.map((event) => ({
+          ...event,
+          payload: JSON.parse(event.payload as string),
+        }));
+
+        currentId = events[events.length - 1].id;
+      }
+    },
+
     insertEvents: async (events: JourneyCommittedEvent[]) => {
       const insertQuery = db.prepare("INSERT INTO events (id ,type, payload) VALUES ($id, $type, $payload)");
 
