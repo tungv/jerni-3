@@ -175,34 +175,27 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
       }
 
       // $SERVER/events/latest
-      const getLatestUrl = new URL("events/latest", url);
+      // const getLatestUrl = new URL("events/latest", url);
 
-      logger.log("%s sync'ing with server...", INF);
-      const response = await fetch(getLatestUrl.toString(), {
-        headers: {
-          "content-type": "application/json",
-        },
-        signal,
-      });
-      const latestEvent = (await response.json()) as JourneyCommittedEvent;
+      // logger.log("%s sync'ing with server...", INF);
+      // const response = await fetch(getLatestUrl.toString(), {
+      //   headers: {
+      //     "content-type": "application/json",
+      //   },
+      //   signal,
+      // });
+      // const latestEvent = (await response.json()) as JourneyCommittedEvent;
 
-      serverLatest = latestEvent.id;
+      // serverLatest = latestEvent.id;
 
-      // get latest client
+      // logger.debug("%s server latest event id:", DBG, serverLatest);
+      // logger.debug("%s client latest event id:", DBG, clientLatest);
 
-      const lastSeens = await Promise.all(config.stores.map((store) => store.getLastSeenId()));
+      // if (serverLatest > clientLatest) {
+      //   logger.debug("%s catching up...", DBG);
+      // }
 
-      const furthest = Math.min(...lastSeens.filter((id) => id !== null));
-      clientLatest = furthest === Number.POSITIVE_INFINITY ? 0 : furthest;
-
-      logger.debug("%s server latest event id:", DBG, serverLatest);
-      logger.debug("%s client latest event id:", DBG, clientLatest);
-
-      if (serverLatest > clientLatest) {
-        logger.debug("%s catching up...", DBG);
-      }
-
-      subscriptionUrl.searchParams.set("lastEventId", clientLatest.toString());
+      // subscriptionUrl.searchParams.set("lastEventId", clientLatest.toString());
 
       const ev = new MyEventSource(subscriptionUrl.toString(), signal);
 
@@ -281,12 +274,11 @@ function wrapError(errorOrUnknown: unknown): Error {
 const getEventsHandler = function getEventsHandler(config: JourneyConfig) {
   const { logger = defaultLogger, onReport = noop, onError } = config;
 
-  return injectEventDatabase(async function handleEvents(events: JourneyCommittedEvent[]) {
-    logger.debug("%s received %d events", DBG, events.length);
-    try {
-      const eventDatabase = getEventDatabase();
-      await eventDatabase.insertEvents(events);
+  // get latest projected id
+  // const lastSeenIds = await Promise.all(config.stores.map((store) => store.getLastSeenId()));
 
+  // const furthest = Math.min(...lastSeenIds.filter((id) => id !== null));
+  // const clientLatestId = furthest === Number.POSITIVE_INFINITY ? 0 : furthest;
       const output = await Promise.all(
         config.stores.map(async (store) => {
           const output = await singleStoreHandleEvents(store, events);
