@@ -9,7 +9,7 @@ import cleanUpTestDatabase from "./cleanUpTestDatabase";
 
 describe("e2e_multiple_stores", () => {
   it("should support multiple stores", async () => {
-    const server = createServer();
+    const { server } = createServer();
     const port = server.port;
 
     const dbName = "test-multiple-stores";

@@ -1,7 +1,6 @@
 import { makeMongoDBStore } from "@jerni/store-mongodb";
 import { describe, it, expect } from "bun:test";
 import createServer from "src/events-server";
-import type { LocalEvents } from "jerni/type";
 import BankAccountModel from "./fixtures/BankAccountModel";
 import initJourney from "./makeTestJourney";
 import startWorker from "./startWorker";
@@ -9,7 +8,7 @@ import cleanUpTestDatabase from "./cleanUpTestDatabase";
 
 describe("e2e_mongodb_create_and_get", () => {
   it("should pass", async () => {
-    const server = createServer();
+    const { server } = createServer();
     const port = server.port;
 
     const dbName = "testsss";
