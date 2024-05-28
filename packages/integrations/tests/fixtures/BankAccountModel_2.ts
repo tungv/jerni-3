@@ -1,4 +1,5 @@
 import { MongoDBModel } from "@jerni/store-mongodb";
+import type { MongoOps } from "@jerni/store-mongodb/lib/src/types";
 import mapEvents from "jerni/lib/mapEvents";
 
 interface BankAccountDocumentModel {
@@ -24,7 +25,7 @@ declare module "jerni/type" {
 const model = new MongoDBModel<BankAccountDocumentModel>({
   name: "bank_accounts",
   version: "2",
-  transform: mapEvents({
+  transform: mapEvents<MongoOps<BankAccountDocumentModel>>({
     NEW_ACCOUNT_REGISTERED(event) {
       return {
         insertOne: {
