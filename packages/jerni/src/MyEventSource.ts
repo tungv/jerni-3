@@ -441,6 +441,12 @@ export default class MyEventSource extends EventTarget {
     this.#is_tls = uri.protocol === "https:";
     this.#url = uri;
     this.#state = 2;
+    // check if the url contains search params lastEventId then set it
+    if (uri.searchParams.has("lastEventId")) {
+      this.#lastEventID = uri.searchParams.get("lastEventId") || "";
+      // delete the lastEventId from the search params so that does not conflict with the last-event-id header
+      uri.searchParams.delete("lastEventId");
+    }
     process.nextTick(MyEventSource.#ConnectNextTick, this);
 
     if (signal) {
