@@ -40,7 +40,7 @@ describe("e2e_mongodb_create_and_get", () => {
     startWorker(worker.journey, ctrl.signal);
 
     // commit event
-    const event1 = await app.journey.commit<LocalEvents["NEW_ACCOUNT_REGISTERED"]>({
+    const event1 = await app.journey.commit<"NEW_ACCOUNT_REGISTERED">({
       type: "NEW_ACCOUNT_REGISTERED",
       payload: {
         id: "123",
