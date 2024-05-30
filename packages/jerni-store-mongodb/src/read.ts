@@ -62,6 +62,51 @@ export function clearModelSlots() {
 
 export default function readPipeline<DocumentType extends Document>(
   pipeline: UpdateFilter<DocumentType>[],
+): DocumentType[];
+export default function readPipeline<DocumentType extends Document>(
+  model: MongoDBModel<DocumentType>,
+  pipeline: UpdateFilter<DocumentType>[],
+): DocumentType[];
+
+export default function readPipeline<DocumentType extends Document>(
+  modelOrPipeline: MongoDBModel<DocumentType> | UpdateFilter<DocumentType>[],
+  pipeline?: UpdateFilter<DocumentType>[],
+): DocumentType[] {
+  if (Array.isArray(modelOrPipeline)) {
+    return readPipelineSameCollection(modelOrPipeline);
+  }
+
+  if (!pipeline) {
+    throw new Error("pipeline is required when calling readPipeline with model");
+  }
+
+  return readPipelineDifferentCollection(modelOrPipeline, pipeline);
+}
+
+function readPipelineDifferentCollection<DocumentType extends Document>(
+  model: MongoDBModel<DocumentType>,
+  pipeline: UpdateFilter<DocumentType>[],
+): DocumentType[] {
+  const slots = modelSlotsMap.get(model);
+  if (!slots) {
+    const slot = new Map();
+    modelSlotsMap.set(model, slot);
+    throw new Signal<DocumentType>(model, pipeline);
+  }
+
+  // const res = slots[currentModelSlotIndex];
+  const res = slots.get(hash(pipeline));
+  console.log("reading from model=%s, got:", model.name, res);
+
+  if (res == null) {
+    throw new Signal<DocumentType>(model, pipeline);
+  }
+
+  return res;
+}
+
+function readPipelineSameCollection<DocumentType extends Document>(
+  pipeline: UpdateFilter<DocumentType>[],
 ): DocumentType[] {
   const model = currentModel;
 
