@@ -150,6 +150,12 @@ export default async function makeMongoDBStore(config: MongoDBStoreConfig): Prom
         }
       });
 
+      // the first event in the batch is the only event that needs to read from the cached signals
+      // after that, the model slots should be cleared so that later event does not read outdated signals
+      if (index === 0) {
+        clearModelSlots();
+      }
+
       // if there are interrupted signals in this event, do not return output of the event
       if (interruptedIndex !== -1) {
         return [];
@@ -206,10 +212,12 @@ export default async function makeMongoDBStore(config: MongoDBStoreConfig): Prom
 
     // continue with remaining events
     if (interruptedIndex !== -1) {
+      const interruptedEvent = events[interruptedIndex];
+      const remainingEvents = events.slice(interruptedIndex);
+
       console.debug(
-        "priming data for these %d event(s):\n%s",
-        events.slice(interruptedIndex).length,
-        require("node:util").inspect(signals, { depth: null, colors: true }),
+        "priming data for event:\n%s",
+        require("node:util").inspect(interruptedEvent, { depth: null, colors: true }),
       );
 
       // execute signals
@@ -217,7 +225,7 @@ export default async function makeMongoDBStore(config: MongoDBStoreConfig): Prom
         await signal.execute(db);
       }
 
-      await handleEventsRecursive(events.slice(interruptedIndex), changes);
+      await handleEventsRecursive(remainingEvents, changes);
     }
   }
 
