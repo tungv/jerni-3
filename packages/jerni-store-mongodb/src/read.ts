@@ -94,7 +94,6 @@ function readPipelineDifferentCollection<DocumentType extends Document>(
     throw new Signal<DocumentType>(model, pipeline);
   }
 
-  // const res = slots[currentModelSlotIndex];
   const res = slots.get(hash(pipeline));
   console.log("reading from model=%s, got:", model.name, res);
 

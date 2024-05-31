@@ -151,8 +151,8 @@ export default async function makeMongoDBStore(config: MongoDBStoreConfig): Prom
       });
 
       // the first event in the batch is the only event that needs to read from the cached signals
-      // after that, the model slots should be cleared so that later event does not read outdated signals
-      if (index === 0) {
+      // if no more signal created, the model slots should be cleared so that later event does not read outdated signals
+      if (index === 0 && signals.length === 0) {
         clearModelSlots();
       }
 
