@@ -2,7 +2,7 @@ import type { Db, Document, UpdateFilter } from "mongodb";
 import getCollectionName from "./getCollectionName";
 import type { JourneyCommittedEvent } from "./types";
 import type MongoDBModel from "./model";
-import hash from "object-hash";
+import hash from "hash-sum";
 
 export class Signal<DocumentType extends Document> {
   private model: MongoDBModel<DocumentType>;
