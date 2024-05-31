@@ -188,4 +188,85 @@ describe("Read Pipeline Different Collection", () => {
       },
     ]);
   });
+
+  test("readPipeline cross model can be called in loop", async () => {
+    expect.assertions(3 + 2 + 1);
+
+    const model_1: MongoDBModel<TestCollection> = {
+      name: "model_read_loop_1",
+      version: "1",
+      transform(event: JourneyCommittedEvent) {
+        if (event.type === "init") {
+          return [
+            {
+              insertMany: [
+                { id: 1, name: "test-model-1--item-1" },
+                { id: 2, name: "test-model-1--item-2" },
+                { id: 3, name: "test-model-1--item-3" },
+              ],
+            },
+          ];
+        }
+
+        if (event.type === "test") {
+          for (let i = 0; i < 3; i++) {
+            const res = readPipeline(model_2, [{ $match: { id: i + 1 } }, { $project: { name: 1 } }]);
+
+            expect(res[0].name).toBe(`test-model-2--item-${i + 1}`);
+          }
+
+          return [];
+        }
+      },
+    };
+
+    const model_2: MongoDBModel<TestCollection> = {
+      name: "model_read_loop_2",
+      version: "1",
+      transform(event: JourneyCommittedEvent) {
+        if (event.type === "init") {
+          return [
+            {
+              insertMany: [
+                { id: 1, name: "test-model-2--item-1" },
+                { id: 2, name: "test-model-2--item-2" },
+                { id: 3, name: "test-model-2--item-3" },
+              ],
+            },
+          ];
+        }
+
+        if (event.type === "test") {
+          for (let i = 0; i < 3; i++) {
+            const res = readPipeline(model_1, [{ $match: { id: i + 1 } }, { $project: { name: 1 } }]);
+
+            expect(res[0].name).toBe(`test-model-1--item-${i + 1}`);
+          }
+
+          return [];
+        }
+      },
+    };
+
+    const store = await makeMongoDBStore({
+      name: "test_read_pipeline",
+      dbName: "mongodb_store_driver_v4_test_read_pipeline",
+      url: "mongodb://127.0.0.1:27017",
+      models: [model_1, model_2],
+    });
+
+    await store.clean();
+    await store.handleEvents([
+      {
+        id: 1,
+        type: "init",
+        payload: {},
+      },
+      {
+        id: 2,
+        type: "test",
+        payload: {},
+      },
+    ]);
+  });
 });
