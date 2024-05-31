@@ -150,9 +150,9 @@ export default async function makeMongoDBStore(config: MongoDBStoreConfig): Prom
         }
       });
 
-      if (signals.length === 0) {
-        // console.log("event id=%d clear. Continue", event.id);
-        clearModelSlots();
+      // if there are interrupted signals in this event, do not return output of the event
+      if (interruptedIndex !== -1) {
+        return [];
       }
 
       return out;
