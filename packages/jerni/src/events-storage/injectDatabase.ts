@@ -8,6 +8,8 @@ export interface EventDatabase {
   streamEventsFrom(lastEventId: number, limit?: number): AsyncGenerator<JourneyCommittedEvent[]>;
 
   getLatestEventId(includesListHash: string): Promise<number>;
+
+  dispose(): Promise<void>;
 }
 
 async function getDB() {

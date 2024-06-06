@@ -83,6 +83,11 @@ function getSqliteDb(): EventDatabase {
 
       return row ? row.LAST_EVENT_ID : 0;
     },
+
+    dispose: async () => {
+      db.query(`DROP TABLE ${eventsTableName}`).get();
+      db.query(`DROP TABLE ${snapshotTableName}`).get();
+    },
   };
 }
 

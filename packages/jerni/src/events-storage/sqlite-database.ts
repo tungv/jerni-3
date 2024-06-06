@@ -2,7 +2,7 @@ import { Database } from "bun:sqlite";
 import type { JourneyCommittedEvent } from "jerni/type";
 import type { EventDatabase } from "./injectDatabase";
 
-const db = new Database("events.sqlite");
+const db = new Database("mydb.sqlite");
 
 export default function getSqliteDb(): EventDatabase {
   // create tables if not exists
@@ -76,6 +76,12 @@ export default function getSqliteDb(): EventDatabase {
       const row = query.get({ $id: includeListHash }) as { LAST_EVENT_ID: number } | undefined;
 
       return row ? row.LAST_EVENT_ID : 0;
+    },
+
+    dispose: async () => {
+      // delete all events and snapshot
+      db.query("DELETE FROM events").run();
+      db.query("DELETE FROM snapshot").run();
     },
   };
 }

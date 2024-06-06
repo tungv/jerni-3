@@ -133,6 +133,9 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
       for (const store of config.stores) {
         await store.dispose();
       }
+
+      // dispose all events
+      await disposeAllEvents();
     },
 
     async *begin(externalSignal?: AbortSignal) {
@@ -435,4 +438,8 @@ const getLatestSavedEventId = injectEventDatabase(async function getLatestSavedE
   const hashed = getHashedIncludes(includes);
 
   return getEventDatabase().getLatestEventId(hashed);
+});
+
+const disposeAllEvents = injectEventDatabase(async function disposeAllEvents() {
+  return getEventDatabase().dispose();
 });
