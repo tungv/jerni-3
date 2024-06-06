@@ -138,11 +138,12 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
     async *begin(externalSignal?: AbortSignal) {
       // we need another controller so that the background projection can stop the event stream
       const projectionAbortController = new AbortController();
-
-      // if the external signal is aborted, we should stop the projection
-      externalSignal?.addEventListener("abort", () => {
+      function abort() {
+        console.log("aborting projection...");
         projectionAbortController.abort();
-      });
+      }
+      // if the external signal is aborted, we should stop the projection
+      externalSignal?.addEventListener("abort", abort);
 
       const signal = projectionAbortController.signal;
 
@@ -230,11 +231,9 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
         void scheduleHandleEvents(config, projectionAbortController);
       }
 
-      if (signal?.aborted) {
-        // log that the journey worker has been stopped by abort signal
-        logger.debug("aborting journey...");
-        ev.close();
-      }
+      // dispose all listeners
+      ev.close();
+      externalSignal?.removeEventListener("abort", abort);
 
       return;
     },
