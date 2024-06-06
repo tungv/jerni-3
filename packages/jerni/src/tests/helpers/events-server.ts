@@ -1,6 +1,6 @@
-import { Database } from "bun:sqlite";
 import { mock } from "bun:test";
 import type { JourneyCommittedEvent } from "../../types/events";
+import { URL } from "node:url";
 
 export default function createServer(events: JourneyCommittedEvent[], subscriptionInterval = 300) {
   const subscriptionInputSpy = mock((searchParams: string, req: Request) => {});
@@ -30,7 +30,7 @@ export default function createServer(events: JourneyCommittedEvent[], subscripti
         return Response.json(events[events.length - 1]);
       }
 
-      // 3. GET /subscribe
+      // 2. GET /subscribe
       if (req.method === "GET" && url.pathname === "/subscribe") {
         subscriptionInputSpy(url.searchParams.toString(), req);
 
@@ -52,8 +52,20 @@ export default function createServer(events: JourneyCommittedEvent[], subscripti
   async function streamingResponse(req: Request, events: JourneyCommittedEvent[]) {
     const signal = req.signal;
 
+    const url = new URL(req.url);
+
     // get last event id from req headers
     const lastEventId = req.headers.get("Last-Event-ID");
+
+    const includes = url.searchParams.get("includes");
+    const includeList = includes ? includes.split(",") : [];
+    const isInIncludeList = (event: JourneyCommittedEvent) => {
+      if (includeList.length === 0) {
+        return true;
+      }
+
+      return includeList.includes(event.type as string);
+    };
 
     // write headers
     const headers = {
@@ -74,8 +86,14 @@ export default function createServer(events: JourneyCommittedEvent[], subscripti
           controller.write(":ok\n\n");
 
           do {
-            // query for new events
-            const rows = events.filter((event) => event.id > lastReturned);
+            // get a batch of events to send
+            const batch = events.slice(lastReturned, lastReturned + 200);
+
+            // update lastReturned to mark the first event for the next batch
+            lastReturned += batch.length;
+
+            // only include events that are in the include list
+            const rows = batch.filter(isInIncludeList);
 
             // if empty, wait for 1 second
             if (rows.length === 0) {
@@ -84,7 +102,6 @@ export default function createServer(events: JourneyCommittedEvent[], subscripti
             }
 
             const last = rows[rows.length - 1];
-            lastReturned = last.id;
 
             // check if client is still connected
             if (signal.aborted) {
