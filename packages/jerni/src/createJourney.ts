@@ -18,6 +18,7 @@ import { DBG, INF } from "./cli-utils/log-headers";
 import { bold } from "picocolors";
 import { getEventDatabase, injectEventDatabase } from "./events-storage/injectDatabase";
 import listen from "./listen";
+import hash from "hash-sum";
 
 const defaultLogger = console;
 const noop = () => {};
@@ -187,7 +188,7 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
       });
       const latestEvent = (await response.json()) as JourneyCommittedEvent;
 
-      const clientLatest = await getLatestSavedEventId();
+      const clientLatest = await getLatestSavedEventId(includedTypes);
 
       const serverLatest = latestEvent.id;
 
@@ -221,7 +222,7 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
       for await (const stream of eventStream) {
         const data = JSON.parse(stream) as JourneyCommittedEvent[];
 
-        await saveEvents(data);
+        await saveEvents(includedTypes, data);
 
         yield data;
 
@@ -268,9 +269,14 @@ function wrapError(errorOrUnknown: unknown): Error {
   return new Error(JSON.stringify(errorOrUnknown));
 }
 
-const saveEvents = injectEventDatabase(async function handleEvents(events: JourneyCommittedEvent[]) {
+const saveEvents = injectEventDatabase(async function handleEvents(
+  includeList: Set<string>,
+  events: JourneyCommittedEvent[],
+) {
+  const hashed = getHashedIncludes(Array.from(includeList).sort());
+
   const eventDatabase = getEventDatabase();
-  await eventDatabase.insertEvents(events);
+  await eventDatabase.insertEvents(hashed, events);
 });
 
 let projecting = false;
@@ -421,6 +427,13 @@ const scheduleHandleEvents = injectEventDatabase(async function scheduleHandleEv
   }
 });
 
-const getLatestSavedEventId = injectEventDatabase(async function getLatestSavedEventId() {
-  return getEventDatabase().getLatestEventId();
+function getHashedIncludes(includes: string[]) {
+  return hash(includes.sort());
+}
+
+const getLatestSavedEventId = injectEventDatabase(async function getLatestSavedEventId(includedTypes: Set<string>) {
+  const includes = Array.from(includedTypes);
+  const hashed = getHashedIncludes(includes);
+
+  return getEventDatabase().getLatestEventId(hashed);
 });

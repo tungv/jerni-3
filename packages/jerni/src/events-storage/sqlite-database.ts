@@ -2,18 +2,24 @@ import { Database } from "bun:sqlite";
 import type { JourneyCommittedEvent } from "jerni/type";
 import type { EventDatabase } from "./injectDatabase";
 
-const db = new Database("mydb.sqlite");
+const db = new Database("events.sqlite");
 
 export default function getSqliteDb(): EventDatabase {
-  const createQuery = db.query(`
+  // create tables if not exists
+  db.query(`
   CREATE TABLE IF NOT EXISTS events (
     id INTEGER PRIMARY KEY,
     type TEXT NOT NULL,
     payload TEXT NOT NULL
   );
-`);
+`).get();
 
-  createQuery.get();
+  db.query(`
+  CREATE TABLE IF NOT EXISTS snapshot (
+    id TEXT PRIMARY KEY,
+    LAST_EVENT_ID INTEGER NOT NULL
+  );
+`).get();
 
   return {
     getEventsFrom: async (lastEventId: number, limit = 200): Promise<JourneyCommittedEvent[]> => {
@@ -23,7 +29,7 @@ export default function getSqliteDb(): EventDatabase {
       return events.map((event) => ({
         ...event,
         payload: JSON.parse(event.payload as string),
-      }));
+      })) as JourneyCommittedEvent[];
     },
 
     streamEventsFrom: async function* (lastEventId: number, limit = 200): AsyncGenerator<JourneyCommittedEvent[]> {
@@ -47,8 +53,9 @@ export default function getSqliteDb(): EventDatabase {
       }
     },
 
-    insertEvents: async (events: JourneyCommittedEvent[]) => {
-      const insertQuery = db.prepare("INSERT INTO events (id ,type, payload) VALUES ($id, $type, $payload)");
+    insertEvents: async (includeListHash, events: JourneyCommittedEvent[]) => {
+      // upsert events
+      const insertQuery = db.prepare("INSERT OR REPLACE INTO events (id, type, payload) VALUES ($id, $type, $payload)");
 
       for (const event of events) {
         insertQuery.run({
@@ -57,13 +64,18 @@ export default function getSqliteDb(): EventDatabase {
           $payload: JSON.stringify(event.payload),
         });
       }
+
+      // update snapshot
+      const lastEventId = events[events.length - 1].id;
+      const query = db.prepare("INSERT OR REPLACE INTO snapshot (id, LAST_EVENT_ID) VALUES ($id, $lastEventId)");
+      query.run({ $id: includeListHash, $lastEventId: lastEventId });
     },
 
-    getLatestEventId: async () => {
-      const query = db.query("SELECT MAX(id) as maxId FROM events");
-      const { maxId } = query.get() as { maxId: number };
+    getLatestEventId: async (includeListHash) => {
+      const query = db.query("SELECT LAST_EVENT_ID FROM snapshot WHERE id = $id");
+      const row = query.get({ $id: includeListHash }) as { LAST_EVENT_ID: number } | undefined;
 
-      return maxId || 0;
+      return row ? row.LAST_EVENT_ID : 0;
     },
   };
 }

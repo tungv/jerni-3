@@ -2,6 +2,7 @@ import { expect, test } from "bun:test";
 import { getEventDatabase, injectEventDatabase } from "src/events-storage/injectDatabase";
 import createServer from "./helpers/events-server";
 import { initJourney } from "./helpers/initJourney";
+import hash from "hash-sum";
 
 import "src/events-storage/__mocks__/sqlite-database";
 
@@ -10,7 +11,7 @@ test(
   injectEventDatabase(async () => {
     // Setup: there is an event already saved in the database
     const eventDatabase = getEventDatabase();
-    eventDatabase.insertEvents([
+    eventDatabase.insertEvents(hash([]), [
       {
         id: 1,
         type: "NEW_ACCOUNT_REGISTERED",
