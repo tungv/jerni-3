@@ -87,19 +87,19 @@ export default function createServer(events: JourneyCommittedEvent[], subscripti
 
           do {
             // get a batch of events to send
-            const batch = events.slice(lastReturned, lastReturned + 200);
+            const batch = events.slice(lastReturned, lastReturned + 10);
 
             // update lastReturned to mark the first event for the next batch
             lastReturned += batch.length;
 
-            // only include events that are in the include list
-            const rows = batch.filter(isInIncludeList);
-
             // if empty, wait for 1 second
-            if (rows.length === 0) {
+            if (batch.length === 0) {
               await Bun.sleep(subscriptionInterval);
               continue;
             }
+
+            // only include events that are in the include list
+            const rows = batch.filter(isInIncludeList);
 
             const last = rows[rows.length - 1];
 

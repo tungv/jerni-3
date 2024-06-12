@@ -19,8 +19,6 @@ export class Signal<DocumentType extends Document> {
 
     const res = await collection.aggregate(this.pipeline).toArray();
 
-    console.log("executed signal for model=%s, got:", this.model.name, res);
-
     // write to the slot
     let slots = modelSlotsMap.get(this.model);
 
