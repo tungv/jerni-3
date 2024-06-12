@@ -1,4 +1,3 @@
-import MyEventSource from "./MyEventSource";
 import type { JourneyConfig, Store } from "./types/config";
 import type {
   JourneyCommittedEvent,
@@ -17,11 +16,14 @@ import JerniPersistenceError from "./JerniPersistenceError";
 import { DBG, INF } from "./cli-utils/log-headers";
 import { bold } from "picocolors";
 import { getEventDatabase, injectEventDatabase } from "./events-storage/injectDatabase";
-import listen from "./listen";
 import hash from "hash-sum";
+import { EventSourcePlus } from "event-source-plus";
+import { EventEmitter } from "node:events";
+import listenForEventsInServer from "./listenForEventsInServer";
 
 const defaultLogger = console;
 const noop = () => {};
+const RECEIVED_EVENTS = "RECEIVED_EVENTS";
 
 export default function createJourney(config: JourneyConfig): JourneyInstance {
   let hasStartedWaiting = false;
@@ -138,21 +140,7 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
       await disposeAllEvents();
     },
 
-    async *begin(externalSignal?: AbortSignal) {
-      // we need another controller so that the background projection can stop the event stream
-      const projectionAbortController = new AbortController();
-      function abort() {
-        console.log("aborting projection...");
-        projectionAbortController.abort();
-      }
-      // if the external signal is aborted, we should stop the projection
-      externalSignal?.addEventListener("abort", abort);
-
-      const signal = projectionAbortController.signal;
-
-      // start the projection for the saved events that are not yet processed
-      void scheduleHandleEvents(config, projectionAbortController);
-
+    async *begin(signal: AbortSignal) {
       // we need to resolve all the event types needed
       const includedTypes = new Set<string>();
       let includeAll = false;
@@ -226,6 +214,8 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
           eventEmitter.emit(RECEIVED_EVENTS);
         }
       })();
+
+      yield* longRunningHandleEvents(config, eventEmitter, signal);
     },
   };
 }
@@ -258,28 +248,74 @@ function wrapError(errorOrUnknown: unknown): Error {
   return new Error(JSON.stringify(errorOrUnknown));
 }
 
-const saveEvents = injectEventDatabase(async function handleEvents(
-  includeList: Set<string>,
-  events: JourneyCommittedEvent[],
-) {
-  const hashed = getHashedIncludes(Array.from(includeList).sort());
+async function* longRunningHandleEvents(config: JourneyConfig, eventEmitter: EventEmitter, signal: AbortSignal) {
+  const { logger = defaultLogger } = config;
 
-  const eventDatabase = getEventDatabase();
-  await eventDatabase.insertEvents(hashed, events);
-});
+  const outputs: unknown[] = [];
 
-let projecting = false;
-const scheduleHandleEvents = injectEventDatabase(async function scheduleHandleEvents(
-  config: JourneyConfig,
-  abortController: AbortController,
-) {
-  const { logger = defaultLogger, onReport = noop, onError } = config;
+  const { promise, resolve } = Promise.withResolvers();
 
-  // only one projection running at a time
-  if (projecting) {
-    return;
+  let unResolvedPromise = promise;
+  let resolver = resolve;
+
+  let hasError = false;
+
+  eventEmitter.on(RECEIVED_EVENTS, async () => {
+    try {
+      const output = await handleEventsInDatabase(config, signal);
+
+      outputs.push(output);
+
+      resolver();
+    } catch (ex) {
+      hasError = true;
+      resolver();
+
+      if (ex instanceof UnrecoverableError) {
+        logger.info("projection forcefully closed because of unrecoverable error");
+
+        logger.error("unrecoverable error", ex);
+
+        return;
+      }
+
+      console.log("ex", ex);
+    }
+  });
+
+  signal.addEventListener(
+    "abort",
+    () => {
+      resolver();
+    },
+    { once: true },
+  );
+
+  while (!signal.aborted && !hasError) {
+    const data = outputs.shift();
+
+    if (!data) {
+      await unResolvedPromise;
+
+      if (signal.aborted) {
+        break;
+      }
+
+      const { promise, resolve } = Promise.withResolvers();
+      unResolvedPromise = promise;
+      resolver = resolve;
+
+      continue;
+    }
+
+    yield data;
   }
-  projecting = true;
+
+  eventEmitter.removeAllListeners(RECEIVED_EVENTS);
+}
+
+async function handleEventsInDatabase(config: JourneyConfig, signal?: AbortSignal) {
+  const { logger = defaultLogger, onReport = noop, onError } = config;
 
   // get latest projected id
   // const lastSeenIds = await Promise.all(config.stores.map((store) => store.getLastSeenId()));
@@ -287,39 +323,33 @@ const scheduleHandleEvents = injectEventDatabase(async function scheduleHandleEv
   // const furthest = Math.min(...lastSeenIds.filter((id) => id !== null));
   // const clientLatestId = furthest === Number.POSITIVE_INFINITY ? 0 : furthest;
 
-  const eventDatabase = getEventDatabase();
-  const eventsStream = eventDatabase.streamEventsFrom(0);
+  // const eventDatabase = getEventDatabase();
+  // const eventsStream = eventDatabase.streamEventsFrom(0);
+  const eventsStream = await getEventStream();
 
   for await (const events of eventsStream) {
-    if (abortController.signal.aborted) {
+    if (signal?.aborted) {
       logger.info("aborting projection...");
       break;
     }
 
-    try {
-      const output = await Promise.all(
-        config.stores.map(async (store) => {
-          const output = await singleStoreHandleEvents(store, events);
-          onReport("store_output", {
-            store,
-            output,
-          });
-        }),
-      );
-      if (output.some((output) => output)) {
-        logger.info("output", output);
-      }
-    } catch (ex) {
-      if (ex instanceof UnrecoverableError) {
-        logger.info("projection forcefully closed because of unrecoverable error");
-        abortController.abort();
-        break;
-      }
-      console.log("ex", ex);
-    }
-  }
+    const output = await Promise.all(
+      config.stores.map(async (store) => {
+        const output = await singleStoreHandleEvents(store, events);
+        onReport("store_output", {
+          store,
+          output,
+        });
 
-  projecting = false;
+        return output;
+      }),
+    );
+    if (output.some((output) => output)) {
+      logger.info("output", output);
+    }
+
+    return output;
+  }
 
   async function singleStoreHandleEvents(
     store: Store,
@@ -414,7 +444,7 @@ const scheduleHandleEvents = injectEventDatabase(async function scheduleHandleEv
       }
     }
   }
-});
+}
 
 function getHashedIncludes(includes: string[]) {
   return hash(includes.sort());
@@ -429,4 +459,20 @@ const getLatestSavedEventId = injectEventDatabase(async function getLatestSavedE
 
 const disposeAllEvents = injectEventDatabase(async function disposeAllEvents() {
   return getEventDatabase().dispose();
+});
+
+const saveEvents = injectEventDatabase(async function handleEvents(
+  includeList: Set<string>,
+  events: JourneyCommittedEvent[],
+) {
+  const hashed = getHashedIncludes(Array.from(includeList).sort());
+
+  const eventDatabase = getEventDatabase();
+  await eventDatabase.insertEvents(hashed, events);
+});
+
+const getEventStream = injectEventDatabase(async function getEventStream(): Promise<
+  AsyncGenerator<JourneyCommittedEvent[]>
+> {
+  return getEventDatabase().streamEventsFrom(0);
 });
