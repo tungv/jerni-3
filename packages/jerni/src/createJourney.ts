@@ -205,40 +205,27 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
 
       subscriptionUrl.searchParams.set("lastEventId", clientLatest.toString());
 
-      const ev = new MyEventSource(subscriptionUrl.toString(), signal);
+      const eventEmitter = new EventEmitter();
 
-      ev.addEventListener("open", (event) => {
-        logger.info("%s start receiving data", INF);
+      const eventSource = new EventSourcePlus(subscriptionUrl.toString(), {
+        headers: {
+          authorization: `Basic ${btoa(`${url.username}:${url.password}`)}`,
+        },
       });
 
-      ev.addEventListener("START", (event) => {
-        // logger.debug("event", event.data);
-      });
+      const eventStream = listenForEventsInServer(eventSource, signal);
 
-      ev.addEventListener("error", (event) => {
-        logger.error(event as ErrorEvent);
+      (async function receiveAndSaveEvents() {
+        for await (const stream of eventStream) {
+          const data = JSON.parse(stream) as JourneyCommittedEvent[];
 
-        ev.close();
-      });
+          logger.log("saving %d events from event id #%d - #%d", data.length, data[0].id, data[data.length - 1].id);
 
-      const eventStream = listen(ev, "INCMSG", signal);
+          await saveEvents(includedTypes, data);
 
-      for await (const stream of eventStream) {
-        const data = JSON.parse(stream) as JourneyCommittedEvent[];
-
-        await saveEvents(includedTypes, data);
-
-        yield data;
-
-        // start the projection for the new events
-        void scheduleHandleEvents(config, projectionAbortController);
-      }
-
-      // dispose all listeners
-      ev.close();
-      externalSignal?.removeEventListener("abort", abort);
-
-      return;
+          eventEmitter.emit(RECEIVED_EVENTS);
+        }
+      })();
     },
   };
 }
