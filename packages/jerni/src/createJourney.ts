@@ -111,10 +111,13 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
       ) {
         const waited = Date.now();
         const turnaround = waited - event.meta.committed_at;
+        const elapsed = waited - start;
         logger.debug("event", event.id, "is ready in", turnaround, "ms");
         onReport("event_ready", {
+          event_type: event.type,
           event_id: event.id,
           turnaround,
+          elapsed,
         });
       }
     },
