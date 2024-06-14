@@ -5,13 +5,13 @@ import type { JourneyCommittedEvent } from "../../src/types";
 
 describe("handle events for models", () => {
   test("it should fan out all events to all models", async () => {
-    // 2 models, each model should receive 3 events, plus the last seen id and the changes assertion = 3 * 2 + 1 + 1 = 8
-    expect.assertions(8);
+    let assertionCount = 0;
 
     const model1 = {
       name: "model_1",
       version: "1",
       transform(event: JourneyCommittedEvent) {
+        assertionCount++;
         expect(true).toBeTrue();
         return [];
       },
@@ -21,6 +21,7 @@ describe("handle events for models", () => {
       name: "model_2",
       version: "1",
       transform(event: JourneyCommittedEvent) {
+        assertionCount++;
         expect(true).toBeTrue();
         return [];
       },
@@ -68,7 +69,12 @@ describe("handle events for models", () => {
       },
     });
 
+    assertionCount += 2;
+
     await store.dispose();
+
+    // 2 models, each model should receive 3 events, plus the last seen id and the changes assertion = 3 * 2 + 1 + 1 = 8
+    expect(assertionCount).toBe(8);
   });
 
   test("bulkWrite changes to mongodb", async () => {

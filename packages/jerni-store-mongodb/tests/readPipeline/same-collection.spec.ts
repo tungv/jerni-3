@@ -11,7 +11,7 @@ interface TestCollection {
 
 describe("Read Pipeline Same Collection", () => {
   test("it should allow reading data from the same collection", async () => {
-    expect.assertions(2);
+    let assertionCount = 0;
 
     const model_1: MongoDBModel<TestCollection> = {
       name: "model_read_1",
@@ -32,6 +32,7 @@ describe("Read Pipeline Same Collection", () => {
         if (event.type === "test") {
           const res = readPipeline([{ $match: { id: 2 } }, { $project: { name: 1 } }]);
 
+          assertionCount++;
           expect(res[0].name).toBe("test-model-1--item-2");
           return [];
         }
@@ -57,6 +58,7 @@ describe("Read Pipeline Same Collection", () => {
         if (event.type === "test") {
           const res = readPipeline([{ $match: { id: 2 } }, { $project: { name: 1 } }]);
 
+          assertionCount++;
           expect(res[0].name).toBe("test-model-2--item-2");
           return [];
         }
@@ -83,10 +85,12 @@ describe("Read Pipeline Same Collection", () => {
         payload: {},
       },
     ]);
+
+    expect(assertionCount).toBe(2);
   });
 
   test("it should clear cache when finishing an event", async () => {
-    expect.assertions(3);
+    let assertionCount = 0;
 
     const model_1: MongoDBModel<TestCollection> = {
       name: "model_read_clear_cache_1",
@@ -107,6 +111,7 @@ describe("Read Pipeline Same Collection", () => {
         if (event.type === "test_1") {
           const res = readPipeline([{ $match: { id: 2 } }, { $project: { name: 1 } }]);
 
+          assertionCount++;
           expect(res[0].name).toBe("test-model-1--item-2");
           return [];
         }
@@ -114,6 +119,7 @@ describe("Read Pipeline Same Collection", () => {
         if (event.type === "test_2") {
           const res = readPipeline([{ $match: { id: 3 } }, { $project: { name: 1 } }]);
 
+          assertionCount++;
           expect(res[0].name).toBe("test-model-1--item-3");
           return [];
         }
@@ -139,6 +145,7 @@ describe("Read Pipeline Same Collection", () => {
         if (event.type === "test_1") {
           const res = readPipeline([{ $match: { id: 2 } }, { $project: { name: 1 } }]);
 
+          assertionCount++;
           expect(res[0].name).toBe("test-model-2--item-2");
           return [];
         }
@@ -170,10 +177,12 @@ describe("Read Pipeline Same Collection", () => {
         payload: {},
       },
     ]);
+
+    expect(assertionCount).toBe(3);
   });
 
   test("it should allow reading in loop", async () => {
-    expect.assertions(3 + 2 + 1);
+    let assertionCount = 0;
 
     const model_1: MongoDBModel<TestCollection> = {
       name: "model_read_loop_1",
@@ -195,6 +204,7 @@ describe("Read Pipeline Same Collection", () => {
           for (let i = 0; i < 3; i++) {
             const res = readPipeline([{ $match: { id: i + 1 } }, { $project: { name: 1 } }]);
 
+            assertionCount++;
             expect(res[0].name).toBe(`test-model-1--item-${i + 1}`);
           }
 
@@ -223,5 +233,7 @@ describe("Read Pipeline Same Collection", () => {
         payload: {},
       },
     ]);
+
+    expect(assertionCount).toBe(3 * 2);
   });
 });

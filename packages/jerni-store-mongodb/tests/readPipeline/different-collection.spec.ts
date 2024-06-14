@@ -19,7 +19,7 @@ afterAll(async () => {
     .listDatabases({ nameOnly: true })
     .then(async (dbs) => {
       for (const db of dbs.databases) {
-        if (db.name.startsWith("test_mongodb_store_driver_v4_")) {
+        if (db.name.startsWith("mongodb_store_driver_v4_")) {
           await client.db(db.name).dropDatabase();
         }
       }
@@ -28,7 +28,7 @@ afterAll(async () => {
 
 describe("Read Pipeline Different Collection", () => {
   test("it should allow reading data from different collection", async () => {
-    expect.assertions(2);
+    let assertionCount = 0;
 
     const model_1: MongoDBModel<TestCollection> = {
       name: "model_read_1",
@@ -73,6 +73,8 @@ describe("Read Pipeline Different Collection", () => {
           expect(result[0].name).toBe("test-model-1--item-1");
           expect(result[0].id).toBe(1);
 
+          assertionCount += 2;
+
           return [];
         }
       },
@@ -98,12 +100,12 @@ describe("Read Pipeline Different Collection", () => {
         payload: {},
       },
     ]);
+
+    expect(assertionCount).toBe(2);
   });
 
   test("the model slots should be cleared after processing an event", async () => {
-    // TODO: have a variable to count the number of assertions then check if the number of assertions is correct
-    // this assertions does not work as expected
-    expect.assertions(4);
+    let assertionCount = 0;
 
     const model_1: MongoDBModel<TestCollection> = {
       name: "model_read_1",
@@ -158,6 +160,8 @@ describe("Read Pipeline Different Collection", () => {
           expect(result[0].name).toBe("test-model-1--item-1");
           expect(result[0].id).toBe(1);
 
+          assertionCount += 2;
+
           return [];
         }
 
@@ -174,6 +178,8 @@ describe("Read Pipeline Different Collection", () => {
           // if the model slots are not cleared, the result will be "test-model-1--item-1"
           expect(result[0].name).toBe("test-model-1--item-1-updated");
           expect(result[0].id).toBe(1);
+
+          assertionCount += 2;
 
           return [];
         }
@@ -205,10 +211,12 @@ describe("Read Pipeline Different Collection", () => {
         payload: {},
       },
     ]);
+
+    expect(assertionCount).toBe(4);
   });
 
   test("readPipeline cross model can be called in loop", async () => {
-    expect.assertions(3 + 2 + 1);
+    let assertionCount = 0;
 
     const model_1: MongoDBModel<TestCollection> = {
       name: "model_read_loop_1",
@@ -231,6 +239,8 @@ describe("Read Pipeline Different Collection", () => {
             const res = readPipeline(model_2, [{ $match: { id: i + 1 } }, { $project: { name: 1 } }]);
 
             expect(res[0].name).toBe(`test-model-2--item-${i + 1}`);
+            console.log("----------------");
+            assertionCount++;
           }
 
           return [];
@@ -259,6 +269,8 @@ describe("Read Pipeline Different Collection", () => {
             const res = readPipeline(model_1, [{ $match: { id: i + 1 } }, { $project: { name: 1 } }]);
 
             expect(res[0].name).toBe(`test-model-1--item-${i + 1}`);
+            console.log("----------------");
+            assertionCount++;
           }
 
           return [];
@@ -286,6 +298,8 @@ describe("Read Pipeline Different Collection", () => {
         payload: {},
       },
     ]);
+
+    expect(assertionCount).toBe((1 + 2 + 3) * 2);
   });
 
   test("handle case where the other collection is  more advanced", async () => {
