@@ -11,6 +11,7 @@ interface SnapshotDocument {
   full_collection_name: string;
 }
 
+// TODO: add logger to store config
 export default async function makeMongoDBStore(config: MongoDBStoreConfig): Promise<MongoDBStore> {
   const client = await MongoClient.connect(config.url);
   const db = client.db(config.dbName);
