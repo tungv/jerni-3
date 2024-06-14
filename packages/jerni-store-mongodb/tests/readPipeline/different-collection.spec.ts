@@ -84,6 +84,8 @@ describe("Read Pipeline Different Collection", () => {
   });
 
   test("the model slots should be cleared after processing an event", async () => {
+    // TODO: have a variable to count the number of assertions then check if the number of assertions is correct
+    // this assertions does not work as expected
     expect.assertions(4);
 
     const model_1: MongoDBModel<TestCollection> = {
