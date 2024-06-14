@@ -11,6 +11,16 @@ interface SnapshotDocument {
   full_collection_name: string;
 }
 
+function addDependenciesToModels(model: MongoDBModel<Document>, models: MongoDBModel<Document>[]) {
+  const dependencies = model.dependencies || [];
+  for (const dependency of dependencies) {
+    if (!models.includes(dependency)) {
+      models.push(dependency);
+      addDependenciesToModels(dependency, models);
+    }
+  }
+}
+
 // TODO: add logger to store config
 export default async function makeMongoDBStore(config: MongoDBStoreConfig): Promise<MongoDBStore> {
   const client = await MongoClient.connect(config.url);
@@ -18,6 +28,11 @@ export default async function makeMongoDBStore(config: MongoDBStoreConfig): Prom
   let hasStopped = false;
 
   const models = config.models;
+
+  // add all dependency models to the list
+  for (const model of models) {
+    addDependenciesToModels(model, models);
+  }
 
   const snapshotCollection = db.collection<SnapshotDocument>("jerni__snapshot");
 
@@ -38,6 +53,93 @@ export default async function makeMongoDBStore(config: MongoDBStoreConfig): Prom
         upsert: true,
       },
     );
+  }
+
+  // get all the versions of the models
+  const allSnapshots = await snapshotCollection
+    .find({
+      full_collection_name: { $in: models.map(getCollectionName) },
+    })
+    .toArray();
+
+  const versions = allSnapshots.map((doc) => ({
+    name: doc.full_collection_name,
+    version: doc.__v,
+  }));
+
+  // get the not up-to-date models by comparing them with the latest version
+  const latestVersion = versions.reduce(
+    (acc, doc) => {
+      if (doc.version > acc.version) {
+        return doc;
+      }
+
+      return acc;
+    },
+    {
+      name: "",
+      version: 0,
+    },
+  );
+
+  const notUpToDateModels = models.filter((model) => {
+    const collectionName = getCollectionName(model);
+    const version = versions.find((doc) => doc.name === collectionName);
+
+    // this should never happen since we have upserted all models
+    if (!version) {
+      throw new Error(`snapshot for ${collectionName} not found`);
+    }
+
+    return version.version < latestVersion.version;
+  });
+
+  // for all not up-to-date models, we need to drop their dependent collections
+  while (true) {
+    const model = notUpToDateModels.shift();
+
+    // need to check condition here because type of shift() is always T | undefined
+    if (!model) {
+      break;
+    }
+
+    const dependencies = model.dependencies || [];
+
+    for (const dependency of dependencies) {
+      const dependencyCollectionName = getCollectionName(dependency);
+      const version = versions.find((doc) => doc.name === dependencyCollectionName);
+
+      // this should never happen since we have upserted for all models and its dependencies
+      if (!version) {
+        throw new Error(`snapshot for ${dependencyCollectionName} not found`);
+      }
+
+      // if the dependency is already dropped, we can skip it
+      if (version.version === 0) {
+        continue;
+      }
+
+      // if the dependency is not dropped yet, we need to drop it
+      await snapshotCollection.updateOne(
+        {
+          full_collection_name: dependencyCollectionName,
+        },
+        {
+          $set: {
+            __v: 0,
+          },
+        },
+      );
+
+      const collection = db.collection(dependencyCollectionName);
+      await collection.drop();
+
+      // optimistic update the version
+      version.version = 0;
+
+      // then add it to the notUpToDateModels to check for its dependencies
+      notUpToDateModels.push(dependency);
+    }
   }
 
   async function* listen() {
