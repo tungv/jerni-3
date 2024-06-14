@@ -1,4 +1,6 @@
-import { describe, expect, test } from "bun:test";
+import { afterAll, describe, expect, test } from "bun:test";
+import { MongoClient } from "mongodb";
+import { nanoid } from "nanoid";
 import type MongoDBModel from "src/model";
 import readPipeline from "src/read";
 import makeMongoDBStore from "src/store";
@@ -8,6 +10,21 @@ interface TestCollection {
   id: number;
   name: string;
 }
+
+afterAll(async () => {
+  const client = await MongoClient.connect("mongodb://127.0.0.1:27017");
+  client
+    .db()
+    .admin()
+    .listDatabases({ nameOnly: true })
+    .then(async (dbs) => {
+      for (const db of dbs.databases) {
+        if (db.name.startsWith("test_mongodb_store_driver_v4_")) {
+          await client.db(db.name).dropDatabase();
+        }
+      }
+    });
+});
 
 describe("Read Pipeline Different Collection", () => {
   test("it should allow reading data from different collection", async () => {
@@ -258,6 +275,105 @@ describe("Read Pipeline Different Collection", () => {
 
     await store.clean();
     await store.handleEvents([
+      {
+        id: 1,
+        type: "init",
+        payload: {},
+      },
+      {
+        id: 2,
+        type: "test",
+        payload: {},
+      },
+    ]);
+  });
+
+  test("handle case where the other collection is  more advanced", async () => {
+    const dbName = `mongodb_store_driver_v4_${nanoid()}`;
+
+    const model_1: MongoDBModel<TestCollection> = {
+      name: "model_1",
+      version: "1",
+      transform(event: JourneyCommittedEvent) {
+        if (event.type === "init") {
+          return [
+            {
+              insertMany: [
+                { id: 1, name: "test-model-1--item-1" },
+                { id: 2, name: "test-model-1--item-2" },
+                { id: 3, name: "test-model-1--item-3" },
+              ],
+            },
+          ];
+        }
+
+        if (event.type === "test") {
+          return [
+            {
+              updateOne: {
+                where: { id: 1 },
+                changes: { $set: { name: "test-model-1--item-1-updated" } },
+              },
+            },
+          ];
+        }
+      },
+    };
+
+    const model_2: MongoDBModel<TestCollection> = {
+      name: "model_2",
+      version: "1",
+      transform(event: JourneyCommittedEvent) {
+        if (event.type === "init") {
+          return [
+            {
+              insertOne: { id: 1, name: "test-model-2--item-1" },
+            },
+          ];
+        }
+
+        if (event.type === "test") {
+          const res = readPipeline(model_1, [{ $match: { id: 1 } }, { $project: { name: 1 } }]) as { name: string }[];
+
+          // if reading from the correct version of the model 1, then the name should not be updated yet
+          expect(res[0].name).toBe("test-model-1--item-1");
+
+          return [];
+        }
+      },
+      dependencies: [model_1],
+    };
+
+    const store1 = await makeMongoDBStore({
+      name: "test_read_pipeline",
+      dbName,
+      url: "mongodb://127.0.0.1:27017",
+      models: [model_1],
+    });
+
+    // make the model 1 more advanced
+    await store1.handleEvents([
+      {
+        id: 1,
+        type: "init",
+        payload: {},
+      },
+      {
+        id: 2,
+        type: "test",
+        payload: {},
+      },
+    ]);
+
+    const store2 = await makeMongoDBStore({
+      name: "test_read_pipeline",
+      dbName,
+      url: "mongodb://127.0.0.1:27017",
+      models: [model_1, model_2],
+    });
+
+    // at the point, the model 1 is more advanced than the model 2
+    await store2.handleEvents([
       {
         id: 1,
         type: "init",
