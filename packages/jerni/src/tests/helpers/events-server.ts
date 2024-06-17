@@ -5,6 +5,12 @@ import { URL } from "node:url";
 export default function createServer(events: JourneyCommittedEvent[], subscriptionInterval = 300) {
   const subscriptionInputSpy = mock((searchParams: string, req: Request) => {});
 
+  const localEvents = events.slice();
+
+  function commit(event: JourneyCommittedEvent) {
+    localEvents.push(event);
+  }
+
   const server = Bun.serve({
     async fetch(req) {
       /** we need to handle 4 cases:
@@ -18,7 +24,7 @@ export default function createServer(events: JourneyCommittedEvent[], subscripti
 
       // 1. GET /events/latest
       if (req.method === "GET" && url.pathname === "/events/latest") {
-        if (events.length === 0) {
+        if (localEvents.length === 0) {
           return Response.json({
             id: 0,
             type: "@@INIT",
@@ -27,14 +33,14 @@ export default function createServer(events: JourneyCommittedEvent[], subscripti
           });
         }
 
-        return Response.json(events[events.length - 1]);
+        return Response.json(localEvents[localEvents.length - 1]);
       }
 
       // 2. GET /subscribe
       if (req.method === "GET" && url.pathname === "/subscribe") {
         subscriptionInputSpy(url.searchParams.toString(), req);
 
-        return streamingResponse(req, events);
+        return streamingResponse(req, localEvents);
       }
 
       return new Response("404");
@@ -47,6 +53,7 @@ export default function createServer(events: JourneyCommittedEvent[], subscripti
     inputSpies: {
       subscriptionInputSpy,
     },
+    commit,
   };
 
   async function streamingResponse(req: Request, events: JourneyCommittedEvent[]) {
