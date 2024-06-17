@@ -21,8 +21,11 @@ function addDependenciesToModels(model: MongoDBModel<Document>, models: MongoDBM
   }
 }
 
-// TODO: add logger to store config
+const defaultLogger = console;
+
 export default async function makeMongoDBStore(config: MongoDBStoreConfig): Promise<MongoDBStore> {
+  const logger = config.logger || defaultLogger;
+
   const client = await MongoClient.connect(config.url);
   const db = client.db(config.dbName);
   let hasStopped = false;
@@ -104,6 +107,13 @@ export default async function makeMongoDBStore(config: MongoDBStoreConfig): Prom
     }
 
     const dependencies = model.dependencies || [];
+    if (dependencies.length > 0) {
+      logger.debug(
+        `detected model ${model.name} is not up-to-date, dropping ${dependencies.length} dependencies: ${dependencies
+          .map((d) => d.name)
+          .join(", ")}`,
+      );
+    }
 
     for (const dependency of dependencies) {
       const dependencyCollectionName = getCollectionName(dependency);
@@ -236,7 +246,7 @@ export default async function makeMongoDBStore(config: MongoDBStoreConfig): Prom
           return runWithModel(model, event);
         } catch (error) {
           if (error instanceof Signal) {
-            console.debug(
+            logger.debug(
               "event id=%d reads. Stop and processing previous event (from %d to before %d)",
               event.id,
               events[0].id,
@@ -318,7 +328,7 @@ export default async function makeMongoDBStore(config: MongoDBStoreConfig): Prom
       const interruptedEvent = events[interruptedIndex];
       const remainingEvents = events.slice(interruptedIndex);
 
-      console.debug(
+      logger.debug(
         "priming data for event:\n%s",
         require("node:util").inspect(interruptedEvent, { depth: null, colors: true }),
       );

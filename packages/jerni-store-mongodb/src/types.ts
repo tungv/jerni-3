@@ -15,10 +15,20 @@ export interface Changes {
   deleted: number;
 }
 
+export interface Logger {
+  debug: Console["debug"];
+  log: Console["log"];
+  info: Console["info"];
+  warn: Console["warn"];
+  error: Console["error"];
+}
+
 export interface MongoDBStoreConfig {
   name: string;
   dbName: string;
   url: string;
+
+  logger?: Logger;
 
   // biome-ignore lint/suspicious/noExplicitAny: this can be any collection, however, if using Document, it will cause Typescript constraint error
   models: MongoDBModel<any>[];
