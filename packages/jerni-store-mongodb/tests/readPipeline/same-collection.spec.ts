@@ -3,6 +3,7 @@ import makeMongoDBStore from "../../src/store";
 import type MongoDBModel from "../../src/model";
 import type { JourneyCommittedEvent } from "../../src/types";
 import { describe, expect, test } from "bun:test";
+import { nanoid } from "nanoid";
 
 interface TestCollection {
   id: number;
@@ -12,6 +13,7 @@ interface TestCollection {
 describe("Read Pipeline Same Collection", () => {
   test("it should allow reading data from the same collection", async () => {
     let assertionCount = 0;
+    const dbName = `mongodb_store_driver_v4_${nanoid()}`;
 
     const model_1: MongoDBModel<TestCollection> = {
       name: "model_read_1",
@@ -67,7 +69,7 @@ describe("Read Pipeline Same Collection", () => {
 
     const store = await makeMongoDBStore({
       name: "test_read_pipeline",
-      dbName: "mongodb_store_driver_v4_test_read_pipeline",
+      dbName,
       url: "mongodb://127.0.0.1:27017",
       models: [model_1, model_2],
     });
@@ -91,6 +93,7 @@ describe("Read Pipeline Same Collection", () => {
 
   test("it should clear cache when finishing an event", async () => {
     let assertionCount = 0;
+    const dbName = `mongodb_store_driver_v4_${nanoid()}`;
 
     const model_1: MongoDBModel<TestCollection> = {
       name: "model_read_clear_cache_1",
@@ -154,7 +157,7 @@ describe("Read Pipeline Same Collection", () => {
 
     const store = await makeMongoDBStore({
       name: "test_read_pipeline",
-      dbName: "mongodb_store_driver_v4_test_read_pipeline",
+      dbName,
       url: "mongodb://127.0.0.1:27017",
       models: [model_1, model_2],
     });
@@ -183,6 +186,7 @@ describe("Read Pipeline Same Collection", () => {
 
   test("it should allow reading in loop", async () => {
     let assertionCount = 0;
+    const dbName = `mongodb_store_driver_v4_${nanoid()}`;
 
     const model_1: MongoDBModel<TestCollection> = {
       name: "model_read_loop_1",
@@ -215,7 +219,7 @@ describe("Read Pipeline Same Collection", () => {
 
     const store = await makeMongoDBStore({
       name: "test_read_pipeline",
-      dbName: "mongodb_store_driver_v4_test_read_pipeline",
+      dbName,
       url: "mongodb://127.0.0.1:27017",
       models: [model_1],
     });

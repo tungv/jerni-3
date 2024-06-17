@@ -2,9 +2,12 @@ import makeMongoDBStore from "../../src/store";
 import type MongoDBModel from "../../src/model";
 import type { JourneyCommittedEvent } from "../../src/types";
 import { describe, expect, test } from "bun:test";
+import { nanoid } from "nanoid";
 
 describe("Optimistic Locking - Update", () => {
   test("it should not apply an updateOne twice with `changes`", async () => {
+    const dbName = `mongodb_store_driver_v4_${nanoid()}`;
+
     interface TestCollection {
       id: number;
       name: string;
@@ -46,7 +49,7 @@ describe("Optimistic Locking - Update", () => {
 
     const store = await makeMongoDBStore({
       name: "optimistic_locking",
-      dbName: "mongodb_store_driver_v4_optimistic",
+      dbName,
       url: "mongodb://127.0.0.1:27017",
       models: [model],
     });
@@ -84,6 +87,8 @@ describe("Optimistic Locking - Update", () => {
   });
 
   test("it should not apply an updateOne twice with `pipeline`", async () => {
+    const dbName = `mongodb_store_driver_v4_${nanoid()}`;
+
     interface TestCollection {
       id: number;
       name: string;
@@ -127,7 +132,7 @@ describe("Optimistic Locking - Update", () => {
 
     const store = await makeMongoDBStore({
       name: "optimistic_locking",
-      dbName: "mongodb_store_driver_v4_optimistic",
+      dbName,
       url: "mongodb://127.0.0.1:27017",
       models: [model],
     });
@@ -165,6 +170,8 @@ describe("Optimistic Locking - Update", () => {
   });
 
   test("it should not apply an updateMany twice with `changes`", async () => {
+    const dbName = `mongodb_store_driver_v4_${nanoid()}`;
+
     interface TestCollection {
       id: number;
       name: string;
@@ -209,7 +216,7 @@ describe("Optimistic Locking - Update", () => {
 
     const store = await makeMongoDBStore({
       name: "optimistic_locking",
-      dbName: "mongodb_store_driver_v4_optimistic",
+      dbName,
       url: "mongodb://127.0.0.1:27017",
       models: [model],
     });
@@ -247,6 +254,8 @@ describe("Optimistic Locking - Update", () => {
   });
 
   test("it should not apply an updateMany twice with `pipeline`", async () => {
+    const dbName = `mongodb_store_driver_v4_${nanoid()}`;
+
     interface TestCollection {
       id: number;
       name: string;
@@ -293,7 +302,7 @@ describe("Optimistic Locking - Update", () => {
 
     const store = await makeMongoDBStore({
       name: "optimistic_locking",
-      dbName: "mongodb_store_driver_v4_optimistic",
+      dbName,
       url: "mongodb://127.0.0.1:27017",
       models: [model],
     });

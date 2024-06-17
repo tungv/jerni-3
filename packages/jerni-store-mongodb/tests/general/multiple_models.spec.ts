@@ -2,9 +2,12 @@ import { describe, expect, test } from "bun:test";
 import { MongoDBModel } from "../../src";
 import makeMongoDBStore from "../../src/store";
 import type { JourneyCommittedEvent } from "../../src/types";
+import { nanoid } from "nanoid";
 
 describe("Multiple models", () => {
   test("it should insert data to all models", async () => {
+    const dbName = `mongodb_store_driver_v4_${nanoid()}`;
+
     const model1 = new MongoDBModel({
       name: "model_1",
       version: "1",
@@ -37,7 +40,7 @@ describe("Multiple models", () => {
 
     const store = await makeMongoDBStore({
       name: "test_register_models",
-      dbName: "mongodb_multiple_models_test",
+      dbName,
       url: "mongodb://127.0.0.1:27017",
       models: [model1, model2],
     });

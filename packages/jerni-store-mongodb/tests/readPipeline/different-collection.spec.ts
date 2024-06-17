@@ -28,6 +28,8 @@ afterAll(async () => {
 
 describe("Read Pipeline Different Collection", () => {
   test("it should allow reading data from different collection", async () => {
+    const dbName = `mongodb_store_driver_v4_${nanoid()}`;
+
     let assertionCount = 0;
 
     const model_1: MongoDBModel<TestCollection> = {
@@ -82,7 +84,7 @@ describe("Read Pipeline Different Collection", () => {
 
     const store = await makeMongoDBStore({
       name: "test_read_pipeline",
-      dbName: "mongodb_store_driver_v4_test_read_pipeline",
+      dbName,
       url: "mongodb://127.0.0.1:27017",
       models: [model_1, model_2],
     });
@@ -105,6 +107,8 @@ describe("Read Pipeline Different Collection", () => {
   });
 
   test("the model slots should be cleared after processing an event", async () => {
+    const dbName = `mongodb_store_driver_v4_${nanoid()}`;
+
     let assertionCount = 0;
 
     const model_1: MongoDBModel<TestCollection> = {
@@ -188,7 +192,7 @@ describe("Read Pipeline Different Collection", () => {
 
     const store = await makeMongoDBStore({
       name: "test_read_pipeline",
-      dbName: "mongodb_store_driver_v4_test_read_pipeline",
+      dbName,
       url: "mongodb://127.0.0.1:27017",
       models: [model_2, model_1],
     });
@@ -216,6 +220,8 @@ describe("Read Pipeline Different Collection", () => {
   });
 
   test("readPipeline cross model can be called in loop", async () => {
+    const dbName = `mongodb_store_driver_v4_${nanoid()}`;
+
     let assertionCount = 0;
 
     const model_1: MongoDBModel<TestCollection> = {
@@ -280,7 +286,7 @@ describe("Read Pipeline Different Collection", () => {
 
     const store = await makeMongoDBStore({
       name: "test_read_pipeline",
-      dbName: "mongodb_store_driver_v4_test_read_pipeline",
+      dbName,
       url: "mongodb://127.0.0.1:27017",
       models: [model_1, model_2],
     });

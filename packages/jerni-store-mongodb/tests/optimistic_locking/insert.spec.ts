@@ -2,9 +2,12 @@ import makeMongoDBStore from "../../src/store";
 import type MongoDBModel from "../../src/model";
 import type { JourneyCommittedEvent } from "../../src/types";
 import { describe, expect, test } from "bun:test";
+import { nanoid } from "nanoid";
 
 describe("Optimistic Locking - Insert", () => {
   test("it should not apply an insertOne twice", async () => {
+    const dbName = `mongodb_store_driver_v4_${nanoid()}`;
+
     interface TestCollection {
       id: number;
       name: string;
@@ -24,7 +27,7 @@ describe("Optimistic Locking - Insert", () => {
 
     const store = await makeMongoDBStore({
       name: "optimistic_locking",
-      dbName: "mongodb_store_driver_v4_optimistic",
+      dbName,
       url: "mongodb://127.0.0.1:27017",
       models: [model],
     });
@@ -66,6 +69,8 @@ describe("Optimistic Locking - Insert", () => {
   });
 
   test("it should not apply an insertMany twice", async () => {
+    const dbName = `mongodb_store_driver_v4_${nanoid()}`;
+
     interface TestCollection {
       id: number;
       name: string;
@@ -88,7 +93,7 @@ describe("Optimistic Locking - Insert", () => {
 
     const store = await makeMongoDBStore({
       name: "optimistic_locking",
-      dbName: "mongodb_store_driver_v4_optimistic",
+      dbName,
       url: "mongodb://127.0.0.1:27017",
       models: [model],
     });

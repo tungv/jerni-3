@@ -2,9 +2,12 @@ import makeMongoDBStore from "../../src/store";
 import type MongoDBModel from "../../src/model";
 import type { JourneyCommittedEvent } from "../../src/types";
 import { describe, expect, test } from "bun:test";
+import { nanoid } from "nanoid";
 
 describe("Update Many using Array Filters", () => {
   test("it should apply arrayFilters option", async () => {
+    const dbName = `mongodb_store_driver_v4_${nanoid()}`;
+
     interface TestCollection {
       id: number;
       grades: number[];
@@ -44,7 +47,7 @@ describe("Update Many using Array Filters", () => {
 
     const store = await makeMongoDBStore({
       name: "update_array_filters",
-      dbName: "mongodb_store_driver_v4_updates",
+      dbName,
       url: "mongodb://127.0.0.1:27017",
       models: [model],
     });
