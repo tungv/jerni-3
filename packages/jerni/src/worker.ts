@@ -37,8 +37,8 @@ export default async function initWorker(filePath: string | undefined) {
 
     const job: Job = {
       async start() {
-        for await (const events of journey.begin(ctrl.signal)) {
-          console.log("events", events);
+        for await (const _outputs of journey.begin(ctrl.signal)) {
+          // console.log("outputs", outputs);
         }
       },
 

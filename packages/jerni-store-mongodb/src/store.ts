@@ -134,8 +134,9 @@ export default async function makeMongoDBStore(config: MongoDBStoreConfig): Prom
         } catch (error) {
           if (error instanceof Signal) {
             console.debug(
-              "event id=%d reads. Stop and processing previous event (from %d to before %d)",
+              "event id=%d, type=%s reads. Stop and processing previous event (from %d to before %d)",
               event.id,
+              event.type,
               events[0].id,
               events[index].id,
             );
