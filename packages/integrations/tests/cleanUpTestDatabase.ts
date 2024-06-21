@@ -10,7 +10,7 @@ export default async function cleanUpTestDatabase(dbName: string) {
   await db.dropDatabase();
   await client.close();
 
-  // clean up the sqlite
-  sqliteDb.query("DELETE FROM events").run();
-  sqliteDb.query("DELETE FROM snapshot").run();
+  // clean up the sqlite if there are tables
+  sqliteDb.query("DROP TABLE IF EXISTS snapshot").run();
+  sqliteDb.query("DROP TABLE IF EXISTS events").run();
 }
