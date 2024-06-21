@@ -198,18 +198,21 @@ export default async function makeMongoDBStore(config: MongoDBStoreConfig): Prom
       eventIndex++;
     }
 
-    // update snapshot collections
-    const lastSeenId = events[events.length - 1].id;
-    await snapshotCollection.updateMany(
-      {
-        full_collection_name: { $in: models.map(getCollectionName) },
-      },
-      {
-        $set: {
-          __v: lastSeenId,
+    // if the first event is interrupted, we do NOT need to update the snapshot collection
+    if (interruptedIndex !== 0) {
+      // the last seen id of snapshot should be the interrupted index -1 or the last event id if no interruption
+      const lastSeenId = interruptedIndex === -1 ? events[events.length - 1].id : events[interruptedIndex - 1].id;
+      await snapshotCollection.updateMany(
+        {
+          full_collection_name: { $in: models.map(getCollectionName) },
         },
-      },
-    );
+        {
+          $set: {
+            __v: lastSeenId,
+          },
+        },
+      );
+    }
 
     // continue with remaining events
     if (interruptedIndex !== -1) {
@@ -224,6 +227,11 @@ export default async function makeMongoDBStore(config: MongoDBStoreConfig): Prom
       // execute signals
       for (const signal of signals) {
         await signal.execute(db);
+      }
+
+      // if the signal is thrown by the last event, no need to continue
+      if (remainingEvents.length === 0) {
+        return;
       }
 
       await handleEventsRecursive(remainingEvents, changes);
