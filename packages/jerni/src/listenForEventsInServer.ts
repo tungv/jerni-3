@@ -1,21 +1,19 @@
-import type { EventSourcePlus } from "event-source-plus";
-
-export default async function* listenForEventsInServer(
-  eventSource: EventSourcePlus,
-  signal: AbortSignal,
-): AsyncGenerator<string> {
-  const { promise: initialPromise, resolve: initialResolve } = Promise.withResolvers();
-
-  let unResolvedPromise = initialPromise;
-  let resolver = initialResolve;
-
-  const eventsBuffer: string[] = [];
+const HIGH_WATER_MARK = 1000000; // 1,000,000
+const LOW_WATER_MARK = 100000; // 100,000
 
   const controller = eventSource.listen({
     onMessage(message) {
       if (message.event === "INCMSG") {
         eventsBuffer.push(message.data);
-        resolver();
+        resolvePromise();
+
+        const bufferSize = eventsBuffer.reduce((acc, event) => acc + event.length, 0);
+
+        if (bufferSize > HIGH_WATER_MARK) {
+          logger.info(`Buffer is full, stop listening at event id ${message.id}, size: ${bufferSize}`);
+          controller.abort();
+          stop(message.id ?? "0");
+        }
       }
     },
     onRequest(context) {
@@ -54,8 +52,15 @@ export default async function* listenForEventsInServer(
 
   while (!signal.aborted) {
     const data = eventsBuffer.shift();
-
     if (data) {
+      const bufferSize = eventsBuffer.reduce((acc, event) => acc + event.length, 0);
+
+      if (hasStopped && bufferSize < LOW_WATER_MARK) {
+        logger.info("Buffer is low, start listening again");
+        hasStopped = false;
+        controller = startListening(subscriptionUrl, eventsBuffer, resolvePromise, stop, logger);
+      }
+
       yield data;
 
       continue;
