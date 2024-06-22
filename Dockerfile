@@ -10,9 +10,9 @@ RUN bun link
 
 WORKDIR /usr/app/packages/jerni
 RUN bun link
+RUN bun build ./src/cli.ts --compile --outfile ./src/mycli
 
 WORKDIR /usr/app
 RUN bun install
 
-WORKDIR /usr/app/packages/jerni-models
-CMD ["bun", "run", "index.ts"]
+CMD ["bunx", "jerni", "./packages/jerni-models/index.ts"]

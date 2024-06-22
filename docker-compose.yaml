@@ -23,6 +23,8 @@ services:
         limits:
           cpus: "1"
           memory: 128MB
+    # volumes:
+    #   - jerni-3:/usr/app/data
     depends_on:
       - mongodb_v4.2
     networks:
@@ -33,11 +35,10 @@ services:
     ports:
       - 27017:27017
     volumes:
-      # named volumes
       - mongodb_v4.2:/data/db
     networks:
       - default
 
 volumes:
   mongodb_v4.2:
-  mongoconfig:
+  jerni-3:
