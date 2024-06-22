@@ -254,26 +254,19 @@ function wrapError(errorOrUnknown: unknown): Error {
 async function* longRunningHandleEvents(config: JourneyConfig, eventEmitter: EventEmitter, signal: AbortSignal) {
   const { logger = defaultLogger } = config;
 
-  const outputs: unknown[] = [];
+  try {
+    yield* handleEventsInDatabase(config, signal);
 
   const { promise, resolve } = Promise.withResolvers();
 
-  let unResolvedPromise = promise;
-  let resolver = resolve;
+    signal.addEventListener("abort", resolve, { once: true });
 
-  let hasError = false;
+    while (!signal.aborted) {
+      await Promise.race([promise, EventEmitter.once(eventEmitter, RECEIVED_EVENTS)]);
 
-  eventEmitter.on(RECEIVED_EVENTS, async () => {
-    try {
-      const output = await handleEventsInDatabase(config, signal);
-
-      outputs.push(output);
-
-      resolver();
+      yield* handleEventsInDatabase(config, signal);
+    }
     } catch (ex) {
-      hasError = true;
-      resolver();
-
       if (ex instanceof UnrecoverableError) {
         logger.info("projection forcefully closed because of unrecoverable error");
 
@@ -284,40 +277,9 @@ async function* longRunningHandleEvents(config: JourneyConfig, eventEmitter: Eve
 
       console.log("ex", ex);
     }
-  });
-
-  signal.addEventListener(
-    "abort",
-    () => {
-      resolver();
-    },
-    { once: true },
-  );
-
-  while (!signal.aborted && !hasError) {
-    const data = outputs.shift();
-
-    if (!data) {
-      await unResolvedPromise;
-
-      if (signal.aborted) {
-        break;
-      }
-
-      const { promise, resolve } = Promise.withResolvers();
-      unResolvedPromise = promise;
-      resolver = resolve;
-
-      continue;
-    }
-
-    yield data;
-  }
-
-  eventEmitter.removeAllListeners(RECEIVED_EVENTS);
 }
 
-async function handleEventsInDatabase(config: JourneyConfig, signal?: AbortSignal) {
+async function* handleEventsInDatabase(config: JourneyConfig, signal: AbortSignal) {
   const { logger = defaultLogger, onReport = noop, onError } = config;
 
   // get latest projected id
@@ -332,7 +294,13 @@ async function handleEventsInDatabase(config: JourneyConfig, signal?: AbortSigna
   const eventsStream = await getEventStream(clientLatestId + 1);
 
   for await (const events of eventsStream) {
-    if (signal?.aborted) {
+    logger.debug(
+      `get ${events.length} events from sqlite to process, range from ${events[0].id} to ${
+        events[events.length - 1].id
+      }`,
+    );
+
+    if (signal.aborted) {
       logger.info("aborting projection...");
       break;
     }
@@ -344,15 +312,18 @@ async function handleEventsInDatabase(config: JourneyConfig, signal?: AbortSigna
           store,
           output,
         });
-
         return output;
       }),
     );
-    if (output.some((output) => output)) {
-      logger.info("output", output);
-    }
 
-    return output;
+    logger.debug(`processed ${events.length} events from ${events[0].id} to ${events[events.length - 1].id}`);
+    const loggedOutput = output.map((o) => JSON.stringify(o)).join("\n");
+    logger.debug("output: \n", loggedOutput);
+
+    yield {
+      output,
+      lastProcessedEventId: events[events.length - 1].id,
+    };
   }
 
   async function singleStoreHandleEvents(
