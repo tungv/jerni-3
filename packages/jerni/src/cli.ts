@@ -1,3 +1,5 @@
+#!/usr/bin/env bun
+
 import { INF } from "./cli-utils/log-headers";
 import guardErrors from "./guardErrors";
 import startWorker from "./worker";
