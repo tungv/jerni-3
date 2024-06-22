@@ -1,6 +1,7 @@
 import { mock } from "bun:test";
 import type { JourneyCommittedEvent } from "../../types/events";
 import { URL } from "node:url";
+import { overEvery } from "lodash/fp";
 
 export default function createServer(events: JourneyCommittedEvent[], subscriptionInterval = 300) {
   const subscriptionInputSpy = mock((searchParams: string, req: Request) => {});
@@ -55,17 +56,24 @@ export default function createServer(events: JourneyCommittedEvent[], subscripti
     const url = new URL(req.url);
 
     // get last event id from req headers
-    const lastEventId = req.headers.get("Last-Event-ID");
+    const lastEventId = url.searchParams.get("lastEventId");
+    function largerThanLastEventId(event: JourneyCommittedEvent) {
+      return event.id > Number.parseInt(lastEventId || "0", 10);
+    }
 
     const includes = url.searchParams.get("includes");
     const includeList = includes ? includes.split(",") : [];
-    const isInIncludeList = (event: JourneyCommittedEvent) => {
+    function isInIncludeList(event: JourneyCommittedEvent) {
       if (includeList.length === 0) {
         return true;
       }
 
       return includeList.includes(event.type as string);
-    };
+    }
+
+    const isEffectiveEvent = overEvery([isInIncludeList, largerThanLastEventId]);
+
+    const effectiveEvents = events.filter((e) => isEffectiveEvent(e));
 
     // write headers
     const headers = {
@@ -78,19 +86,17 @@ export default function createServer(events: JourneyCommittedEvent[], subscripti
       new ReadableStream({
         type: "direct",
         async pull(controller) {
-          const lastEventIdNumber = Number.parseInt(lastEventId || "0", 10);
-
-          let lastReturned = lastEventIdNumber;
+          let lastReturnedIndex = 0;
 
           // write metadata
           controller.write(":ok\n\n");
 
           do {
             // get a batch of events to send
-            const batch = events.slice(lastReturned, lastReturned + 10);
+            const batch = effectiveEvents.slice(lastReturnedIndex, lastReturnedIndex + 10);
 
             // update lastReturned to mark the first event for the next batch
-            lastReturned += batch.length;
+            lastReturnedIndex += batch.length;
 
             // if empty, wait for 1 second
             if (batch.length === 0) {

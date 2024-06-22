@@ -13,6 +13,7 @@ function getMockStore(config: Partial<Store>) {
     },
     registerModels: () => {},
     handleEvents: () => {},
+    getLastSeenId: async () => 0,
     ...config,
   } as unknown as Store;
 }
@@ -83,25 +84,24 @@ describe("New events added to subscription list", () => {
 
       const ctrl2 = new AbortController();
 
-      for await (const _events of worker2.journey.begin(ctrl2.signal)) {
-        ctrl2.abort();
+      for await (const output of worker2.journey.begin(ctrl2.signal)) {
+        if (output.lastProcessedEventId === 2) {
+          ctrl2.abort();
+        }
       }
 
+      expect(inputSpies.subscriptionInputSpy).toHaveBeenCalledTimes(2);
       // expect both the event types to be added in the includes list
       const lastCall =
         inputSpies.subscriptionInputSpy.mock.calls[inputSpies.subscriptionInputSpy.mock.calls.length - 1];
       const searchParams = lastCall[0];
       const expectedParams = new URLSearchParams({
         includes: "NEW_ACCOUNT_REGISTERED,ACCOUNT_UPDATED",
+        // expect subscribe from the beginning when there is a new event in the includes list
+        lastEventId: "0",
       });
 
-      expect(expectedParams.toString()).toEqual(searchParams);
-
-      // expect subscribe from the beginning when there is a new event in the includes list
-      const req = lastCall[1];
-      const lastEventId = req.headers.get("Last-Event-ID");
-
-      expect(lastEventId).toEqual("0");
+      expect(searchParams).toEqual(expectedParams.toString());
 
       // expect the new event to be persisted
       const persistedEvents2 = await eventDatabase.getEventsFrom(0);
