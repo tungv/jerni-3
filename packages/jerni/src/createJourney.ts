@@ -321,14 +321,15 @@ async function handleEventsInDatabase(config: JourneyConfig, signal?: AbortSigna
   const { logger = defaultLogger, onReport = noop, onError } = config;
 
   // get latest projected id
-  // const lastSeenIds = await Promise.all(config.stores.map((store) => store.getLastSeenId()));
+  const lastSeenIds = await Promise.all(config.stores.map((store) => store.getLastSeenId()));
 
-  // const furthest = Math.min(...lastSeenIds.filter((id) => id !== null));
-  // const clientLatestId = furthest === Number.POSITIVE_INFINITY ? 0 : furthest;
+  const furthest = Math.min(...lastSeenIds.filter((id) => id !== null));
+  const clientLatestId = furthest === Number.POSITIVE_INFINITY ? 0 : furthest;
 
-  // const eventDatabase = getEventDatabase();
-  // const eventsStream = eventDatabase.streamEventsFrom(0);
-  const eventsStream = await getEventStream();
+  logger.debug("starting projection from event id #%d", clientLatestId);
+
+  // should start projection from the last seen id + 1
+  const eventsStream = await getEventStream(clientLatestId + 1);
 
   for await (const events of eventsStream) {
     if (signal?.aborted) {
@@ -474,8 +475,9 @@ const saveEvents = injectEventDatabase(async function handleEvents(
   await eventDatabase.insertEvents(hashed, events);
 });
 
-const getEventStream = injectEventDatabase(async function getEventStream(): Promise<
-  AsyncGenerator<JourneyCommittedEvent[]>
-> {
-  return getEventDatabase().streamEventsFrom(0);
+const getEventStream = injectEventDatabase(async function getEventStream(
+  lastProcessedId: number,
+): Promise<AsyncGenerator<JourneyCommittedEvent[]>> {
+  return getEventDatabase().streamEventsFrom(lastProcessedId);
+});
 });
