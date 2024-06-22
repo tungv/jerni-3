@@ -17,9 +17,9 @@ import { DBG, INF } from "./cli-utils/log-headers";
 import { bold } from "picocolors";
 import { getEventDatabase, injectEventDatabase } from "./events-storage/injectDatabase";
 import hash from "hash-sum";
-import { EventSourcePlus } from "event-source-plus";
 import { EventEmitter } from "node:events";
 import listenForEventsInServer from "./listenForEventsInServer";
+import { URL } from "node:url";
 
 const defaultLogger = console;
 const noop = () => {};
@@ -198,13 +198,7 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
 
       const eventEmitter = new EventEmitter();
 
-      const eventSource = new EventSourcePlus(subscriptionUrl.toString(), {
-        headers: {
-          authorization: `Basic ${btoa(`${url.username}:${url.password}`)}`,
-        },
-      });
-
-      const eventStream = listenForEventsInServer(eventSource, signal);
+      const eventStream = listenForEventsInServer(subscriptionUrl, signal, logger);
 
       (async function receiveAndSaveEvents() {
         for await (const stream of eventStream) {
@@ -217,6 +211,9 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
           eventEmitter.emit(RECEIVED_EVENTS);
         }
       })();
+
+      // ensure all events are cleaned up before the projection starts
+      await ensureIncludedEvents(includedTypes);
 
       yield* longRunningHandleEvents(config, eventEmitter, signal);
     },
@@ -257,7 +254,7 @@ async function* longRunningHandleEvents(config: JourneyConfig, eventEmitter: Eve
   try {
     yield* handleEventsInDatabase(config, signal);
 
-  const { promise, resolve } = Promise.withResolvers();
+    const { promise, resolve } = Promise.withResolvers();
 
     signal.addEventListener("abort", resolve, { once: true });
 
@@ -266,17 +263,17 @@ async function* longRunningHandleEvents(config: JourneyConfig, eventEmitter: Eve
 
       yield* handleEventsInDatabase(config, signal);
     }
-    } catch (ex) {
-      if (ex instanceof UnrecoverableError) {
-        logger.info("projection forcefully closed because of unrecoverable error");
+  } catch (ex) {
+    if (ex instanceof UnrecoverableError) {
+      logger.info("projection forcefully closed because of unrecoverable error");
 
-        logger.error("unrecoverable error", ex);
+      logger.error("unrecoverable error", ex);
 
-        return;
-      }
-
-      console.log("ex", ex);
+      return;
     }
+
+    console.log("ex", ex);
+  }
 }
 
 async function* handleEventsInDatabase(config: JourneyConfig, signal: AbortSignal) {
@@ -440,7 +437,7 @@ const saveEvents = injectEventDatabase(async function handleEvents(
   includeList: Set<string>,
   events: JourneyCommittedEvent[],
 ) {
-  const hashed = getHashedIncludes(Array.from(includeList).sort());
+  const hashed = getHashedIncludes(Array.from(includeList));
 
   const eventDatabase = getEventDatabase();
   await eventDatabase.insertEvents(hashed, events);
@@ -451,4 +448,17 @@ const getEventStream = injectEventDatabase(async function getEventStream(
 ): Promise<AsyncGenerator<JourneyCommittedEvent[]>> {
   return getEventDatabase().streamEventsFrom(lastProcessedId);
 });
+
+const ensureIncludedEvents = injectEventDatabase(async function ensureIncludedEvents(includes: Set<string>) {
+  const eventDatabase = getEventDatabase();
+
+  const hashed = getHashedIncludes(Array.from(includes));
+
+  const lastSavedEventId = await eventDatabase.getLatestEventId(hashed);
+
+  // if the last saved event id of the hashed is 0, it means this is a new list of events
+  // therefore we need to remove all events so that when the worker starts, it will not read the out dated events
+  if (lastSavedEventId === 0) {
+    await eventDatabase.clean();
+  }
 });
