@@ -1,9 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import type { JourneyCommittedEvent } from "jerni/type";
 import type MongoDBModel from "src/model";
 import readPipeline from "src/read";
 import makeMongoDBStore from "src/store";
-import type { MongoOps } from "src/types";
+import type { JourneyCommittedEvent, MongoOps } from "src/types";
 
 interface TestCollection {
   id: number;
