@@ -65,8 +65,7 @@ export interface MongoDBStore {
 
 export interface JourneyCommittedEvent {
   id: number;
-  // biome-ignore lint/suspicious/noExplicitAny: no need to worry about the type of jerni event in store
-  type: any;
+  type: string;
   payload: unknown;
 }
 
