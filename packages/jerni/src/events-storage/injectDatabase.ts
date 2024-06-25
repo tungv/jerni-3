@@ -1,6 +1,6 @@
 import type { JourneyCommittedEvent } from "jerni/type";
-import getSqliteDb from "src/events-storage/sqlite-database";
-import setup from "src/asynclocal";
+import setup from "../asynclocal";
+import getSqliteDb from "./sqlite-database";
 
 export interface EventDatabase {
   getEventsFrom(eventId: number, limit?: number): Promise<JourneyCommittedEvent[]>;
