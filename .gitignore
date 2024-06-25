@@ -173,3 +173,5 @@ dist
 
 # for jerni-store-mongodb
 **/.DS_Store
+
+**.sqlite

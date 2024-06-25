@@ -3,9 +3,9 @@ import { describe, it, expect } from "bun:test";
 import createServer from "src/events-server";
 import BankAccountModel from "./fixtures/BankAccountModel";
 import BankAccountModel_2 from "./fixtures/BankAccountModel_2";
-import { MongoClient } from "mongodb";
 import initJourney from "./makeTestJourney";
 import startWorker from "./startWorker";
+import cleanUpTestDatabase from "./cleanUpTestDatabase";
 
 describe("e2e_multiple_stores", () => {
   it("should support multiple stores", async () => {
@@ -15,10 +15,7 @@ describe("e2e_multiple_stores", () => {
     const dbName = "test-multiple-stores";
 
     // clean up the database
-    const client = await MongoClient.connect("mongodb://127.1:27017");
-    const db = client.db(dbName);
-    await db.dropDatabase();
-    await client.close();
+    await cleanUpTestDatabase(dbName);
 
     const ctrl = new AbortController();
 
