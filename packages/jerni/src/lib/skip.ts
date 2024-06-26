@@ -1,1 +1,3 @@
-export default Symbol.for("@@JERNI/SKIP");
+const skip = Symbol.for("@@JERNI/SKIP");
+
+export default skip;
