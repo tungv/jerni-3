@@ -1,19 +1,19 @@
 export default function makeTestLogger() {
   const logs: string[][] = [];
   return {
-    debug: (...msg: any[]) => {
+    debug: (...msg: string[]) => {
       // logs.push(msg);
     },
-    log: (...msg: any[]) => {
+    log: (...msg: string[]) => {
       logs.push(msg);
     },
-    warn: (...msg: any[]) => {
+    warn: (...msg: string[]) => {
       logs.push(msg);
     },
-    info: (...msg: any[]) => {
+    info: (...msg: string[]) => {
       logs.push(msg);
     },
-    error: (...msg: any[]) => {
+    error: (...msg: string[]) => {
       logs.push(msg);
     },
     logs,

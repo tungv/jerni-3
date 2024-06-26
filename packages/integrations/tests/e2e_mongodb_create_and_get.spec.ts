@@ -1,7 +1,7 @@
 import { makeMongoDBStore } from "@jerni/store-mongodb";
 import { describe, it, expect } from "bun:test";
 import createServer from "src/events-server";
-import { LocalEvents } from "jerni/type";
+import type { LocalEvents } from "jerni/type";
 import BankAccountModel from "./fixtures/BankAccountModel";
 import initJourney from "./makeTestJourney";
 import startWorker from "./startWorker";
@@ -21,14 +21,14 @@ describe("e2e_mongodb_create_and_get", () => {
 
     const storeMongoDbForApp = await makeMongoDBStore({
       name: "mongodb-app",
-      url: `mongodb://127.1:27017/`,
+      url: "mongodb://127.1:27017/",
       dbName,
       models: [BankAccountModel],
     });
 
     const storeMongoDbForWorker = await makeMongoDBStore({
       name: "mongodb-worker",
-      url: `mongodb://127.1:27017/`,
+      url: "mongodb://127.1:27017/",
       dbName,
       models: [BankAccountModel],
     });

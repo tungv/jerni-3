@@ -1,5 +1,5 @@
-import { ServerOrWriteTo } from "../types/config";
-import { URL } from "url";
+import type { ServerOrWriteTo } from "../types/config";
+import { URL } from "node:url";
 
 export default function normalizeUrl(config: ServerOrWriteTo) {
   const serverUrlOrServer = "server" in config ? config.server : config.writeTo;

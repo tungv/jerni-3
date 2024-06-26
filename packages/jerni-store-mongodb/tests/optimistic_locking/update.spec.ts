@@ -1,6 +1,6 @@
 import makeMongoDBStore from "../../src/store";
-import MongoDBModel from "../../src/model";
-import { JourneyCommittedEvent } from "../../src/types";
+import type MongoDBModel from "../../src/model";
+import type { JourneyCommittedEvent } from "../../src/types";
 import { describe, expect, test } from "bun:test";
 
 describe("Optimistic Locking - Update", () => {
@@ -83,7 +83,7 @@ describe("Optimistic Locking - Update", () => {
     expect(result.map((x) => x.counter)).toEqual([0, 1, 1, 0]);
   });
 
-  test.only("it should not apply an updateOne twice with `pipeline`", async () => {
+  test("it should not apply an updateOne twice with `pipeline`", async () => {
     interface TestCollection {
       id: number;
       name: string;

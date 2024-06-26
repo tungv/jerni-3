@@ -1,20 +1,24 @@
-export type JourneyEvent<Payload = any, Metadata = any> = {
+export type JourneyEvent<Payload = unknown, Metadata = unknown> = {
   type: string;
   payload: Payload;
   meta?: Metadata;
 };
 
-export type JourneyCommittedEvent<Payload = any, Metadata = any> = {
+export type JourneyCommittedEvent<
+  EventType extends keyof JourneyCommittedEvents = keyof JourneyCommittedEvents,
+  Payload = JourneyCommittedEvents[EventType],
+  Metadata = unknown,
+> = {
   id: number;
-  type: string;
+  type: EventType;
   payload: Payload;
   meta?: Metadata;
 };
 
 export type TypedJourneyEvent<
-  Type extends string = string,
-  Payload = any,
-  Metadata = any,
+  Type extends keyof LocalEvents = keyof LocalEvents,
+  Payload = LocalEvents[Type],
+  Metadata = unknown,
 > = {
   type: Type;
   payload: Payload;
@@ -22,9 +26,9 @@ export type TypedJourneyEvent<
 };
 
 export type TypedJourneyCommittedEvent<
-  Type extends string = string,
-  Payload = any,
-  Metadata = any,
+  Type extends keyof JourneyCommittedEvents = keyof JourneyCommittedEvents,
+  Payload = JourneyCommittedEvents[Type],
+  Metadata = unknown,
 > = {
   id: number;
   type: Type;
@@ -32,8 +36,10 @@ export type TypedJourneyCommittedEvent<
   meta?: Metadata;
 };
 
-export interface JourneyCommittedEvents {}
-export interface JourneySubscribedEvents {}
-export interface LocalEvents
-  extends JourneyCommittedEvents,
-    JourneySubscribedEvents {}
+export type JourneyCommittedEvents = {
+  [key: string]: unknown;
+};
+export type JourneySubscribedEvents = {
+  [key: string]: unknown;
+};
+export interface LocalEvents extends JourneyCommittedEvents, JourneySubscribedEvents {}

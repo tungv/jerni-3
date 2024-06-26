@@ -4,17 +4,17 @@ import createServer from "src/events-server";
 import initJourney from "../makeTestJourney";
 import startWorker from "../startWorker";
 import mapEvents from "jerni/lib/mapEvents";
-import { JourneyCommittedEvent } from "@jerni/store-mongodb/lib/src/types";
+import type { JourneyCommittedEvent } from "@jerni/store-mongodb/lib/src/types";
 import JerniPersistenceError from "jerni/lib/errors/JerniPersistenceError";
 import cleanUpTestDatabase from "../cleanUpTestDatabase";
 
 declare module "jerni/type" {
-  export interface LocalEvents {
-    FAILURE_EVENT: {};
+  interface LocalEvents {
+    FAILURE_EVENT: { [k: string]: never };
   }
 }
 
-const FailureModel = new MongoDBModel<{}>({
+const FailureModel = new MongoDBModel({
   name: "failure",
   version: "1",
   transform: mapEvents({
@@ -38,7 +38,7 @@ describe("e2e_handle_errors", () => {
 
     const store = await makeMongoDBStore({
       name: "mongodb-app-1",
-      url: `mongodb://127.1:27017/`,
+      url: "mongodb://127.1:27017/",
       dbName,
       models: [FailureModel],
     });

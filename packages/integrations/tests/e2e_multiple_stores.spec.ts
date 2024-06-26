@@ -22,13 +22,13 @@ describe("e2e_multiple_stores", () => {
     const storeMongoDbForAppArray = [
       await makeMongoDBStore({
         name: "mongodb-app-1",
-        url: `mongodb://127.1:27017/`,
+        url: "mongodb://127.1:27017/",
         dbName,
         models: [BankAccountModel],
       }),
       await makeMongoDBStore({
         name: "mongodb-app-2",
-        url: `mongodb://127.1:27017/`,
+        url: "mongodb://127.1:27017/",
         dbName,
         models: [BankAccountModel_2],
       }),
@@ -36,13 +36,13 @@ describe("e2e_multiple_stores", () => {
     const storeMongoDbForWorkerArray = [
       await makeMongoDBStore({
         name: "mongodb-app-1",
-        url: `mongodb://127.1:27017/`,
+        url: "mongodb://127.1:27017/",
         dbName,
         models: [BankAccountModel],
       }),
       await makeMongoDBStore({
         name: "mongodb-app-2",
-        url: `mongodb://127.1:27017/`,
+        url: "mongodb://127.1:27017/",
         dbName,
         models: [BankAccountModel_2],
       }),

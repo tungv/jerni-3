@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import MongoDBModel from "../../src/model";
+import type MongoDBModel from "../../src/model";
 import makeMongoDBStore from "../../src/store";
-import { JourneyCommittedEvent } from "../../src/types";
+import type { JourneyCommittedEvent } from "../../src/types";
 
 describe("Optimistic Locking - Delete", () => {
   test("it should not apply an deleteOnce twice", async () => {

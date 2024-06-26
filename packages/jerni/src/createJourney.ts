@@ -1,7 +1,13 @@
 import MyEventSource from "./MyEventSource";
-import { JourneyConfig, Store } from "./types/config";
-import { JourneyCommittedEvent, LocalEvents, TypedJourneyCommittedEvent, TypedJourneyEvent } from "./types/events";
-import { JourneyInstance } from "./types/journey";
+import type { JourneyConfig, Store } from "./types/config";
+import type {
+  JourneyCommittedEvent,
+  JourneyCommittedEvents,
+  LocalEvents,
+  TypedJourneyCommittedEvent,
+  TypedJourneyEvent,
+} from "./types/events";
+import type { JourneyInstance } from "./types/journey";
 import createWaiter from "./waiter";
 import normalizeUrl from "./lib/normalize-url";
 import commitToServer from "./lib/commit";
@@ -22,6 +28,7 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
 
   let hasStartedWaiting = false;
 
+  // biome-ignore lint/suspicious/noExplicitAny: this could be any model, there is no way to know the type
   const modelToStoreMap = new Map<any, JourneyConfig["stores"][number]>();
 
   const { logger = defaultLogger, onReport = noop, onError } = config;
@@ -43,11 +50,16 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
   const waiter = createWaiter(config.stores.length);
 
   return {
-    async commit<T extends string>(uncommittedEvent: TypedJourneyEvent<T>): Promise<TypedJourneyCommittedEvent<T>> {
+    async commit<T extends keyof JourneyCommittedEvents>(
+      uncommittedEvent: TypedJourneyEvent<T>,
+    ): Promise<TypedJourneyCommittedEvent<T>> {
       return commitToServer(logger, url, logSafeUrl, onReport, onError, uncommittedEvent);
     },
 
-    async append<T extends keyof LocalEvents>(uncommittedEvent: { type: Exclude<T, number>; payload: LocalEvents[T] }) {
+    async append<T extends keyof JourneyCommittedEvents>(uncommittedEvent: {
+      type: Exclude<T, number>;
+      payload: LocalEvents[T];
+    }) {
       return commitToServer(logger, url, logSafeUrl, onReport, onError, uncommittedEvent);
     },
 
@@ -91,7 +103,12 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
 
       logger.debug("event", event.id, "is ready");
 
-      if (event.meta?.committed_at) {
+      if (
+        event.meta &&
+        typeof event.meta === "object" &&
+        "committed_at" in event.meta &&
+        typeof event.meta.committed_at === "number"
+      ) {
         const waited = Date.now();
         const turnaround = waited - event.meta.committed_at;
         logger.debug("event", event.id, "is ready in", turnaround, "ms");
@@ -101,6 +118,7 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
         });
       }
     },
+    // biome-ignore lint/suspicious/noExplicitAny: because this is a placeholder, the client that uses jerni would override this type
     async getReader(model: any) {
       const store = modelToStoreMap.get(model);
 
@@ -128,7 +146,9 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
           includeAll = true;
           break;
         }
-        store.meta.includes.forEach((type) => includedTypes.add(type));
+        for (const type of store.meta.includes) {
+          includedTypes.add(type);
+        }
       }
 
       if (includedTypes.size === 0) {
@@ -155,7 +175,7 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
         },
         signal,
       });
-      const latestEvent = (await response.json()) as JourneyCommittedEvent<any, any>;
+      const latestEvent = (await response.json()) as JourneyCommittedEvent;
 
       serverLatest = latestEvent.id;
 
@@ -164,7 +184,7 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
       const lastSeens = await Promise.all(config.stores.map((store) => store.getLastSeenId()));
 
       const furthest = Math.min(...lastSeens.filter((id) => id !== null));
-      clientLatest = furthest === Infinity ? 0 : furthest;
+      clientLatest = furthest === Number.POSITIVE_INFINITY ? 0 : furthest;
 
       logger.debug("%s server latest event id:", DBG, serverLatest);
       logger.debug("%s client latest event id:", DBG, clientLatest);
@@ -191,12 +211,12 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
         ev.close();
       });
 
-      const eventStream = listen(ev, "INCMSG");
+      const eventStream = listen(ev, "INCMSG", signal);
 
       const handleEvents = getEventsHandler(config);
 
-      for await (const stream of eventStream) {
-        const data = JSON.parse(stream) as JourneyCommittedEvent[];
+      for await (const raw of eventStream) {
+        const data = JSON.parse(raw) as JourneyCommittedEvent[];
 
         try {
           await handleEvents(data);
@@ -308,7 +328,6 @@ const getEventsHandler = function getEventsHandler(config: JourneyConfig) {
 
       return output;
     } catch (ex) {
-      console.log("ex", ex);
       // if there is only one event, we don't need to bisect
       if (events.length === 1) {
         logger.info(`${I} 🔍 Identified offending event:  #${events[0].id} - ${events[0].type}`);
@@ -320,9 +339,9 @@ const getEventsHandler = function getEventsHandler(config: JourneyConfig) {
         }
         logger.log(`${T} 💀 Resolution is not SKIP       STOP WORKER!`);
         throw new UnrecoverableError(events[0]);
-      } else {
-        logger.log(`${I} 🔴 Encountered error ....${tab} between #${firstId} and #${lastId}`);
       }
+
+      logger.log(`${I} 🔴 Encountered error ....${tab} between #${firstId} and #${lastId}`);
 
       // bisect events
       const mid = Math.floor(events.length / 2);

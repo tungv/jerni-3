@@ -1,6 +1,6 @@
 import { Database } from "bun:sqlite";
-import { JourneyCommittedEvent } from "jerni/type";
-import { EventDatabase } from "./injectDatabase";
+import type { JourneyCommittedEvent } from "jerni/type";
+import type { EventDatabase } from "./injectDatabase";
 
 const db = new Database("mydb.sqlite");
 

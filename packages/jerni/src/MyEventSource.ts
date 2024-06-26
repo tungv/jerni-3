@@ -23,7 +23,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-import { URL } from "url";
+import { URL } from "node:url";
 
 type Socket = Awaited<ReturnType<typeof Bun.connect<MyEventSource>>>;
 
@@ -104,11 +104,11 @@ export default class MyEventSource extends EventTarget {
         return;
       }
       let chunk_end_idx = -1;
-      let start_idx = chunks.indexOf("\r\n", offset);
+      const start_idx = chunks.indexOf("\r\n", offset);
       const chunk_start_idx = start_idx + 2;
       if (start_idx > 0) {
         if (self.#content_length === 0) {
-          const chunk_size = parseInt(chunks.substring(offset, start_idx), 16);
+          const chunk_size = Number.parseInt(chunks.substring(offset, start_idx), 16);
           if (chunk_size === 0) {
             // no more chunks
             self.#state = 2;
@@ -135,7 +135,7 @@ export default class MyEventSource extends EventTarget {
       let chunk_offset = 0;
       // wait for data end
       let event_idx = chunk.indexOf("\n\n");
-      if (event_idx == -1) {
+      if (event_idx === -1) {
         // wait for more data
         self.#data_buffer += chunks.substring(chunk_start_idx);
         return;
@@ -177,7 +177,7 @@ export default class MyEventSource extends EventTarget {
           } else if (line.startsWith("id:")) {
             id = line.substring(3).trim();
           } else if (line.startsWith("retry:")) {
-            retry = parseInt(line.substring(6).trim(), 10);
+            retry = Number.parseInt(line.substring(6).trim(), 10);
             if (isNaN(retry)) {
               retry = -1;
             }
@@ -329,7 +329,7 @@ export default class MyEventSource extends EventTarget {
                   sensitivity: "accent",
                 }) === 0;
               if (is_content_length) {
-                content_length = parseInt(header.substring(header_name_idx + 1).trim(), 10);
+                content_length = Number.parseInt(header.substring(header_name_idx + 1).trim(), 10);
                 if (isNaN(content_length) || content_length <= 0) {
                   self.dispatchEvent(
                     new ErrorEvent("error", {
@@ -472,7 +472,7 @@ export default class MyEventSource extends EventTarget {
       data: this,
       socket: MyEventSource.#Handlers,
       hostname: uri.hostname,
-      port: parseInt(uri.port || (is_tls ? "443" : "80"), 10),
+      port: Number.parseInt(uri.port || (is_tls ? "443" : "80"), 10),
       tls: is_tls
         ? {
             requestCert: true,

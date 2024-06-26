@@ -8,9 +8,9 @@ import SKIP from "jerni/lib/skip";
 import cleanUpTestDatabase from "../cleanUpTestDatabase";
 
 declare module "jerni/type" {
-  export interface LocalEvents {
-    FAILURE_EVENT: {};
-    OK_EVENT: {};
+  interface LocalEvents {
+    FAILURE_EVENT: { [k: string]: never };
+    OK_EVENT: { [k: string]: never };
   }
 }
 
@@ -45,14 +45,14 @@ describe("e2e_handle_errors", () => {
 
     const appStore = await makeMongoDBStore({
       name: "mongodb-app-1",
-      url: `mongodb://127.1:27017/`,
+      url: "mongodb://127.1:27017/",
       dbName,
       models: [FailureModel],
     });
 
     const workerStore = await makeMongoDBStore({
       name: "mongodb-worker-1",
-      url: `mongodb://127.1:27017/`,
+      url: "mongodb://127.1:27017/",
       dbName,
       models: [FailureModel],
     });
@@ -90,13 +90,13 @@ describe("e2e_handle_errors", () => {
 
     await app.journey.waitFor(lastEvent);
 
-    const Collection = await app.journey.getReader(FailureModel);
-    const count = await Collection.countDocuments();
-    expect(count).toEqual(9);
-
     ctrl.abort();
 
     await stopped;
+
+    const Collection = await app.journey.getReader(FailureModel);
+    const count = await Collection.countDocuments();
+    expect(count).toEqual(9);
 
     await app.journey.dispose();
     await worker.journey.dispose();

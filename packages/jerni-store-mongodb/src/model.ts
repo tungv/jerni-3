@@ -1,5 +1,5 @@
-import { Document } from "mongodb";
-import { StoreMeta, TransformFn } from "./types";
+import type { Document } from "mongodb";
+import type { StoreMeta, TransformFn } from "./types";
 
 export default class MongoDBModel<DocumentType extends Document> {
   name: string;

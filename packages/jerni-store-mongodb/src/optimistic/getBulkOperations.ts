@@ -1,5 +1,5 @@
-import { AnyBulkWriteOperation } from "mongodb";
-import {
+import type { AnyBulkWriteOperation, Document, UpdateFilter, UpdateOneModel } from "mongodb";
+import type {
   DeleteManyOp,
   DeleteOneOp,
   InsertManyOp,
@@ -18,7 +18,7 @@ interface ChangeWithOp<Change> {
 type OptimisticDocument = {
   __v: number;
   __op: number;
-  [key: string]: any;
+  [key: string]: unknown;
 };
 
 interface Newer {
@@ -29,7 +29,7 @@ interface Older {
   $or: [{ __v: { $lt: number } }, { __v: number; __op: { $lt: number } }];
 }
 
-function newerThan<T extends Record<string, any>>(
+function newerThan<T extends Record<string, unknown>>(
   where: { __v: number; __op: number },
   original: T = {} as T,
 ): (Newer & T) | { $and: [T, Newer] } {
@@ -49,15 +49,12 @@ function newerThan<T extends Record<string, any>>(
   };
 }
 
-function olderThan<T extends Record<string, any>>(
+function olderThan<T extends Record<string, unknown>>(
   where: { __v: number; __op: number },
   original: T = {} as T,
 ): (Older & T) | { $and: [T, Older] } {
   const c = {
-    $or: [
-      { __v: { $lt: where.__v } },
-      { __v: where.__v, __op: { $lt: where.__op } },
-    ],
+    $or: [{ __v: { $lt: where.__v } }, { __v: where.__v, __op: { $lt: where.__op } }],
   } satisfies Older;
 
   if ("$or" in original) {
@@ -69,42 +66,38 @@ function olderThan<T extends Record<string, any>>(
   return { ...c, ...original };
 }
 
-export default function getBulkOperations(
-  ops: ChangeWithOp<MongoOps<OptimisticDocument>>[],
-): AnyBulkWriteOperation<OptimisticDocument>[] {
+export default function getBulkOperations(ops: ChangeWithOp<MongoOps<Document>>[]): AnyBulkWriteOperation<Document>[] {
   let opCounter = 0;
 
-  return ops.flatMap(
-    ({ change, __v }): AnyBulkWriteOperation<OptimisticDocument>[] => {
-      if ("insertOne" in change) {
-        return insertOne(change, __v);
-      }
+  return ops.flatMap(({ change, __v }): AnyBulkWriteOperation<Document>[] => {
+    if ("insertOne" in change) {
+      return insertOne(change, __v);
+    }
 
-      if ("insertMany" in change) {
-        return insertMany(change, __v);
-      }
+    if ("insertMany" in change) {
+      return insertMany(change, __v);
+    }
 
-      if ("updateOne" in change) {
-        return updateOne(change, __v);
-      }
+    if ("updateOne" in change) {
+      return updateOne(change, __v);
+    }
 
-      if ("updateMany" in change) {
-        return updateMany(change, __v);
-      }
+    if ("updateMany" in change) {
+      return updateMany(change, __v);
+    }
 
-      if ("deleteOne" in change) {
-        return deleteOne(change, __v);
-      }
+    if ("deleteOne" in change) {
+      return deleteOne(change, __v);
+    }
 
-      if ("deleteMany" in change) {
-        return deleteMany(change, __v);
-      }
+    if ("deleteMany" in change) {
+      return deleteMany(change, __v);
+    }
 
-      throw new Error(`Unknown op type: ${JSON.stringify(change)}`);
-    },
-  );
+    throw new Error(`Unknown op type: ${JSON.stringify(change)}`);
+  });
 
-  function insertOne(change: InsertOneOp<OptimisticDocument>, __v: number) {
+  function insertOne(change: InsertOneOp<Document>, __v: number) {
     const __op = opCounter++;
     return [
       {
@@ -123,7 +116,7 @@ export default function getBulkOperations(
     ];
   }
 
-  function insertMany(change: InsertManyOp<OptimisticDocument>, __v: number) {
+  function insertMany(change: InsertManyOp<Document>, __v: number) {
     return change.insertMany.map((document) => {
       const __op = opCounter++;
       return {
@@ -142,7 +135,12 @@ export default function getBulkOperations(
     });
   }
 
-  function updateOne(change: UpdateOneOp<OptimisticDocument>, __v: number) {
+  function updateOne(
+    change: UpdateOneOp<Document>,
+    __v: number,
+  ): {
+    updateOne: UpdateOneModel<Document>;
+  }[] {
     const __op = opCounter++;
     const filter = olderThan({ __v, __op }, change.updateOne.where);
 
@@ -182,7 +180,7 @@ export default function getBulkOperations(
     ];
   }
 
-  function updateMany(change: UpdateManyOp<OptimisticDocument>, __v: number) {
+  function updateMany(change: UpdateManyOp<Document>, __v: number) {
     const __op = opCounter++;
     const filter = olderThan({ __v, __op }, change.updateMany.where);
 
@@ -222,7 +220,7 @@ export default function getBulkOperations(
     ];
   }
 
-  function deleteOne(change: DeleteOneOp<OptimisticDocument>, __v: number) {
+  function deleteOne(change: DeleteOneOp<Document>, __v: number) {
     const __op = opCounter++;
     return [
       {
@@ -232,7 +230,7 @@ export default function getBulkOperations(
       },
     ];
   }
-  function deleteMany(change: DeleteManyOp<OptimisticDocument>, __v: number) {
+  function deleteMany(change: DeleteManyOp<Document>, __v: number) {
     const __op = opCounter++;
     return [
       {
@@ -244,27 +242,27 @@ export default function getBulkOperations(
   }
 }
 
-function appendOptimisticSet(
-  changes: { [key: string]: any },
+function appendOptimisticSet<SetType extends {}, ChangesType extends { $set?: SetType }>(
+  changes: ChangesType,
   __v: number,
   __op: number,
-): { [key: string]: any } {
-  const optimistic = {
-    ...changes,
-  };
-
+): ChangesType & { $set: SetType & { __v: number; __op: number } } {
   if ("$set" in changes) {
-    optimistic.$set = {
-      ...changes.$set,
-      __v,
-      __op,
-    };
-  } else {
-    optimistic.$set = {
-      __v,
-      __op,
+    return {
+      ...changes,
+      $set: {
+        ...changes.$set,
+        __v,
+        __op,
+      },
     };
   }
 
-  return optimistic;
+  return {
+    ...changes,
+    $set: {
+      __v,
+      __op,
+    },
+  };
 }

@@ -1,4 +1,4 @@
-import {
+import type {
   Collection,
   DeleteManyModel,
   DeleteOneModel,
@@ -7,7 +7,7 @@ import {
   UpdateFilter,
   UpdateOneModel,
 } from "mongodb";
-import MongoDBModel from "./model";
+import type MongoDBModel from "./model";
 
 export interface Changes {
   added: number;
@@ -20,11 +20,12 @@ export interface MongoDBStoreConfig {
   dbName: string;
   url: string;
 
+  // biome-ignore lint/suspicious/noExplicitAny: this can be any collection, however, if using Document, it will cause Typescript constraint error
   models: MongoDBModel<any>[];
 }
 
 export interface TransformFn<DocumentType extends Document> {
-  (event: JourneyCommittedEvent): MongoOps<DocumentType>[] | void;
+  (event: JourneyCommittedEvent): MongoOps<DocumentType>[] | undefined;
   meta?: StoreMeta;
 }
 
@@ -53,9 +54,7 @@ export interface MongoDBStore {
   ) => void;
 
   getDriver<T extends Document>(model: MongoDBModel<T>): Collection<T>;
-  handleEvents: (
-    events: JourneyCommittedEvent[],
-  ) => Promise<{ [modelIdentifier: string]: Changes }>;
+  handleEvents: (events: JourneyCommittedEvent[]) => Promise<{ [modelIdentifier: string]: Changes }>;
   getLastSeenId: () => Promise<number>;
   toString(): string;
 

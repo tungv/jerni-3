@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import MongoDBModel from "../../src/model";
+import type MongoDBModel from "../../src/model";
 import makeMongoDBStore from "../../src/store";
-import { JourneyCommittedEvent } from "../../src/types";
+import type { JourneyCommittedEvent } from "../../src/types";
 
 describe("handle events for models", () => {
   test("it should fan out all events to all models", async () => {
@@ -83,12 +83,12 @@ describe("handle events for models", () => {
       transform(event: JourneyCommittedEvent) {
         return [
           {
-            insertOne: { id: event.id, name: "test_" + event.type },
+            insertOne: { id: event.id, name: `test_${event.type}` },
           },
           {
             updateOne: {
               where: { id: event.id },
-              changes: { $set: { name: "test_" + event.type } },
+              changes: { $set: { name: `test_${event.type}` } },
             },
           },
         ];

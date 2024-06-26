@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import makeMongoDBStore from "../../src/store";
-import { JourneyCommittedEvent } from "../../src/types";
+import type { JourneyCommittedEvent } from "../../src/types";
 
 describe("Register events", () => {
   test("it should register included event types from all models if they all specify their interested events", async () => {

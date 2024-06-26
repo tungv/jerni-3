@@ -1,40 +1,29 @@
-import {
-  JourneyEvent,
+import type {
   JourneyCommittedEvent,
   TypedJourneyCommittedEvent,
+  JourneyCommittedEvents,
+  TypedJourneyEvent,
 } from "./events";
-
-import { LocalEvents } from "../lib/exported_types";
 
 export interface JourneyInstance {
   /**
    * @deprecated use `append` instead
    * @param event uncommitted event
    */
-  commit<P extends Record<string, any>, M = unknown>(
-    event: JourneyEvent<P, M>,
-  ): Promise<JourneyCommittedEvent<P, M>>;
+  commit<P extends keyof JourneyCommittedEvents>(event: TypedJourneyEvent<P>): Promise<TypedJourneyCommittedEvent<P>>;
 
-  append<T extends keyof LocalEvents, M = unknown>(event: {
-    type: T;
-    payload: LocalEvents[T];
-    meta?: M;
-  }): Promise<
-    TypedJourneyCommittedEvent<Exclude<T, number>, LocalEvents[T], M>
-  >;
+  append<P extends keyof JourneyCommittedEvents>(event: TypedJourneyEvent<P>): Promise<TypedJourneyCommittedEvent<P>>;
 
-  waitFor<P = any, M = undefined>(
-    event: JourneyCommittedEvent<P, M>,
-    timeoutOrSignal?: number | AbortSignal,
-  ): Promise<void>;
+  waitFor(event: JourneyCommittedEvent, timeoutOrSignal?: number | AbortSignal): Promise<void>;
+
   getReader: GetReaderFn;
+
   dispose: () => Promise<void>;
 
   // async generator `begin` that start the subscription
   begin: (signal: AbortSignal) => AsyncGenerator<JourneyCommittedEvent[]>;
 }
 
-export interface GetReaderFn {
-  // placeholder for getReader function
-  (model: any): Promise<any>;
-}
+// placeholder for getReader function
+// biome-ignore lint/suspicious/noExplicitAny: because this is a placeholder, the client that uses jerni would override this type
+export type GetReaderFn = (model: any) => Promise<any>;

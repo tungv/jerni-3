@@ -1,4 +1,4 @@
-import { EventEmitter } from "events";
+import { EventEmitter } from "node:events";
 
 /**
  * this will create a waiter that keep track of N tracks
@@ -33,9 +33,7 @@ import { EventEmitter } from "events";
  * ```
  */
 
-export interface Increment {
-  (track: number, number: number): void;
-}
+export type Increment = (track: number, number: number) => void;
 
 export interface Wait {
   (number: number): Promise<void>;
@@ -49,7 +47,7 @@ export interface ResetAll {
 
 export default function createWaiter(
   trackCount: number,
-  initialNumber: number = 0,
+  initialNumber = 0,
 ): {
   increment: Increment;
   wait: Wait;

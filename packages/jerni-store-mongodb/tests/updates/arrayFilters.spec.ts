@@ -1,6 +1,6 @@
 import makeMongoDBStore from "../../src/store";
-import MongoDBModel from "../../src/model";
-import { JourneyCommittedEvent } from "../../src/types";
+import type MongoDBModel from "../../src/model";
+import type { JourneyCommittedEvent } from "../../src/types";
 import { describe, expect, test } from "bun:test";
 
 describe("Update Many using Array Filters", () => {

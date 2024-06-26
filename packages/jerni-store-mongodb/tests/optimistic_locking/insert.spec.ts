@@ -1,6 +1,6 @@
 import makeMongoDBStore from "../../src/store";
-import MongoDBModel from "../../src/model";
-import { JourneyCommittedEvent } from "../../src/types";
+import type MongoDBModel from "../../src/model";
+import type { JourneyCommittedEvent } from "../../src/types";
 import { describe, expect, test } from "bun:test";
 
 describe("Optimistic Locking - Insert", () => {
@@ -16,7 +16,7 @@ describe("Optimistic Locking - Insert", () => {
       transform(event: JourneyCommittedEvent) {
         return [
           {
-            insertOne: { id: event.id, name: "test_" + event.type },
+            insertOne: { id: event.id, name: `test_${event.type}` },
           },
         ];
       },
@@ -78,8 +78,8 @@ describe("Optimistic Locking - Insert", () => {
         return [
           {
             insertMany: [
-              { id: event.id, name: "test_" + event.type + "_first_pass" },
-              { id: event.id, name: "test_" + event.type + "_second_pass" },
+              { id: event.id, name: `test_${event.type}_first_pass` },
+              { id: event.id, name: `test_${event.type}_second_pass` },
             ],
           },
         ];
