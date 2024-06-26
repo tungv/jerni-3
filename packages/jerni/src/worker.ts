@@ -1,7 +1,8 @@
 import { bold, green, red } from "picocolors";
 import InvalidInputError from "./InvalidInputError";
-import { ERR, INF } from "./cli-utils/log-headers";
 import { assertFilePath } from "./assertFilePath";
+import begin from "./begin";
+import { ERR, INF } from "./cli-utils/log-headers";
 import { printErrorObject } from "./printErrorObject";
 
 interface Job {
@@ -37,7 +38,7 @@ export default async function initWorker(filePath: string | undefined) {
 
     const job: Job = {
       async start() {
-        for await (const _outputs of journey.begin(ctrl.signal)) {
+        for await (const _outputs of begin(journey, ctrl.signal)) {
           // console.log("outputs", outputs);
         }
       },
