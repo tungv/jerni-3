@@ -1,7 +1,8 @@
+import type { JourneyConfig } from "./config";
 import type {
   JourneyCommittedEvent,
-  TypedJourneyCommittedEvent,
   JourneyCommittedEvents,
+  TypedJourneyCommittedEvent,
   TypedJourneyEvent,
 } from "./events";
 
@@ -18,11 +19,7 @@ export interface JourneyInstance {
 
   getReader: GetReaderFn;
 
-  dispose: () => Promise<void>;
-
-  // async generator `begin` that start the subscription
-  // biome-ignore lint/suspicious/noExplicitAny: because this is a placeholder, the client that uses jerni would override this type
-  begin: (signal: AbortSignal) => AsyncGenerator<any>;
+  getConfig: () => JourneyConfig;
 }
 
 // placeholder for getReader function
