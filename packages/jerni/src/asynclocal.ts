@@ -1,11 +1,12 @@
 import lodashFlow from "lodash/flow";
 import { AsyncLocalStorage } from "node:async_hooks";
 
+// biome-ignore lint/suspicious/noExplicitAny: any function
+type Fn = (...args: any[]) => any;
+
 interface Inject<T> {
-  // biome-ignore lint/suspicious/noExplicitAny: the type of the arguments are not important, just make sure the returned function has the same type
-  <C extends (...args: any) => any>(value: T, computation: C): C;
-  // biome-ignore lint/suspicious/noExplicitAny: the type of the arguments are not important, just make sure the returned function has the same type
-  <C extends (...args: any) => any>(computation: C): C;
+  <C extends Fn>(value: T, computation: C): C;
+  <C extends Fn>(computation: C): C;
 }
 
 interface AsyncLocal<T> {
@@ -19,8 +20,7 @@ export default function setup<T>(initializer: () => Promise<T>): AsyncLocal<T> {
   const storage = new AsyncLocalStorage<T>();
 
   return {
-    // biome-ignore lint/suspicious/noExplicitAny: this is just an internal function, doing type checking is unnecessary
-    inject(...args: any[]) {
+    inject(...args: [T, Fn] | [Fn]) {
       if (args.length === 2) {
         const [value, computation] = args;
         return (...computationArgs) => storage.run(value, () => computation(...computationArgs));
