@@ -26,7 +26,7 @@ const FailureModel = new MongoDBModel({
 
 describe("e2e_handle_errors", () => {
   it("should report error", async () => {
-    const server = createServer();
+    const { server } = createServer();
     const port = server.port;
 
     const dbName = "handle_errors";

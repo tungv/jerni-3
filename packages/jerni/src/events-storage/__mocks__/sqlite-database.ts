@@ -61,6 +61,13 @@ function getSqliteDb(): EventDatabase {
         currentId = events[events.length - 1].id;
       }
     },
+
+    getLatestEventId: async () => {
+      const query = db.query(`SELECT MAX(id) as maxId FROM ${tableName}`);
+      const { maxId } = query.get() as { maxId: number };
+
+      return maxId || 0;
+    },
   };
 }
 

@@ -1,8 +1,11 @@
 import { Database } from "bun:sqlite";
 import type { JourneyCommittedEvent, JourneyEvent } from "jerni/type";
+import { mock } from "bun:test";
 
 export default function createServer(subscriptionInterval = 300) {
   const db = createDb();
+
+  const subscriptionInputSpy = mock((searchParams: string, req: Request) => {});
 
   const server = Bun.serve({
     async fetch(req) {
@@ -73,6 +76,8 @@ export default function createServer(subscriptionInterval = 300) {
 
       // 3. GET /subscribe
       if (req.method === "GET" && url.pathname === "/subscribe") {
+        subscriptionInputSpy(url.searchParams.toString(), req);
+
         return streamingResponse(req);
       }
 
@@ -81,7 +86,12 @@ export default function createServer(subscriptionInterval = 300) {
     port: Math.floor(Math.random() * 10000) + 30000,
   });
 
-  return server;
+  return {
+    server,
+    inputSpies: {
+      subscriptionInputSpy,
+    },
+  };
 
   async function streamingResponse(req: Request) {
     const signal = req.signal;

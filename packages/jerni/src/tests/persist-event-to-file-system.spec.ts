@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { getEventDatabase, injectEventDatabase } from "src/events-storage/injectDatabase";
-import createServer from "../helpers/events-server";
-import { initJourney } from "../helpers/initJourney";
+import createServer from "./helpers/events-server";
+import { initJourney } from "./helpers/initJourney";
 
 import "src/events-storage/__mocks__/sqlite-database";
 

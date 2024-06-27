@@ -5,8 +5,8 @@ import setup from "src/asynclocal";
 export interface EventDatabase {
   getEventsFrom(lastEventId: number, limit?: number): Promise<JourneyCommittedEvent[]>;
   insertEvents(events: JourneyCommittedEvent[]): Promise<void>;
-
   streamEventsFrom(lastEventId: number, limit?: number): AsyncGenerator<JourneyCommittedEvent[]>;
+  getLatestEventId(): Promise<number>;
 }
 
 async function getDB() {

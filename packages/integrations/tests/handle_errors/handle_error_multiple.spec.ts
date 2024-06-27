@@ -35,7 +35,7 @@ const FailureModel = new MongoDBModel<{ text: string }>({
 
 describe("e2e_handle_errors", () => {
   it("should continue to process if SKIP is returned", async () => {
-    const server = createServer();
+    const { server } = createServer();
     const port = server.port;
 
     const dbName = "handle_errors_with_skip";

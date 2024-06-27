@@ -176,27 +176,29 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
       }
 
       // $SERVER/events/latest
-      // const getLatestUrl = new URL("events/latest", url);
+      const getLatestUrl = new URL("events/latest", url);
 
-      // logger.log("%s sync'ing with server...", INF);
-      // const response = await fetch(getLatestUrl.toString(), {
-      //   headers: {
-      //     "content-type": "application/json",
-      //   },
-      //   signal,
-      // });
-      // const latestEvent = (await response.json()) as JourneyCommittedEvent;
+      logger.log("%s sync'ing with server...", INF);
+      const response = await fetch(getLatestUrl.toString(), {
+        headers: {
+          "content-type": "application/json",
+        },
+        signal,
+      });
+      const latestEvent = (await response.json()) as JourneyCommittedEvent;
 
-      // serverLatest = latestEvent.id;
+      const clientLatest = await getLatestSavedEventId();
 
-      // logger.debug("%s server latest event id:", DBG, serverLatest);
-      // logger.debug("%s client latest event id:", DBG, clientLatest);
+      const serverLatest = latestEvent.id;
 
-      // if (serverLatest > clientLatest) {
-      //   logger.debug("%s catching up...", DBG);
-      // }
+      logger.debug("%s server latest event id:", DBG, serverLatest);
+      logger.debug("%s client latest event id:", DBG, clientLatest);
 
-      // subscriptionUrl.searchParams.set("lastEventId", clientLatest.toString());
+      if (serverLatest > clientLatest) {
+        logger.debug("%s catching up...", DBG);
+      }
+
+      subscriptionUrl.searchParams.set("lastEventId", clientLatest.toString());
 
       const ev = new MyEventSource(subscriptionUrl.toString(), signal);
 
@@ -417,4 +419,8 @@ const scheduleHandleEvents = injectEventDatabase(async function scheduleHandleEv
       }
     }
   }
+});
+
+const getLatestSavedEventId = injectEventDatabase(async function getLatestSavedEventId() {
+  return getEventDatabase().getLatestEventId();
 });
