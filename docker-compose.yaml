@@ -1,0 +1,43 @@
+version: "3.8"
+services:
+  jerni-3:
+    image: "jerni-3"
+    build:
+      context: .
+    # command: ["bun", "run", "index.ts"]
+    environment:
+      - RUNTIME_ENV=production
+      - NODE_ENV=production
+      # dev events
+      # - EVENTS_SERVER=https://events-dev.bodidata.com/api/namespace/main
+      # - EVENTS_SERVER_KEY=quan-localhost
+      # - EVENTS_SERVER_SECRET=cUIwj6IcmYzXJUIxX1VaD1Bpgwx3ayRuxGfLCZvoCyO_rc0P
+      # prod events
+      - EVENTS_SERVER=https://events.bodidata.com/api/namespace/main
+      - EVENTS_SERVER_KEY=partners-portal-prod
+      - EVENTS_SERVER_SECRET=k6oS5ODoLd85GnI81H_oVjP8JAImxwDz9Xmp0fscKOhR402F
+      - MONGODB_DBNAME=partners_portal_local_1
+      - MONGODB_URL=mongodb://mongodb_v4.2:27017
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 128MB
+    depends_on:
+      - mongodb_v4.2
+    networks:
+      - default
+
+  mongodb_v4.2:
+    image: mongo:4.2
+    ports:
+      - 27017:27017
+    volumes:
+      # named volumes
+      - mongodb_v4.2:/data/db
+    networks:
+      - default
+
+volumes:
+  mongodb_v4.2:
+  mongoconfig:
