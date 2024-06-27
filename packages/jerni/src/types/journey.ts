@@ -21,7 +21,8 @@ export interface JourneyInstance {
   dispose: () => Promise<void>;
 
   // async generator `begin` that start the subscription
-  begin: (signal: AbortSignal) => AsyncGenerator<JourneyCommittedEvent[]>;
+  // biome-ignore lint/suspicious/noExplicitAny: because this is a placeholder, the client that uses jerni would override this type
+  begin: (signal: AbortSignal) => AsyncGenerator<any>;
 }
 
 // placeholder for getReader function

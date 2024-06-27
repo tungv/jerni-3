@@ -18,6 +18,7 @@ import { DBG, INF } from "./cli-utils/log-headers";
 import { bold } from "picocolors";
 import { getEventDatabase, injectEventDatabase } from "./events-storage/injectDatabase";
 import listen from "./listen";
+import hash from "hash-sum";
 
 const defaultLogger = console;
 const noop = () => {};
@@ -132,16 +133,20 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
       for (const store of config.stores) {
         await store.dispose();
       }
+
+      // dispose all events
+      await disposeAllEvents();
     },
 
     async *begin(externalSignal?: AbortSignal) {
       // we need another controller so that the background projection can stop the event stream
       const projectionAbortController = new AbortController();
-
-      // if the external signal is aborted, we should stop the projection
-      externalSignal?.addEventListener("abort", () => {
+      function abort() {
+        console.log("aborting projection...");
         projectionAbortController.abort();
-      });
+      }
+      // if the external signal is aborted, we should stop the projection
+      externalSignal?.addEventListener("abort", abort);
 
       const signal = projectionAbortController.signal;
 
@@ -187,7 +192,7 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
       });
       const latestEvent = (await response.json()) as JourneyCommittedEvent;
 
-      const clientLatest = await getLatestSavedEventId();
+      const clientLatest = await getLatestSavedEventId(includedTypes);
 
       const serverLatest = latestEvent.id;
 
@@ -221,7 +226,7 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
       for await (const stream of eventStream) {
         const data = JSON.parse(stream) as JourneyCommittedEvent[];
 
-        await saveEvents(data);
+        await saveEvents(includedTypes, data);
 
         yield data;
 
@@ -229,11 +234,9 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
         void scheduleHandleEvents(config, projectionAbortController);
       }
 
-      if (signal?.aborted) {
-        // log that the journey worker has been stopped by abort signal
-        logger.debug("aborting journey...");
-        ev.close();
-      }
+      // dispose all listeners
+      ev.close();
+      externalSignal?.removeEventListener("abort", abort);
 
       return;
     },
@@ -268,9 +271,14 @@ function wrapError(errorOrUnknown: unknown): Error {
   return new Error(JSON.stringify(errorOrUnknown));
 }
 
-const saveEvents = injectEventDatabase(async function handleEvents(events: JourneyCommittedEvent[]) {
+const saveEvents = injectEventDatabase(async function handleEvents(
+  includeList: Set<string>,
+  events: JourneyCommittedEvent[],
+) {
+  const hashed = getHashedIncludes(Array.from(includeList).sort());
+
   const eventDatabase = getEventDatabase();
-  await eventDatabase.insertEvents(events);
+  await eventDatabase.insertEvents(hashed, events);
 });
 
 let projecting = false;
@@ -421,6 +429,17 @@ const scheduleHandleEvents = injectEventDatabase(async function scheduleHandleEv
   }
 });
 
-const getLatestSavedEventId = injectEventDatabase(async function getLatestSavedEventId() {
-  return getEventDatabase().getLatestEventId();
+function getHashedIncludes(includes: string[]) {
+  return hash(includes.sort());
+}
+
+const getLatestSavedEventId = injectEventDatabase(async function getLatestSavedEventId(includedTypes: Set<string>) {
+  const includes = Array.from(includedTypes);
+  const hashed = getHashedIncludes(includes);
+
+  return getEventDatabase().getLatestEventId(hashed);
+});
+
+const disposeAllEvents = injectEventDatabase(async function disposeAllEvents() {
+  return getEventDatabase().dispose();
 });
