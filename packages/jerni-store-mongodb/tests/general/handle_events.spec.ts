@@ -2,16 +2,19 @@ import { describe, expect, test } from "bun:test";
 import type MongoDBModel from "../../src/model";
 import makeMongoDBStore from "../../src/store";
 import type { JourneyCommittedEvent } from "../../src/types";
+import { nanoid } from "nanoid";
 
 describe("handle events for models", () => {
   test("it should fan out all events to all models", async () => {
-    // 2 models, each model should receive 3 events, plus the last seen id and the changes assertion = 3 * 2 + 1 + 1 = 8
-    expect.assertions(8);
+    const dbName = `mongodb_store_driver_v4_${nanoid()}`;
+
+    let assertionCount = 0;
 
     const model1 = {
       name: "model_1",
       version: "1",
       transform(event: JourneyCommittedEvent) {
+        assertionCount++;
         expect(true).toBeTrue();
         return [];
       },
@@ -21,6 +24,7 @@ describe("handle events for models", () => {
       name: "model_2",
       version: "1",
       transform(event: JourneyCommittedEvent) {
+        assertionCount++;
         expect(true).toBeTrue();
         return [];
       },
@@ -28,7 +32,7 @@ describe("handle events for models", () => {
 
     const store = await makeMongoDBStore({
       name: "test_register_models",
-      dbName: "mongodb_store_driver_v4_test_register_models",
+      dbName,
       url: "mongodb://127.0.0.1:27017",
       models: [model1, model2],
     });
@@ -68,10 +72,17 @@ describe("handle events for models", () => {
       },
     });
 
+    assertionCount += 2;
+
     await store.dispose();
+
+    // 2 models, each model should receive 3 events, plus the last seen id and the changes assertion = 3 * 2 + 1 + 1 = 8
+    expect(assertionCount).toBe(8);
   });
 
   test("bulkWrite changes to mongodb", async () => {
+    const dbName = `mongodb_store_driver_v4_${nanoid()}`;
+
     interface TestCollection {
       id: number;
       name: string;
@@ -97,7 +108,7 @@ describe("handle events for models", () => {
 
     const store = await makeMongoDBStore({
       name: "test_bulk_write",
-      dbName: "mongodb_store_driver_v4_test_bulk_write",
+      dbName,
       url: "mongodb://127.0.0.1:27017",
       models: [model],
     });

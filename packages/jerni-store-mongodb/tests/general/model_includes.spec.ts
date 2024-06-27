@@ -1,9 +1,12 @@
 import { describe, expect, test } from "bun:test";
 import makeMongoDBStore from "../../src/store";
 import type { JourneyCommittedEvent } from "../../src/types";
+import { nanoid } from "nanoid";
 
 describe("Register events", () => {
   test("it should register included event types from all models if they all specify their interested events", async () => {
+    const dbName = `mongodb_store_driver_v4_${nanoid()}`;
+
     const model1 = {
       name: "model_1",
       version: "1",
@@ -28,7 +31,7 @@ describe("Register events", () => {
 
     const store = await makeMongoDBStore({
       name: "test_register_models",
-      dbName: "mongodb_store_driver_v4_test_register_models",
+      dbName,
       url: "mongodb://127.0.0.1:27017",
       models: [model1, model2],
     });
@@ -42,6 +45,8 @@ describe("Register events", () => {
   });
 
   test("it should register all events if at least one model does not specify its interested events", async () => {
+    const dbName = `mongodb_store_driver_v4_${nanoid()}`;
+
     const model1 = {
       name: "model_1",
       version: "1",
@@ -63,7 +68,7 @@ describe("Register events", () => {
 
     const store = await makeMongoDBStore({
       name: "test_register_models",
-      dbName: "mongodb_store_driver_v4_test_register_models",
+      dbName,
       url: "mongodb://127.0.0.1:27017",
       models: [model1, model2],
     });
