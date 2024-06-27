@@ -3,9 +3,7 @@
   "version": "3.0.0",
   "type": "module",
   "main": "src/index.ts",
-  "bin": {
-    "jerni": "./src/mycli"
-  },
+  "bin": "./src/mycli",
   "dependencies": {
     "nanoid": "^4.0.2",
     "picocolors": "^1.0.0",
