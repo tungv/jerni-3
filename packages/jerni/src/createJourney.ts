@@ -23,9 +23,6 @@ const defaultLogger = console;
 const noop = () => {};
 
 export default function createJourney(config: JourneyConfig): JourneyInstance {
-  let serverLatest = 0;
-  let clientLatest = 0;
-
   let hasStartedWaiting = false;
 
   // biome-ignore lint/suspicious/noExplicitAny: this could be any model, there is no way to know the type
@@ -137,7 +134,20 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
       }
     },
 
-    async *begin(signal?: AbortSignal) {
+    async *begin(externalSignal?: AbortSignal) {
+      // we need another controller so that the background projection can stop the event stream
+      const projectionAbortController = new AbortController();
+
+      // if the external signal is aborted, we should stop the projection
+      externalSignal?.addEventListener("abort", () => {
+        projectionAbortController.abort();
+      });
+
+      const signal = projectionAbortController.signal;
+
+      // start the projection for the saved events that are not yet processed
+      void scheduleHandleEvents(config, projectionAbortController);
+
       // we need to resolve all the event types needed
       const includedTypes = new Set<string>();
       let includeAll = false;
@@ -166,34 +176,27 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
       }
 
       // $SERVER/events/latest
-      const getLatestUrl = new URL("events/latest", url);
+      // const getLatestUrl = new URL("events/latest", url);
 
-      logger.log("%s sync'ing with server...", INF);
-      const response = await fetch(getLatestUrl.toString(), {
-        headers: {
-          "content-type": "application/json",
-        },
-        signal,
-      });
-      const latestEvent = (await response.json()) as JourneyCommittedEvent;
+      // logger.log("%s sync'ing with server...", INF);
+      // const response = await fetch(getLatestUrl.toString(), {
+      //   headers: {
+      //     "content-type": "application/json",
+      //   },
+      //   signal,
+      // });
+      // const latestEvent = (await response.json()) as JourneyCommittedEvent;
 
-      serverLatest = latestEvent.id;
+      // serverLatest = latestEvent.id;
 
-      // get latest client
+      // logger.debug("%s server latest event id:", DBG, serverLatest);
+      // logger.debug("%s client latest event id:", DBG, clientLatest);
 
-      const lastSeens = await Promise.all(config.stores.map((store) => store.getLastSeenId()));
+      // if (serverLatest > clientLatest) {
+      //   logger.debug("%s catching up...", DBG);
+      // }
 
-      const furthest = Math.min(...lastSeens.filter((id) => id !== null));
-      clientLatest = furthest === Number.POSITIVE_INFINITY ? 0 : furthest;
-
-      logger.debug("%s server latest event id:", DBG, serverLatest);
-      logger.debug("%s client latest event id:", DBG, clientLatest);
-
-      if (serverLatest > clientLatest) {
-        logger.debug("%s catching up...", DBG);
-      }
-
-      subscriptionUrl.searchParams.set("lastEventId", clientLatest.toString());
+      // subscriptionUrl.searchParams.set("lastEventId", clientLatest.toString());
 
       const ev = new MyEventSource(subscriptionUrl.toString(), signal);
 
@@ -213,27 +216,21 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
 
       const eventStream = listen(ev, "INCMSG", signal);
 
-      const handleEvents = getEventsHandler(config);
+      for await (const stream of eventStream) {
+        const data = JSON.parse(stream) as JourneyCommittedEvent[];
 
-      for await (const raw of eventStream) {
-        const data = JSON.parse(raw) as JourneyCommittedEvent[];
+        await saveEvents(data);
 
-        try {
-          await handleEvents(data);
+        yield data;
 
-          yield data;
-        } catch (ex) {
-          if (ex instanceof UnrecoverableError) {
-            logger.info("connection forcefully closed because of unrecoverable error");
-            ev.close();
-            break;
-          }
-        }
+        // start the projection for the new events
+        void scheduleHandleEvents(config, projectionAbortController);
       }
 
       if (signal?.aborted) {
         // log that the journey worker has been stopped by abort signal
         logger.debug("aborting journey...");
+        ev.close();
       }
 
       return;
@@ -269,15 +266,40 @@ function wrapError(errorOrUnknown: unknown): Error {
   return new Error(JSON.stringify(errorOrUnknown));
 }
 
-const getEventsHandler = function getEventsHandler(config: JourneyConfig) {
+const saveEvents = injectEventDatabase(async function handleEvents(events: JourneyCommittedEvent[]) {
+  const eventDatabase = getEventDatabase();
+  await eventDatabase.insertEvents(events);
+});
+
+let projecting = false;
+const scheduleHandleEvents = injectEventDatabase(async function scheduleHandleEvents(
+  config: JourneyConfig,
+  abortController: AbortController,
+) {
   const { logger = defaultLogger, onReport = noop, onError } = config;
 
-  return injectEventDatabase(async function handleEvents(events: JourneyCommittedEvent[]) {
-    logger.debug("%s received %d events", DBG, events.length);
-    try {
-      const eventDatabase = getEventDatabase();
-      await eventDatabase.insertEvents(events);
+  // only one projection running at a time
+  if (projecting) {
+    return;
+  }
+  projecting = true;
 
+  // get latest projected id
+  // const lastSeenIds = await Promise.all(config.stores.map((store) => store.getLastSeenId()));
+
+  // const furthest = Math.min(...lastSeenIds.filter((id) => id !== null));
+  // const clientLatestId = furthest === Number.POSITIVE_INFINITY ? 0 : furthest;
+
+  const eventDatabase = getEventDatabase();
+  const eventsStream = eventDatabase.streamEventsFrom(0);
+
+  for await (const events of eventsStream) {
+    if (abortController.signal.aborted) {
+      logger.info("aborting projection...");
+      break;
+    }
+
+    try {
       const output = await Promise.all(
         config.stores.map(async (store) => {
           const output = await singleStoreHandleEvents(store, events);
@@ -292,11 +314,15 @@ const getEventsHandler = function getEventsHandler(config: JourneyConfig) {
       }
     } catch (ex) {
       if (ex instanceof UnrecoverableError) {
-        throw ex;
+        logger.info("projection forcefully closed because of unrecoverable error");
+        abortController.abort();
+        break;
       }
       console.log("ex", ex);
     }
-  });
+  }
+
+  projecting = false;
 
   async function singleStoreHandleEvents(
     store: Store,
@@ -391,4 +417,4 @@ const getEventsHandler = function getEventsHandler(config: JourneyConfig) {
       }
     }
   }
-};
+});

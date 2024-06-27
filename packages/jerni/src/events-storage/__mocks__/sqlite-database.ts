@@ -19,13 +19,13 @@ function getSqliteDb(): EventDatabase {
   createQuery.get();
 
   return {
-    getEventsFrom: async (lastEventId: number): Promise<JourneyCommittedEvent[]> => {
-      const query = db.prepare(`SELECT * FROM ${tableName} WHERE id > $lastEventId ORDER BY id ASC`);
-      const events = query.all({ $lastEventId: lastEventId }) as JourneyCommittedEvent[];
+    getEventsFrom: async (lastEventId: number, limit = 200): Promise<JourneyCommittedEvent[]> => {
+      const query = db.prepare(`SELECT * FROM ${tableName} WHERE id > $lastEventId ORDER BY id ASC LIMIT $limit`);
+      const events = query.all({ $lastEventId: lastEventId, $limit: limit }) as JourneyCommittedEvent[];
 
       return events.map((event) => ({
         ...event,
-        payload: JSON.parse(event.payload),
+        payload: JSON.parse(event.payload as string),
       }));
     },
 
@@ -38,6 +38,27 @@ function getSqliteDb(): EventDatabase {
           $type: event.type,
           $payload: JSON.stringify(event.payload),
         });
+      }
+    },
+
+    streamEventsFrom: async function* (lastEventId: number, limit = 200): AsyncGenerator<JourneyCommittedEvent[]> {
+      const query = db.prepare(`SELECT * FROM ${tableName} WHERE id > $lastEventId ORDER BY id ASC LIMIT $limit`);
+
+      let currentId = lastEventId;
+
+      while (true) {
+        const events = query.all({ $lastEventId: currentId, $limit: limit }) as JourneyCommittedEvent[];
+
+        if (events.length === 0) {
+          return;
+        }
+
+        yield events.map((event) => ({
+          ...event,
+          payload: JSON.parse(event.payload as string),
+        }));
+
+        currentId = events[events.length - 1].id;
       }
     },
   };

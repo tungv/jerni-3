@@ -3,8 +3,10 @@ import getSqliteDb from "src/events-storage/sqlite-database";
 import setup from "src/asynclocal";
 
 export interface EventDatabase {
-  getEventsFrom(lastEventId: number): Promise<JourneyCommittedEvent[]>;
+  getEventsFrom(lastEventId: number, limit?: number): Promise<JourneyCommittedEvent[]>;
   insertEvents(events: JourneyCommittedEvent[]): Promise<void>;
+
+  streamEventsFrom(lastEventId: number, limit?: number): AsyncGenerator<JourneyCommittedEvent[]>;
 }
 
 async function getDB() {
