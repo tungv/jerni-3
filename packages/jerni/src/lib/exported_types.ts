@@ -1,8 +1,9 @@
 import { JourneyConfig } from "../types/config";
 import {
   JourneyCommittedEvent,
+  JourneyCommittedEvents,
   JourneyEvent,
-  LocalEvents,
+  JourneySubscribedEvents,
   TypedJourneyCommittedEvent,
   TypedJourneyEvent,
 } from "../types/events";
@@ -13,7 +14,8 @@ export {
   JourneyConfig,
   JourneyEvent,
   JourneyInstance,
-  LocalEvents,
   TypedJourneyCommittedEvent,
   TypedJourneyEvent,
+  JourneyCommittedEvents,
+  JourneySubscribedEvents,
 };

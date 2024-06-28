@@ -36,10 +36,9 @@ export type TypedJourneyCommittedEvent<
   meta?: Metadata;
 };
 
-export type JourneyCommittedEvents = {
-  [key: string]: unknown;
-};
-export type JourneySubscribedEvents = {
-  [key: string]: unknown;
-};
+// biome-ignore lint/suspicious/noEmptyInterface: allow user to extend this interface
+export interface JourneyCommittedEvents {}
+
+// biome-ignore lint/suspicious/noEmptyInterface: allow user to extend this interface
+export interface JourneySubscribedEvents {}
 export interface LocalEvents extends JourneyCommittedEvents, JourneySubscribedEvents {}
