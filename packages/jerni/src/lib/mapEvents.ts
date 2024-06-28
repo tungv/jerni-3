@@ -1,23 +1,36 @@
-import type { JourneyCommittedEvent, LocalEvents } from "./exported_types";
-
-type MapEventsReturnType<OperationTypes> = (event: JourneyCommittedEvent) => OperationTypes[];
-
-type EventSpecificHandler<ReturnType> = (event: JourneyCommittedEvent) => ReturnType | ReturnType[] | undefined;
+import type { LocalEvents } from "../types/events";
 
 type EventsMapInput<ReturnType> = {
-  [key in keyof Partial<LocalEvents>]: EventSpecificHandler<ReturnType>;
+  [key in keyof Partial<LocalEvents>]: (event: {
+    id: number;
+    type: key;
+    payload: Exclude<LocalEvents[key], undefined>;
+    meta?: unknown;
+  }) => ReturnType | ReturnType[] | undefined;
 };
 
-export default function mapEvents<ReturnType>(eventsMap: EventsMapInput<ReturnType>): MapEventsReturnType<ReturnType>;
+type AnyCommittedEvent = { id: number; type: string; payload: unknown; meta?: unknown };
 
-export default function mapEvents<ReturnType>(eventsMap: EventsMapInput<ReturnType>): MapEventsReturnType<ReturnType> {
+type AnyHandler<ReturnType> = (event: AnyCommittedEvent) => ReturnType[];
+
+export default function mapEvent<ReturnType>(eventsMap: EventsMapInput<ReturnType>): AnyHandler<ReturnType> {
   const meta = {
     includes: Object.keys(eventsMap),
   };
 
-  function transform(event: JourneyCommittedEvent) {
-    const eventType = event.type as keyof typeof eventsMap;
-    const handler = eventsMap[eventType];
+  function transform(event: AnyCommittedEvent): ReturnType[] {
+    const eventType = event.type;
+
+    if (eventType in eventsMap === false) {
+      return [];
+    }
+
+    // dangerous type casting
+    // in runtime, eventsMap may contain more keys than LocalEvents
+    // or the values may not be a function
+    const handler = eventsMap[eventType as keyof typeof eventsMap] as AnyHandler<ReturnType>;
+
+    // thus we need to check it here to avoid runtime error
     if (typeof handler !== "function") {
       return [];
     }
