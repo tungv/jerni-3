@@ -5,8 +5,8 @@ export type JourneyEvent<Payload = unknown, Metadata = unknown> = {
 };
 
 export type JourneyCommittedEvent<
-  EventType extends keyof JourneyCommittedEvents = keyof JourneyCommittedEvents,
-  Payload = JourneyCommittedEvents[EventType],
+  EventType extends keyof LocalEvents = keyof LocalEvents,
+  Payload = LocalEvents[EventType],
   Metadata = unknown,
 > = {
   id: number;
@@ -26,8 +26,8 @@ export type TypedJourneyEvent<
 };
 
 export type TypedJourneyCommittedEvent<
-  Type extends keyof JourneyCommittedEvents = keyof JourneyCommittedEvents,
-  Payload = JourneyCommittedEvents[Type],
+  Type extends keyof LocalEvents = keyof LocalEvents,
+  Payload = LocalEvents[Type],
   Metadata = unknown,
 > = {
   id: number;
