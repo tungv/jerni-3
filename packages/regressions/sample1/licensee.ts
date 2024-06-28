@@ -12,7 +12,7 @@ export interface LicenseeDocumentModel {
 }
 
 declare module "jerni/type" {
-  export interface LocalEvents {
+  export interface JourneySubscribedEvents {
     "SCANNER:LICENSEE_CREATED": {
       id: string;
       name: string;

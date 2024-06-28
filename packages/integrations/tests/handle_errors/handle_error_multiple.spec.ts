@@ -10,7 +10,7 @@ import mapEvents from "jerni/lib/mapEvents";
 import SKIP from "jerni/lib/skip";
 
 declare module "jerni/type" {
-  interface LocalEvents {
+  interface JourneySubscribedEvents {
     FAILURE_EVENT: { [k: string]: never };
     OK_EVENT: { [k: string]: never };
   }
