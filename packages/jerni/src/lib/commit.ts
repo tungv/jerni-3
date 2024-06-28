@@ -3,8 +3,8 @@ import { nanoid } from "nanoid";
 import { readPackageUpSync } from "read-package-up";
 import type { Logger } from "src/types/Logger";
 import type {
+  CommittingEventDefinitions,
   JourneyCommittedEvent,
-  JourneyCommittedEvents,
   TypedJourneyCommittedEvent,
   TypedJourneyEvent,
 } from "src/types/events";
@@ -13,7 +13,7 @@ const parentPackage = readPackageUpSync({
   cwd: __dirname,
 });
 
-export default async function commitToServer<T extends keyof JourneyCommittedEvents>(
+export default async function commitToServer<T extends keyof CommittingEventDefinitions>(
   logger: Logger,
   url: URL,
   logSafeUrl: URL,

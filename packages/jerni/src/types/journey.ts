@@ -1,7 +1,7 @@
 import type { JourneyConfig } from "./config";
 import type {
+  CommittingEventDefinitions,
   JourneyCommittedEvent,
-  JourneyCommittedEvents,
   TypedJourneyCommittedEvent,
   TypedJourneyEvent,
 } from "./events";
@@ -11,9 +11,13 @@ export interface JourneyInstance {
    * @deprecated use `append` instead
    * @param event uncommitted event
    */
-  commit<P extends keyof JourneyCommittedEvents>(event: TypedJourneyEvent<P>): Promise<TypedJourneyCommittedEvent<P>>;
+  commit<P extends keyof CommittingEventDefinitions>(
+    event: TypedJourneyEvent<P>,
+  ): Promise<TypedJourneyCommittedEvent<P>>;
 
-  append<P extends keyof JourneyCommittedEvents>(event: TypedJourneyEvent<P>): Promise<TypedJourneyCommittedEvent<P>>;
+  append<P extends keyof CommittingEventDefinitions>(
+    event: TypedJourneyEvent<P>,
+  ): Promise<TypedJourneyCommittedEvent<P>>;
 
   waitFor(event: JourneyCommittedEvent, timeoutOrSignal?: number | AbortSignal): Promise<void>;
 

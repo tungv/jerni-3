@@ -9,7 +9,7 @@ import initJourney from "../makeTestJourney";
 import startWorker from "../startWorker";
 
 declare module "jerni/type" {
-  interface JourneySubscribedEvents {
+  interface SubscribingEventDefinitions {
     FAILURE_EVENT: { [k: string]: never };
   }
 }

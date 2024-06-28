@@ -9,7 +9,7 @@ interface BankAccountDocumentModel {
 }
 
 declare module "jerni/type" {
-  export interface JourneySubscribedEvents {
+  export interface SubscribingEventDefinitions {
     NEW_ACCOUNT_REGISTERED: {
       id: string;
       name: string;

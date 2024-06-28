@@ -37,8 +37,8 @@ export type TypedJourneyCommittedEvent<
 };
 
 // biome-ignore lint/suspicious/noEmptyInterface: allow user to extend this interface
-export interface JourneyCommittedEvents {}
+export interface CommittingEventDefinitions {}
 
 // biome-ignore lint/suspicious/noEmptyInterface: allow user to extend this interface
-export interface JourneySubscribedEvents {}
-export interface LocalEvents extends JourneyCommittedEvents, JourneySubscribedEvents {}
+export interface SubscribingEventDefinitions {}
+export interface LocalEvents extends CommittingEventDefinitions, SubscribingEventDefinitions {}

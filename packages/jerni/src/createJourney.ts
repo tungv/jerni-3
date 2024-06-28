@@ -5,8 +5,8 @@ import commitToServer from "./lib/commit";
 import normalizeUrl from "./lib/normalize-url";
 import type { JourneyConfig } from "./types/config";
 import type {
+  CommittingEventDefinitions,
   JourneyCommittedEvent,
-  JourneyCommittedEvents,
   LocalEvents,
   TypedJourneyCommittedEvent,
   TypedJourneyEvent,
@@ -42,13 +42,13 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
   const waiter = createWaiter(config.stores.length);
 
   return {
-    async commit<T extends keyof JourneyCommittedEvents>(
+    async commit<T extends keyof CommittingEventDefinitions>(
       uncommittedEvent: TypedJourneyEvent<T>,
     ): Promise<TypedJourneyCommittedEvent<T>> {
       return commitToServer(logger, url, logSafeUrl, onReport, onError, uncommittedEvent);
     },
 
-    async append<T extends keyof JourneyCommittedEvents>(uncommittedEvent: {
+    async append<T extends keyof CommittingEventDefinitions>(uncommittedEvent: {
       type: Exclude<T, number>;
       payload: LocalEvents[T];
     }) {
