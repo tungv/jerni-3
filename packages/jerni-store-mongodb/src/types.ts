@@ -22,6 +22,16 @@ export interface MongoDBStoreConfig {
 
   // biome-ignore lint/suspicious/noExplicitAny: this can be any collection, however, if using Document, it will cause Typescript constraint error
   models: MongoDBModel<any>[];
+
+  logger?: Logger;
+}
+
+interface Logger {
+  debug: Console["debug"];
+  log: Console["log"];
+  info: Console["info"];
+  warn: Console["warn"];
+  error: Console["error"];
 }
 
 export interface TransformFn<DocumentType extends Document> {

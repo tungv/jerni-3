@@ -1,15 +1,19 @@
+import { setTimeout } from "node:timers/promises";
 import { type Collection, type Document, MongoClient } from "mongodb";
+import makeTestLogger from "../tests/helpers/makeTestLogger";
 import getCollectionName from "./getCollectionName";
 import type MongoDBModel from "./model";
 import getBulkOperations from "./optimistic/getBulkOperations";
-import { clearModelSlots, runWithModel, Signal } from "./read";
-import type { JourneyCommittedEvent, MongoDBStoreConfig, MongoDBStore, Changes } from "./types";
-import { setTimeout } from "node:timers/promises";
+import { Signal, clearModelSlots, runWithModel } from "./read";
+import type { Changes, JourneyCommittedEvent, MongoDBStore, MongoDBStoreConfig } from "./types";
 
 interface SnapshotDocument {
   __v: number;
   full_collection_name: string;
 }
+
+const defaultLogger = console;
+const testLogger = makeTestLogger();
 
 export default async function makeMongoDBStore(config: MongoDBStoreConfig): Promise<MongoDBStore> {
   const client = await MongoClient.connect(config.url);
@@ -17,6 +21,9 @@ export default async function makeMongoDBStore(config: MongoDBStoreConfig): Prom
   let hasStopped = false;
 
   const models = config.models;
+
+  // use test logger if NODE_ENV is test
+  const logger = process.env.NODE_ENV === "test" ? testLogger : config.logger || defaultLogger;
 
   const snapshotCollection = db.collection<SnapshotDocument>("jerni__snapshot");
 
@@ -133,7 +140,7 @@ export default async function makeMongoDBStore(config: MongoDBStoreConfig): Prom
           return runWithModel(model, event);
         } catch (error) {
           if (error instanceof Signal) {
-            console.debug(
+            logger.debug(
               "event id=%d, type=%s reads. Stop and processing previous event (from %d to before %d)",
               event.id,
               event.type,
@@ -219,7 +226,7 @@ export default async function makeMongoDBStore(config: MongoDBStoreConfig): Prom
       const interruptedEvent = events[interruptedIndex];
       const remainingEvents = events.slice(interruptedIndex);
 
-      console.debug(
+      logger.debug(
         "priming data for event:\n%s",
         require("node:util").inspect(interruptedEvent, { depth: null, colors: true }),
       );
