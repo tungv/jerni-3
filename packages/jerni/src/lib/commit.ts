@@ -1,3 +1,4 @@
+import { URL } from "node:url";
 import { nanoid } from "nanoid";
 import { readPackageUpSync } from "read-package-up";
 import type { Logger } from "src/types/Logger";
@@ -7,7 +8,6 @@ import type {
   TypedJourneyCommittedEvent,
   TypedJourneyEvent,
 } from "src/types/events";
-import { URL } from "node:url";
 
 const parentPackage = readPackageUpSync({
   cwd: __dirname,

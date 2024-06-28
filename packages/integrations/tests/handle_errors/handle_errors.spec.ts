@@ -1,12 +1,12 @@
+import { describe, expect, it } from "bun:test";
 import { MongoDBModel, makeMongoDBStore } from "@jerni/store-mongodb";
-import { describe, it, expect } from "bun:test";
-import createServer from "src/events-server";
-import initJourney from "../makeTestJourney";
-import startWorker from "../startWorker";
-import mapEvents from "jerni/lib/mapEvents";
 import type { JourneyCommittedEvent } from "@jerni/store-mongodb/lib/src/types";
 import JerniPersistenceError from "jerni/lib/errors/JerniPersistenceError";
+import mapEvents from "jerni/lib/mapEvents";
+import createServer from "src/events-server";
 import cleanUpTestDatabase from "../cleanUpTestDatabase";
+import initJourney from "../makeTestJourney";
+import startWorker from "../startWorker";
 
 declare module "jerni/type" {
   interface LocalEvents {
