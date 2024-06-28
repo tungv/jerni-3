@@ -1,7 +1,7 @@
 import { mock } from "bun:test";
-import type { JourneyCommittedEvent } from "../../types/events";
 import { URL } from "node:url";
 import { overEvery } from "lodash/fp";
+import type { JourneyCommittedEvent } from "../../types/events";
 
 export default function createServer(events: JourneyCommittedEvent[], subscriptionInterval = 300) {
   const subscriptionInputSpy = mock((searchParams: string, req: Request) => {});
@@ -43,8 +43,13 @@ export default function createServer(events: JourneyCommittedEvent[], subscripti
     port: Math.floor(Math.random() * 10000) + 30000,
   });
 
+  function commitEvent(event: JourneyCommittedEvent) {
+    events.push(event);
+  }
+
   return {
     server,
+    commitEvent,
     inputSpies: {
       subscriptionInputSpy,
     },
