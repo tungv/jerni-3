@@ -13,6 +13,7 @@ export interface EventDatabase {
   clean(): Promise<void>;
 }
 
+// TODO: need to provide user with other event database like mongodb or sql so that they can be persisted for later use easier
 async function getDB() {
   return getSqliteDb();
 }

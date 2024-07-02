@@ -16,6 +16,8 @@
     "./lib/mapEvents": "./src/lib/mapEvents.ts",
     "./lib/errors/JerniPersistenceError": "./src/JerniPersistenceError.ts",
     "./lib/errors/UnrecoverableError": "./src/UnrecoverableError.ts",
-    "./lib/skip": "./src/lib/skip.ts"
+    "./lib/skip": "./src/lib/skip.ts",
+    "./lib/begin": "./src/begin.ts",
+    "./lib/dispose": "./src/dispose.ts"
   }
 }

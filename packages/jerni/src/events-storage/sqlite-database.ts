@@ -2,6 +2,7 @@ import { Database } from "bun:sqlite";
 import type { JourneyCommittedEvent } from "jerni/type";
 import type { EventDatabase } from "./injectDatabase";
 
+// TODO: need to allow users to input the database name here
 const db = new Database("mydb.sqlite");
 
 interface SavedEvent {
