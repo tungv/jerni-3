@@ -1,25 +1,25 @@
+import { URL } from "node:url";
 import { nanoid } from "nanoid";
 import { readPackageUpSync } from "read-package-up";
 import type { Logger } from "src/types/Logger";
 import type {
+  CommittingEventDefinitions,
   JourneyCommittedEvent,
-  JourneyCommittedEvents,
+  ToBeCommittedJourneyEvent,
   TypedJourneyCommittedEvent,
-  TypedJourneyEvent,
 } from "src/types/events";
-import { URL } from "node:url";
 
 const parentPackage = readPackageUpSync({
   cwd: __dirname,
 });
 
-export default async function commitToServer<T extends keyof JourneyCommittedEvents>(
+export default async function commitToServer<T extends keyof CommittingEventDefinitions>(
   logger: Logger,
   url: URL,
   logSafeUrl: URL,
   onReport: (type: string, payload: unknown) => void,
   onError: (error: Error, event: JourneyCommittedEvent) => void,
-  eventToCommit: TypedJourneyEvent<T>,
+  eventToCommit: ToBeCommittedJourneyEvent<T>,
 ): Promise<TypedJourneyCommittedEvent<T>> {
   logger.debug("committing...");
   const commitUrl = new URL("commit", url);

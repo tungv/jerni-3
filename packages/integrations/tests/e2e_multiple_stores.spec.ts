@@ -1,21 +1,22 @@
+import { afterAll, describe, expect, it } from "bun:test";
 import { makeMongoDBStore } from "@jerni/store-mongodb";
-import { describe, it, expect } from "bun:test";
+import dispose from "jerni/lib/dispose";
+import { nanoid } from "nanoid";
 import createServer from "src/events-server";
+import cleanUpTestDatabase from "./cleanUpTestDatabase";
 import BankAccountModel from "./fixtures/BankAccountModel";
 import BankAccountModel_2 from "./fixtures/BankAccountModel_2";
 import initJourney from "./makeTestJourney";
 import startWorker from "./startWorker";
-import cleanUpTestDatabase from "./cleanUpTestDatabase";
+
+afterAll(cleanUpTestDatabase);
 
 describe("e2e_multiple_stores", () => {
   it("should support multiple stores", async () => {
     const { server } = createServer();
     const port = server.port;
 
-    const dbName = "test-multiple-stores";
-
-    // clean up the database
-    await cleanUpTestDatabase(dbName);
+    const dbName = `jerni_integration_test_${nanoid()}`;
 
     const ctrl = new AbortController();
 
@@ -99,7 +100,7 @@ describe("e2e_multiple_stores", () => {
 
     ctrl.abort();
 
-    await app.journey.dispose();
-    await worker.journey.dispose();
+    await dispose(app.journey);
+    await dispose(worker.journey);
   });
 });

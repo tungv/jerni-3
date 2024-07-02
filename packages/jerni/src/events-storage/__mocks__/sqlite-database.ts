@@ -1,9 +1,15 @@
 import { Database } from "bun:sqlite";
+import { mock } from "bun:test";
 import type { JourneyCommittedEvent } from "jerni/type";
 import type { EventDatabase } from "../injectDatabase";
-import { mock } from "bun:test";
 
 const db = new Database(":memory:");
+
+interface SavedEvent {
+  id: number;
+  type: string;
+  payload: string;
+}
 
 function getSqliteDb(): EventDatabase {
   const eventsTableName = `events_${Math.random().toString(36).slice(2)}`;
@@ -25,14 +31,16 @@ function getSqliteDb(): EventDatabase {
 `).get();
 
   return {
-    getEventsFrom: async (lastEventId: number, limit = 200): Promise<JourneyCommittedEvent[]> => {
-      const query = db.prepare(`SELECT * FROM ${eventsTableName} WHERE id > $lastEventId ORDER BY id ASC LIMIT $limit`);
-      const events = query.all({ $lastEventId: lastEventId, $limit: limit }) as JourneyCommittedEvent[];
+    getEventsFrom: async (eventId: number, limit = 200): Promise<JourneyCommittedEvent[]> => {
+      const query = db.prepare(
+        `SELECT * FROM ${eventsTableName} WHERE id >= $lastEventId ORDER BY id ASC LIMIT $limit`,
+      );
+      const events = query.all({ $lastEventId: eventId, $limit: limit }) as SavedEvent[];
 
       return events.map((event) => ({
         ...event,
         payload: JSON.parse(event.payload as string),
-      }));
+      })) as JourneyCommittedEvent[];
     },
 
     insertEvents: async (includeListHash, events: JourneyCommittedEvent[]) => {
@@ -56,13 +64,16 @@ function getSqliteDb(): EventDatabase {
       query.run({ $id: includeListHash, $lastEventId: lastEventId });
     },
 
-    streamEventsFrom: async function* (lastEventId: number, limit = 200): AsyncGenerator<JourneyCommittedEvent[]> {
-      const query = db.prepare(`SELECT * FROM ${eventsTableName} WHERE id > $lastEventId ORDER BY id ASC LIMIT $limit`);
+    streamEventsFrom: async function* (eventId: number, limit = 200): AsyncGenerator<JourneyCommittedEvent[]> {
+      // greater or equal to lastEventId
+      const query = db.prepare(
+        `SELECT * FROM ${eventsTableName} WHERE id >= $lastEventId ORDER BY id ASC LIMIT $limit`,
+      );
 
-      let currentId = lastEventId;
+      let currentId = eventId;
 
       while (true) {
-        const events = query.all({ $lastEventId: currentId, $limit: limit }) as JourneyCommittedEvent[];
+        const events = query.all({ $lastEventId: currentId, $limit: limit }) as SavedEvent[];
 
         if (events.length === 0) {
           return;
@@ -71,9 +82,9 @@ function getSqliteDb(): EventDatabase {
         yield events.map((event) => ({
           ...event,
           payload: JSON.parse(event.payload as string),
-        }));
+        })) as JourneyCommittedEvent[];
 
-        currentId = events[events.length - 1].id;
+        currentId = events[events.length - 1].id + 1;
       }
     },
 
@@ -82,6 +93,12 @@ function getSqliteDb(): EventDatabase {
       const row = query.get({ $id: includeListHash }) as { LAST_EVENT_ID: number } | undefined;
 
       return row ? row.LAST_EVENT_ID : 0;
+    },
+
+    clean: async () => {
+      // delete from if exists
+      db.query(`DELETE FROM ${eventsTableName}`).get();
+      db.query(`DELETE FROM ${snapshotTableName}`).get();
     },
 
     dispose: async () => {

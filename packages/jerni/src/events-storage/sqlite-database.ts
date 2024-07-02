@@ -2,7 +2,14 @@ import { Database } from "bun:sqlite";
 import type { JourneyCommittedEvent } from "jerni/type";
 import type { EventDatabase } from "./injectDatabase";
 
+// TODO: need to allow users to input the database name here
 const db = new Database("mydb.sqlite");
+
+interface SavedEvent {
+  id: number;
+  type: string;
+  payload: string;
+}
 
 export default function getSqliteDb(): EventDatabase {
   // create tables if not exists
@@ -22,9 +29,9 @@ export default function getSqliteDb(): EventDatabase {
 `).get();
 
   return {
-    getEventsFrom: async (lastEventId: number, limit = 200): Promise<JourneyCommittedEvent[]> => {
-      const query = db.query("SELECT * FROM events WHERE id > $lastEventId ORDER BY id ASC LIMIT $limit");
-      const events = query.all({ $lastEventId: lastEventId, $limit: limit }) as JourneyCommittedEvent[];
+    getEventsFrom: async (eventId: number, limit = 200): Promise<JourneyCommittedEvent[]> => {
+      const query = db.query("SELECT * FROM events WHERE id >= $lastEventId ORDER BY id ASC LIMIT $limit");
+      const events = query.all({ $lastEventId: eventId, $limit: limit }) as SavedEvent[];
 
       return events.map((event) => ({
         ...event,
@@ -32,13 +39,14 @@ export default function getSqliteDb(): EventDatabase {
       })) as JourneyCommittedEvent[];
     },
 
-    streamEventsFrom: async function* (lastEventId: number, limit = 200): AsyncGenerator<JourneyCommittedEvent[]> {
-      const query = db.query("SELECT * FROM events WHERE id > $lastEventId ORDER BY id ASC LIMIT $limit");
+    streamEventsFrom: async function* (eventId: number, limit = 200): AsyncGenerator<JourneyCommittedEvent[]> {
+      // greater or equal to lastEventId
+      const query = db.query("SELECT * FROM events WHERE id >= $lastEventId ORDER BY id ASC LIMIT $limit");
 
-      let currentId = lastEventId;
+      let currentId = eventId;
 
       while (true) {
-        const events = query.all({ $lastEventId: currentId, $limit: limit }) as JourneyCommittedEvent[];
+        const events = query.all({ $lastEventId: currentId, $limit: limit }) as SavedEvent[];
 
         if (events.length === 0) {
           return;
@@ -47,9 +55,9 @@ export default function getSqliteDb(): EventDatabase {
         yield events.map((event) => ({
           ...event,
           payload: JSON.parse(event.payload as string),
-        }));
+        })) as JourneyCommittedEvent[];
 
-        currentId = events[events.length - 1].id;
+        currentId = events[events.length - 1].id + 1;
       }
     },
 
@@ -78,10 +86,16 @@ export default function getSqliteDb(): EventDatabase {
       return row ? row.LAST_EVENT_ID : 0;
     },
 
-    dispose: async () => {
-      // delete all events and snapshot
+    clean: async () => {
+      // delete all events
       db.query("DELETE FROM events").run();
       db.query("DELETE FROM snapshot").run();
+    },
+
+    dispose: async () => {
+      // delete all events and snapshot
+      db.query("DROP TABLE IF EXISTS events").run();
+      db.query("DROP TABLE IF EXISTS snapshot").run();
     },
   };
 }

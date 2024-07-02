@@ -1,14 +1,16 @@
+import { afterAll, describe, expect, it } from "bun:test";
 import { MongoDBModel, makeMongoDBStore } from "@jerni/store-mongodb";
-import { describe, it, expect } from "bun:test";
-import createServer from "src/events-server";
-import initJourney from "../makeTestJourney";
-import startWorker from "../startWorker";
+import dispose from "jerni/lib/dispose";
 import mapEvents from "jerni/lib/mapEvents";
 import SKIP from "jerni/lib/skip";
+import { nanoid } from "nanoid";
+import createServer from "src/events-server";
 import cleanUpTestDatabase from "../cleanUpTestDatabase";
+import initJourney from "../makeTestJourney";
+import startWorker from "../startWorker";
 
 declare module "jerni/type" {
-  interface LocalEvents {
+  interface SubscribingEventDefinitions {
     FAILURE_EVENT: { [k: string]: never };
     OK_EVENT: { [k: string]: never };
   }
@@ -31,15 +33,14 @@ const FailureModel = new MongoDBModel<{ text: string }>({
   }),
 });
 
+afterAll(cleanUpTestDatabase);
+
 describe("e2e_handle_errors", () => {
   it("should continue to process if SKIP is returned", async () => {
     const { server } = createServer();
     const port = server.port;
 
-    const dbName = "handle_errors_with_skip";
-
-    // clean up the database
-    await cleanUpTestDatabase(dbName);
+    const dbName = `jerni_integration_test_${nanoid()}`;
 
     const ctrl = new AbortController();
 
@@ -98,7 +99,7 @@ describe("e2e_handle_errors", () => {
     const count = await Collection.countDocuments();
     expect(count).toEqual(9);
 
-    await app.journey.dispose();
-    await worker.journey.dispose();
+    await dispose(app.journey);
+    await dispose(worker.journey);
   });
 });

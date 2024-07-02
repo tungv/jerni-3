@@ -22,6 +22,16 @@ export interface MongoDBStoreConfig {
 
   // biome-ignore lint/suspicious/noExplicitAny: this can be any collection, however, if using Document, it will cause Typescript constraint error
   models: MongoDBModel<any>[];
+
+  logger?: Logger;
+}
+
+interface Logger {
+  debug: Console["debug"];
+  log: Console["log"];
+  info: Console["info"];
+  warn: Console["warn"];
+  error: Console["error"];
 }
 
 export interface TransformFn<DocumentType extends Document> {
@@ -63,10 +73,13 @@ export interface MongoDBStore {
   dispose: () => Promise<void>;
 }
 
+// biome-ignore lint/suspicious/noExplicitAny: This type is only determined when integrate with jerni and it should not affect the type safety of the store
+type JerniDeterminedType = any;
+
 export interface JourneyCommittedEvent {
   id: number;
-  type: string;
-  payload: unknown;
+  type: JerniDeterminedType;
+  payload: JerniDeterminedType;
 }
 
 export interface InsertOneOp<DocumentType extends Document> {

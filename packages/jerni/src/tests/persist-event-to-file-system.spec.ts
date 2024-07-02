@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { getEventDatabase, injectEventDatabase } from "src/events-storage/injectDatabase";
+import begin from "../begin";
 import createServer from "./helpers/events-server";
 import { initJourney } from "./helpers/initJourney";
 
@@ -26,7 +27,7 @@ describe("Persist event to file system", () => {
       const worker = await initJourney(eventServerUrl, []);
 
       // stop after the first event is processed and yielded
-      for await (const _events of worker.journey.begin(ctrl.signal)) {
+      for await (const _events of begin(worker.journey, ctrl.signal)) {
         ctrl.abort();
       }
 

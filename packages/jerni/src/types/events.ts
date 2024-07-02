@@ -5,8 +5,8 @@ export type JourneyEvent<Payload = unknown, Metadata = unknown> = {
 };
 
 export type JourneyCommittedEvent<
-  EventType extends keyof JourneyCommittedEvents = keyof JourneyCommittedEvents,
-  Payload = JourneyCommittedEvents[EventType],
+  EventType extends keyof LocalEvents = keyof LocalEvents,
+  Payload = LocalEvents[EventType],
   Metadata = unknown,
 > = {
   id: number;
@@ -15,7 +15,7 @@ export type JourneyCommittedEvent<
   meta?: Metadata;
 };
 
-export type TypedJourneyEvent<
+export type ToBeCommittedJourneyEvent<
   Type extends keyof LocalEvents = keyof LocalEvents,
   Payload = LocalEvents[Type],
   Metadata = unknown,
@@ -26,8 +26,8 @@ export type TypedJourneyEvent<
 };
 
 export type TypedJourneyCommittedEvent<
-  Type extends keyof JourneyCommittedEvents = keyof JourneyCommittedEvents,
-  Payload = JourneyCommittedEvents[Type],
+  Type extends keyof LocalEvents = keyof LocalEvents,
+  Payload = LocalEvents[Type],
   Metadata = unknown,
 > = {
   id: number;
@@ -36,10 +36,9 @@ export type TypedJourneyCommittedEvent<
   meta?: Metadata;
 };
 
-export type JourneyCommittedEvents = {
-  [key: string]: unknown;
-};
-export type JourneySubscribedEvents = {
-  [key: string]: unknown;
-};
-export interface LocalEvents extends JourneyCommittedEvents, JourneySubscribedEvents {}
+// biome-ignore lint/suspicious/noEmptyInterface: allow user to extend this interface
+export interface CommittingEventDefinitions {}
+
+// biome-ignore lint/suspicious/noEmptyInterface: allow user to extend this interface
+export interface SubscribingEventDefinitions {}
+export interface LocalEvents extends CommittingEventDefinitions, SubscribingEventDefinitions {}

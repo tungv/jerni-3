@@ -1,5 +1,5 @@
-import lodashFlow from "lodash/flow";
 import { AsyncLocalStorage } from "node:async_hooks";
+import { flow as lodashFlow } from "lodash";
 
 // biome-ignore lint/suspicious/noExplicitAny: any function
 type Fn = (...args: any[]) => any;

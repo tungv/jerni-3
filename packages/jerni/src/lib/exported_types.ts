@@ -1,21 +1,21 @@
+import { JourneyConfig } from "../types/config";
 import {
-  LocalEvents,
-  JourneyEvent,
+  CommittingEventDefinitions,
   JourneyCommittedEvent,
-  TypedJourneyEvent,
+  JourneyEvent,
+  SubscribingEventDefinitions,
+  ToBeCommittedJourneyEvent,
   TypedJourneyCommittedEvent,
-} from "src/types/events";
-
-import { JourneyInstance } from "src/types/journey";
-
-import { JourneyConfig } from "src/types/config";
+} from "../types/events";
+import { JourneyInstance } from "../types/journey";
 
 export {
-  LocalEvents,
-  JourneyEvent,
   JourneyCommittedEvent,
-  TypedJourneyEvent,
-  TypedJourneyCommittedEvent,
-  JourneyInstance,
   JourneyConfig,
+  JourneyEvent,
+  JourneyInstance,
+  TypedJourneyCommittedEvent,
+  ToBeCommittedJourneyEvent,
+  CommittingEventDefinitions,
+  SubscribingEventDefinitions,
 };

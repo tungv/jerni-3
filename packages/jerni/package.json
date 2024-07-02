@@ -3,6 +3,7 @@
   "version": "3.0.0",
   "type": "module",
   "main": "src/index.ts",
+  "bin": "./src/mycli",
   "dependencies": {
     "nanoid": "^4.0.2",
     "picocolors": "^1.0.0",
@@ -15,6 +16,8 @@
     "./lib/mapEvents": "./src/lib/mapEvents.ts",
     "./lib/errors/JerniPersistenceError": "./src/JerniPersistenceError.ts",
     "./lib/errors/UnrecoverableError": "./src/UnrecoverableError.ts",
-    "./lib/skip": "./src/lib/skip.ts"
+    "./lib/skip": "./src/lib/skip.ts",
+    "./lib/begin": "./src/begin.ts",
+    "./lib/dispose": "./src/dispose.ts"
   }
 }
