@@ -1,9 +1,15 @@
 import { Database } from "bun:sqlite";
+import { mock } from "bun:test";
 import type { JourneyCommittedEvent } from "jerni/type";
 import type { EventDatabase } from "../injectDatabase";
-import { mock } from "bun:test";
 
 const db = new Database(":memory:");
+
+interface SavedEvent {
+  id: number;
+  type: string;
+  payload: string;
+}
 
 function getSqliteDb(): EventDatabase {
   const eventsTableName = `events_${Math.random().toString(36).slice(2)}`;
@@ -29,12 +35,12 @@ function getSqliteDb(): EventDatabase {
       const query = db.prepare(
         `SELECT * FROM ${eventsTableName} WHERE id >= $lastEventId ORDER BY id ASC LIMIT $limit`,
       );
-      const events = query.all({ $lastEventId: eventId, $limit: limit }) as JourneyCommittedEvent[];
+      const events = query.all({ $lastEventId: eventId, $limit: limit }) as SavedEvent[];
 
       return events.map((event) => ({
         ...event,
         payload: JSON.parse(event.payload as string),
-      }));
+      })) as JourneyCommittedEvent[];
     },
 
     insertEvents: async (includeListHash, events: JourneyCommittedEvent[]) => {
@@ -67,7 +73,7 @@ function getSqliteDb(): EventDatabase {
       let currentId = eventId;
 
       while (true) {
-        const events = query.all({ $lastEventId: currentId, $limit: limit }) as JourneyCommittedEvent[];
+        const events = query.all({ $lastEventId: currentId, $limit: limit }) as SavedEvent[];
 
         if (events.length === 0) {
           return;
@@ -76,7 +82,7 @@ function getSqliteDb(): EventDatabase {
         yield events.map((event) => ({
           ...event,
           payload: JSON.parse(event.payload as string),
-        }));
+        })) as JourneyCommittedEvent[];
 
         currentId = events[events.length - 1].id + 1;
       }

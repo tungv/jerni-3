@@ -4,6 +4,12 @@ import type { EventDatabase } from "./injectDatabase";
 
 const db = new Database("mydb.sqlite");
 
+interface SavedEvent {
+  id: number;
+  type: string;
+  payload: string;
+}
+
 export default function getSqliteDb(): EventDatabase {
   // create tables if not exists
   db.query(`
@@ -24,7 +30,7 @@ export default function getSqliteDb(): EventDatabase {
   return {
     getEventsFrom: async (eventId: number, limit = 200): Promise<JourneyCommittedEvent[]> => {
       const query = db.query("SELECT * FROM events WHERE id >= $lastEventId ORDER BY id ASC LIMIT $limit");
-      const events = query.all({ $lastEventId: eventId, $limit: limit }) as JourneyCommittedEvent[];
+      const events = query.all({ $lastEventId: eventId, $limit: limit }) as SavedEvent[];
 
       return events.map((event) => ({
         ...event,
@@ -39,7 +45,7 @@ export default function getSqliteDb(): EventDatabase {
       let currentId = eventId;
 
       while (true) {
-        const events = query.all({ $lastEventId: currentId, $limit: limit }) as JourneyCommittedEvent[];
+        const events = query.all({ $lastEventId: currentId, $limit: limit }) as SavedEvent[];
 
         if (events.length === 0) {
           return;
@@ -48,7 +54,7 @@ export default function getSqliteDb(): EventDatabase {
         yield events.map((event) => ({
           ...event,
           payload: JSON.parse(event.payload as string),
-        }));
+        })) as JourneyCommittedEvent[];
 
         currentId = events[events.length - 1].id + 1;
       }
