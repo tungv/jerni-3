@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { MongoDBModel, makeMongoDBStore } from "@jerni/store-mongodb";
 import type { JourneyCommittedEvent } from "@jerni/store-mongodb/lib/src/types";
+import dispose from "jerni/lib/dispose";
 import mapEvents from "jerni/lib/mapEvents";
 import createServer from "src/events-server";
 import cleanUpTestDatabase from "../cleanUpTestDatabase";
@@ -88,11 +89,11 @@ describe("e2e_handle_errors", () => {
     await app.journey.append(OK_EVENT);
 
     // close app because we only want to test the worker
-    await app.journey.dispose();
+    await dispose(app.journey);
 
     // start worker and wait for it to stop
     // worker should stop because of the error not the signal, we intentionally avoid sending signal
     await startWorker(worker.journey, ctrl.signal);
-    await worker.journey.dispose();
+    await dispose(worker.journey);
   });
 });

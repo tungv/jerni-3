@@ -1,8 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import { getEventDatabase, injectEventDatabase } from "src/events-storage/injectDatabase";
+import type { Store } from "src/types/config";
+import begin from "../begin";
 import createServer from "./helpers/events-server";
 import { initJourney } from "./helpers/initJourney";
-import type { Store } from "src/types/config";
 
 import "src/events-storage/__mocks__/sqlite-database";
 
@@ -55,7 +56,7 @@ describe("New events added to subscription list", () => {
       ]);
 
       // stop after the first event is processed and yielded
-      for await (const _events of worker1.journey.begin(ctrl.signal)) {
+      for await (const _events of begin(worker1.journey, ctrl.signal)) {
         ctrl.abort();
       }
 
@@ -84,7 +85,7 @@ describe("New events added to subscription list", () => {
 
       const ctrl2 = new AbortController();
 
-      for await (const output of worker2.journey.begin(ctrl2.signal)) {
+      for await (const output of begin(worker2.journey, ctrl2.signal)) {
         if (output.lastProcessedEventId === 2) {
           ctrl2.abort();
         }

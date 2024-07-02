@@ -1,13 +1,14 @@
-import { describe, expect, it } from "bun:test";
+import { afterAll, describe, expect, it } from "bun:test";
 import { MongoDBModel, makeMongoDBStore } from "@jerni/store-mongodb";
+import type { JourneyCommittedEvent } from "@jerni/store-mongodb/lib/src/types";
+import dispose from "jerni/lib/dispose";
+import mapEvents from "jerni/lib/mapEvents";
+import SKIP from "jerni/lib/skip";
+import { nanoid } from "nanoid";
 import createServer from "src/events-server";
 import cleanUpTestDatabase from "../cleanUpTestDatabase";
 import initJourney from "../makeTestJourney";
 import startWorker from "../startWorker";
-
-import type { JourneyCommittedEvent } from "@jerni/store-mongodb/lib/src/types";
-import mapEvents from "jerni/lib/mapEvents";
-import SKIP from "jerni/lib/skip";
 
 declare module "jerni/type" {
   interface SubscribingEventDefinitions {
@@ -124,7 +125,7 @@ describe("e2e_handle_errors", () => {
 
     await stopped;
 
-    await app.journey.dispose();
-    await worker.journey.dispose();
+    await dispose(app.journey);
+    await dispose(worker.journey);
   });
 });

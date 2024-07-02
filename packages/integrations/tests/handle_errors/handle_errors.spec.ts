@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { MongoDBModel, makeMongoDBStore } from "@jerni/store-mongodb";
 import type { JourneyCommittedEvent } from "@jerni/store-mongodb/lib/src/types";
+import dispose from "jerni/lib/dispose";
 import JerniPersistenceError from "jerni/lib/errors/JerniPersistenceError";
 import mapEvents from "jerni/lib/mapEvents";
 import createServer from "src/events-server";
@@ -72,7 +73,7 @@ describe("e2e_handle_errors", () => {
 
     ctrl.abort();
 
-    await app.journey.dispose();
-    await worker.journey.dispose();
+    await dispose(app.journey);
+    await dispose(worker.journey);
   });
 });
