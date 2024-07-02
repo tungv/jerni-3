@@ -6,7 +6,7 @@ on:
 
 jobs:
   build:
-    name: build jerni
+    name: Upload release asset
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -14,12 +14,17 @@ jobs:
 
       - uses: oven-sh/setup-bun@v1
       - run: cd packages/jerni
+      - run: bun link
+      - run: cd ../jerni-store-mongodb
+      - run: bun link
+      - run: cd ../..
       - run: bun install
 
       - name: Compile executable
         run: bun build ./src/cli.ts --compile --outfile ./src/mycli
 
-      - uses: actions/upload-release-asset@v1
+      - name: upload built file
+        uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
