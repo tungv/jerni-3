@@ -47,10 +47,7 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
       return commitToServer(logger, url, logSafeUrl, onReport, onError, uncommittedEvent);
     },
 
-    async append<T extends keyof CommittingEventDefinitions>(uncommittedEvent: {
-      type: Exclude<T, number>;
-      payload: LocalEvents[T];
-    }) {
+    async append<T extends keyof CommittingEventDefinitions>(uncommittedEvent: ToBeCommittedJourneyEvent<T>) {
       return commitToServer(logger, url, logSafeUrl, onReport, onError, uncommittedEvent);
     },
 
