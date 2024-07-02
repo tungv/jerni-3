@@ -19,6 +19,23 @@ function getMockStore(config: Partial<Store>) {
   } as unknown as Store;
 }
 
+declare module "jerni/type" {
+  interface CommittingEventDefinitions {
+    NEW_ACCOUNT_REGISTERED: {
+      id: string;
+      name: string;
+    };
+    ACCOUNT_UPDATED: {
+      id: string;
+      name: string;
+    };
+    ACCOUNT_DEPOSITED: {
+      id: string;
+      amount: number;
+    };
+  }
+}
+
 describe("New events added to subscription list", () => {
   test(
     "if new events are added to the subscription list, the worker should subscribe from the beginning and persist the new events",
