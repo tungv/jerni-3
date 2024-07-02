@@ -5,8 +5,8 @@ import type { Logger } from "src/types/Logger";
 import type {
   CommittingEventDefinitions,
   JourneyCommittedEvent,
+  ToBeCommittedJourneyEvent,
   TypedJourneyCommittedEvent,
-  TypedJourneyEvent,
 } from "src/types/events";
 
 const parentPackage = readPackageUpSync({
@@ -19,7 +19,7 @@ export default async function commitToServer<T extends keyof CommittingEventDefi
   logSafeUrl: URL,
   onReport: (type: string, payload: unknown) => void,
   onError: (error: Error, event: JourneyCommittedEvent) => void,
-  eventToCommit: TypedJourneyEvent<T>,
+  eventToCommit: ToBeCommittedJourneyEvent<T>,
 ): Promise<TypedJourneyCommittedEvent<T>> {
   logger.debug("committing...");
   const commitUrl = new URL("commit", url);

@@ -4,8 +4,8 @@ import {
   JourneyCommittedEvent,
   JourneyEvent,
   SubscribingEventDefinitions,
+  ToBeCommittedJourneyEvent,
   TypedJourneyCommittedEvent,
-  TypedJourneyEvent,
 } from "../types/events";
 import { JourneyInstance } from "../types/journey";
 
@@ -15,7 +15,7 @@ export {
   JourneyEvent,
   JourneyInstance,
   TypedJourneyCommittedEvent,
-  TypedJourneyEvent,
+  ToBeCommittedJourneyEvent,
   CommittingEventDefinitions,
   SubscribingEventDefinitions,
 };

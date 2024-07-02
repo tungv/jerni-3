@@ -7,9 +7,8 @@ import type { JourneyConfig } from "./types/config";
 import type {
   CommittingEventDefinitions,
   JourneyCommittedEvent,
-  LocalEvents,
+  ToBeCommittedJourneyEvent,
   TypedJourneyCommittedEvent,
-  TypedJourneyEvent,
 } from "./types/events";
 import type { JourneyInstance } from "./types/journey";
 import createWaiter from "./waiter";
@@ -43,7 +42,7 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
 
   return {
     async commit<T extends keyof CommittingEventDefinitions>(
-      uncommittedEvent: TypedJourneyEvent<T>,
+      uncommittedEvent: ToBeCommittedJourneyEvent<T>,
     ): Promise<TypedJourneyCommittedEvent<T>> {
       return commitToServer(logger, url, logSafeUrl, onReport, onError, uncommittedEvent);
     },

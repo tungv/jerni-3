@@ -2,8 +2,8 @@ import type { JourneyConfig } from "./config";
 import type {
   CommittingEventDefinitions,
   JourneyCommittedEvent,
+  ToBeCommittedJourneyEvent,
   TypedJourneyCommittedEvent,
-  TypedJourneyEvent,
 } from "./events";
 
 export interface JourneyInstance {
@@ -12,11 +12,11 @@ export interface JourneyInstance {
    * @param event uncommitted event
    */
   commit<P extends keyof CommittingEventDefinitions>(
-    event: TypedJourneyEvent<P>,
+    event: ToBeCommittedJourneyEvent<P>,
   ): Promise<TypedJourneyCommittedEvent<P>>;
 
   append<P extends keyof CommittingEventDefinitions>(
-    event: TypedJourneyEvent<P>,
+    event: ToBeCommittedJourneyEvent<P>,
   ): Promise<TypedJourneyCommittedEvent<P>>;
 
   waitFor(event: JourneyCommittedEvent, timeoutOrSignal?: number | AbortSignal): Promise<void>;

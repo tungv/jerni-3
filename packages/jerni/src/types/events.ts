@@ -15,7 +15,7 @@ export type JourneyCommittedEvent<
   meta?: Metadata;
 };
 
-export type TypedJourneyEvent<
+export type ToBeCommittedJourneyEvent<
   Type extends keyof LocalEvents = keyof LocalEvents,
   Payload = LocalEvents[Type],
   Metadata = unknown,
