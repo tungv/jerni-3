@@ -8,17 +8,15 @@ import BankAccountModel from "./fixtures/BankAccountModel";
 import BankAccountModel_2 from "./fixtures/BankAccountModel_2";
 import initJourney from "./makeTestJourney";
 import startWorker from "./startWorker";
-import cleanUpTestDatabase from "./cleanUpTestDatabase";
+
+afterAll(cleanUpTestDatabase);
 
 describe("e2e_multiple_stores", () => {
   it("should support multiple stores", async () => {
     const { server } = createServer();
     const port = server.port;
 
-    const dbName = "test-multiple-stores";
-
-    // clean up the database
-    await cleanUpTestDatabase(dbName);
+    const dbName = `jerni_integration_test_${nanoid()}`;
 
     const ctrl = new AbortController();
 

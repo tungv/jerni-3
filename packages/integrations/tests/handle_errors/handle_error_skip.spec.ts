@@ -1,8 +1,9 @@
-import { describe, expect, it } from "bun:test";
+import { afterAll, describe, expect, it } from "bun:test";
 import { MongoDBModel, makeMongoDBStore } from "@jerni/store-mongodb";
 import dispose from "jerni/lib/dispose";
 import mapEvents from "jerni/lib/mapEvents";
 import SKIP from "jerni/lib/skip";
+import { nanoid } from "nanoid";
 import createServer from "src/events-server";
 import cleanUpTestDatabase from "../cleanUpTestDatabase";
 import initJourney from "../makeTestJourney";
@@ -32,15 +33,14 @@ const FailureModel = new MongoDBModel<{ text: string }>({
   }),
 });
 
+afterAll(cleanUpTestDatabase);
+
 describe("e2e_handle_errors", () => {
   it("should continue to process if SKIP is returned", async () => {
     const { server } = createServer();
     const port = server.port;
 
-    const dbName = "handle_errors_with_skip";
-
-    // clean up the database
-    await cleanUpTestDatabase(dbName);
+    const dbName = `jerni_integration_test_${nanoid()}`;
 
     const ctrl = new AbortController();
 

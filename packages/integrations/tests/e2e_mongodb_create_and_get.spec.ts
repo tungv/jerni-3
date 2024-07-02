@@ -7,17 +7,15 @@ import cleanUpTestDatabase from "./cleanUpTestDatabase";
 import BankAccountModel from "./fixtures/BankAccountModel";
 import initJourney from "./makeTestJourney";
 import startWorker from "./startWorker";
-import cleanUpTestDatabase from "./cleanUpTestDatabase";
+
+afterAll(cleanUpTestDatabase);
 
 describe("e2e_mongodb_create_and_get", () => {
   it("should pass", async () => {
     const { server } = createServer();
     const port = server.port;
 
-    const dbName = "testsss";
-
-    // clean up the database
-    await cleanUpTestDatabase(dbName);
+    const dbName = `jerni_integration_test_${nanoid()}`;
 
     const ctrl = new AbortController();
 
