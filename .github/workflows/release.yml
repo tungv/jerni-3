@@ -1,9 +1,11 @@
 name: Release
 
 on: 
-  release:
-    types: [published]
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release'
+        required: true
 
 jobs:
   build:
@@ -18,14 +20,11 @@ jobs:
         run: ./scripts/build-cli.sh
 
       - name: upload built file
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: ncipollo/release-action@v1
         with:
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ./build/packages/jerni/src/mycli
-          asset_name: test-cli
-          asset_content_type: application/octet-stream
+          tag: ${{ github.event.inputs.tag }}
+          name: ${{ github.event.inputs.tag }}
+          artifacts: ./build/packages/jerni/src/mycli
 
       
 
