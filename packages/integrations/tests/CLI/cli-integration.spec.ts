@@ -1,23 +1,13 @@
-import { it, expect, afterAll } from "bun:test";
-import createServer from "src/events-server";
-import { BankAccountModel, BankAccountModel_2 } from "../models";
-import { nanoid } from "nanoid";
-import initializeJourney from "./makeTestJourneyCli";
+import { afterAll, expect, it } from "bun:test";
 import { exec } from "node:child_process";
-import { MongoClient } from "mongodb";
 import path from "node:path";
+import { nanoid } from "nanoid";
+import createServer from "src/events-server";
+import cleanUpTestDatabase from "../cleanUpTestDatabase";
+import { BankAccountModel, BankAccountModel_2 } from "../models";
+import initializeJourney from "./makeTestJourneyCli";
 
-afterAll(async () => {
-  const client = await MongoClient.connect("mongodb://127.0.0.1:27017");
-
-  const databases = await client.db().admin().listDatabases();
-
-  const testDbNames = databases.databases.filter((db) => db.name.startsWith("jerni_integration_test_"));
-
-  for (const { name } of testDbNames) {
-    await client.db(name).dropDatabase();
-  }
-});
+afterAll(cleanUpTestDatabase);
 
 it("CLI call should project events correctly", async () => {
   const dbName = `jerni_integration_test_${nanoid()}`;
