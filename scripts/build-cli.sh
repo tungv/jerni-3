@@ -5,7 +5,7 @@ mkdir build/packages
 mkdir build/packages/jerni
 cp package.json build/
 cp bun.lockb build/
-cp -r packages/jerni build/packages/jerni/
+cp -r packages/jerni build/packages/
 
 # install the dependencies
 cd build
