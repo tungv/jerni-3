@@ -1,4 +1,4 @@
-name: Release
+name: Pulbish to JSR
 
 on: 
   release:
