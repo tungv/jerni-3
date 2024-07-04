@@ -35,6 +35,6 @@ jobs:
         run: chmod +x ./scripts/install-dependencies.sh && ./scripts/install-dependencies.sh
 
       - name: Publish package
-        working-directory: ./build/packages/jerni
+        working-directory: ./packages/jerni
         # need to allow-dirty here since we need to copy jerni to another place to temporarily ignore other packages
-        run: bunx jsr publish --allow-dirty
+        run: bunx jsr publish
