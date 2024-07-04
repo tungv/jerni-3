@@ -14,7 +14,10 @@
     "typescript": "^5.2.2"
   },
   "scripts": {
-    "postinstall": "./scripts/download-binary.js"
+    "postinstall": "node ./scripts/download-binary.js",
+    "bump-patch": "node ./scripts/bump-version.js patch",
+    "bump-minor": "node ./scripts/bump-version.js minor",
+    "bump-major": "node ./scripts/bump-version.js major"
   },
   "exports": {
     ".": "./src/createJourney.ts",
