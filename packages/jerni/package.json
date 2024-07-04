@@ -1,6 +1,6 @@
 {
   "name": "jerni",
-  "version": "v0.0.6",
+  "version": "v0.0.8",
   "type": "module",
   "main": "src/index.ts",
   "bin": "./scripts/run-cli.js",
