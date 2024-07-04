@@ -32,9 +32,8 @@ jobs:
 
       - uses: oven-sh/setup-bun@v1
       - name: Install dependencies
-        run: chmod +x ./scripts/install-dependencies.sh && ./scripts/install-dependencies.sh
+        run: ./scripts/install-dependencies.sh
 
       - name: Publish package
-        working-directory: ./packages/jerni
-        # need to allow-dirty here since we need to copy jerni to another place to temporarily ignore other packages
+        working-directory: ./build
         run: bunx jsr publish
