@@ -27,11 +27,11 @@ jobs:
           tag: ${{ github.event.inputs.tag }}
           name: ${{ github.event.inputs.tag }}
           artifacts: 
-            ./build/packages/jerni/src/mycli-linux-x64,
-            ./build/packages/jerni/src/mycli-darwin-x64,
-            ./build/packages/jerni/src/mycli-win-x64.exe,
-            ./build/packages/jerni/src/mycli-linux-arm64,
-            ./build/packages/jerni/src/mycli-darwin-arm64
+            ./build/src/mycli-linux-x64,
+            ./build/src/mycli-darwin-x64,
+            ./build/src/mycli-win-x64.exe,
+            ./build/src/mycli-linux-arm64,
+            ./build/src/mycli-darwin-arm64
 
   publish:
     # use the published_jsr.yml workflow to publish to JSR
