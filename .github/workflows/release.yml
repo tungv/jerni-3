@@ -37,5 +37,8 @@ jobs:
     # use the published_jsr.yml workflow to publish to JSR
     needs: build
     uses: ./.github/workflows/publish_jsr.yml
+    permissions: 
+      contents: read
+      id-token: write
     with:
       tag: ${{ github.event.inputs.tag }}
