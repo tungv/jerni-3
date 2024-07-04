@@ -18,7 +18,8 @@ jobs:
         uses: actions/checkout@v4
 
       - uses: oven-sh/setup-bun@v1
-      - name: Build CLI
+      - name: Build jerni CLI
+        working-directory: ./packages/jerni
         run: ./scripts/build-cli.sh
 
       - name: upload built file
@@ -26,9 +27,9 @@ jobs:
         with:
           tag: ${{ github.event.inputs.tag }}
           name: ${{ github.event.inputs.tag }}
-          artifacts: ./build/packages/jerni/src/mycli
-
-      
-
-
-  
+          artifacts: 
+            ./build/packages/jerni/src/mycli-linux-x64,
+            ./build/packages/jerni/src/mycli-darwin-x64,
+            ./build/packages/jerni/src/mycli-win-x64,
+            ./build/packages/jerni/src/mycli-linux-arm64,
+            ./build/packages/jerni/src/mycli-darwin-arm64
