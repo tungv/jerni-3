@@ -30,9 +30,10 @@ jobs:
         with:
           ref: ${{ github.event.release.tag_name || github.event.inputs.tag }}
 
+      - uses: oven-sh/setup-bun@v1
       - name: Install dependencies
         run: chmod +x ./scripts/install-dependencies.sh && ./scripts/install-dependencies.sh
 
       - name: Publish package
         working-directory: ./build/packages/jerni
-        run: npx jsr publish
+        run: bunx jsr publish
