@@ -1,9 +1,9 @@
 {
   "name": "jerni",
-  "version": "3.0.0",
+  "version": "v0.0.6",
   "type": "module",
   "main": "src/index.ts",
-  "bin": "./src/mycli",
+  "bin": "./scripts/run-cli.js",
   "dependencies": {
     "event-source-plus": "^0.1.1",
     "hash-sum": "^2.0.0",
@@ -12,6 +12,9 @@
     "picocolors": "^1.0.0",
     "read-package-up": "^11.0.0",
     "typescript": "^5.2.2"
+  },
+  "scripts": {
+    "postinstall": "./scripts/download-binary.sh"
   },
   "exports": {
     ".": "./src/createJourney.ts",
