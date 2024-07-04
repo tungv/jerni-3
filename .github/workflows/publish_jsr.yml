@@ -1,0 +1,28 @@
+name: Release
+
+on: 
+  release:
+    types: [published]
+
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to publish'
+        required: true
+
+jobs:
+  build:
+    name: Release to JSR
+    runs-on: ubuntu-latest
+    permissions: 
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name || github.event.inputs.tag }}
+
+      - name: Publish package
+        working-directory: packages/jerni
+        run: npx jsr publish
