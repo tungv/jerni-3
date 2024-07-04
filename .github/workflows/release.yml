@@ -29,6 +29,6 @@ jobs:
           artifacts: 
             ./build/packages/jerni/src/mycli-linux-x64,
             ./build/packages/jerni/src/mycli-darwin-x64,
-            ./build/packages/jerni/src/mycli-win-x64,
+            ./build/packages/jerni/src/mycli-win-x64.exe,
             ./build/packages/jerni/src/mycli-linux-arm64,
             ./build/packages/jerni/src/mycli-darwin-arm64
