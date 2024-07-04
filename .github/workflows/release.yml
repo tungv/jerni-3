@@ -32,3 +32,10 @@ jobs:
             ./build/packages/jerni/src/mycli-win-x64.exe,
             ./build/packages/jerni/src/mycli-linux-arm64,
             ./build/packages/jerni/src/mycli-darwin-arm64
+
+  publish:
+    # use the published_jsr.yml workflow to publish to JSR
+    needs: build
+    uses: ./.github/workflows/publish_jsr.yml
+    with:
+      tag: ${{ github.event.inputs.tag }}

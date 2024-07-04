@@ -10,9 +10,16 @@ on:
         description: 'Tag to publish'
         required: true
 
+  workflow_call:
+    inputs:
+      tag:
+        description: 'Tag to publish'
+        required: true
+        type: string
+
 jobs:
   build:
-    name: Release to JSR
+    name: Publish to JSR
     runs-on: ubuntu-latest
     permissions: 
       contents: read
