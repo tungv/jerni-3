@@ -36,4 +36,5 @@ jobs:
 
       - name: Publish package
         working-directory: ./build/packages/jerni
-        run: bunx jsr publish
+        # need to allow-dirty here since we need to copy jerni to another place to temporarily ignore other packages
+        run: bunx jsr publish --allow-dirty
