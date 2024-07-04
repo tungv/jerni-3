@@ -19,7 +19,6 @@ jobs:
 
       - uses: oven-sh/setup-bun@v1
       - name: Build jerni CLI
-        working-directory: ./packages/jerni
         run: ./scripts/build-cli.sh
 
       - name: upload built file
