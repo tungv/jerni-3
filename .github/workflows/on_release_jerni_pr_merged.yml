@@ -10,12 +10,9 @@ on:
   workflow_dispatch:
     
 jobs:
-  if_merged:
+  get_version:
     if: github.event.pull_request.merged == true || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
-    permissions: 
-      contents: write
-      id-token: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -25,8 +22,14 @@ jobs:
         uses: martinbeentjes/npm-get-version-action@v1.3.1
         with:
           path: packages/jerni
-        
-      - name: Create release and publish to jsr
-        uses: ./.github/workflows/release.yml
-        with:
-          tag: ${{ steps.package-version.outputs.current-version}}
+
+  release:
+    if: github.event.pull_request.merged == true || github.event_name == 'workflow_dispatch'
+    permissions: 
+      contents: write
+      id-token: write
+    needs: get_version
+
+    uses: ./.github/workflows/release.yml
+    with:
+      tag: ${{ github.job.get_version.steps.package-version.outputs.current-version}}
