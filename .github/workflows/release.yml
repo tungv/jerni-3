@@ -7,6 +7,13 @@ on:
         description: 'Tag to release'
         required: true
 
+  workflow_call:
+    inputs:
+      tag:
+        description: 'Tag to publish'
+        required: true
+        type: string
+
 jobs:
   build:
     name: Upload release asset

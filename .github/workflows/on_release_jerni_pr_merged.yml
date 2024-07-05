@@ -1,0 +1,28 @@
+on:
+  pull_request:
+    types:
+      - closed
+    branches:
+      - 'release/**'
+    
+jobs:
+  if_merged:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    permissions: 
+      contents: write
+      id-token: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: get version from package.json
+        id: package-version
+        uses: martinbeentjes/npm-get-version-action@v1.3.1
+        with:
+          path: packages/jerni/package.json
+        
+      - name: Create release and publish to jsr
+        uses: ./.github/workflows/release.yml
+        with:
+          tag: ${{ steps.package-version.outputs.current-version}}
