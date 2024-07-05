@@ -1,0 +1,43 @@
+name: Release Jerni Binary Files
+
+on: 
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release'
+        required: true
+
+  workflow_call:
+    inputs:
+      tag:
+        description: 'Tag to publish'
+        required: true
+        type: string
+
+jobs:
+  build:
+    name: Upload release asset
+    runs-on: ubuntu-latest
+    permissions: 
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v1
+      - name: Build jerni CLI
+        run: ./scripts/build-cli.sh
+
+      - name: upload built file
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ github.event.inputs.tag }}
+          name: ${{ github.event.inputs.tag }}
+          artifacts: 
+            ./build/src/mycli-linux-x64,
+            ./build/src/mycli-darwin-x64,
+            ./build/src/mycli-win-x64.exe,
+            ./build/src/mycli-linux-arm64,
+            ./build/src/mycli-darwin-arm64
+
+ 
