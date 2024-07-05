@@ -1,9 +1,13 @@
+name: Release Jerni on PR merged
+
 on:
   pull_request:
     types:
       - closed
     branches:
       - 'release/**'
+
+  workflow_dispatch:
     
 jobs:
   if_merged:
