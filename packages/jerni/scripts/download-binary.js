@@ -42,19 +42,31 @@ const download = (dest) =>
 
     const file = fs.createWriteStream(dest);
 
-    // download and save the binary
-    get(url, (response) => {
-      const stream = response.pipe(file);
+    function sendRequest(url) {
+      get(url, (response) => {
+        // automatically follow the redirect
+        if (response.statusCode === 302) {
+          sendRequest(response.headers.location);
 
-      stream.on("finish", () => {
-        file.close(resolve);
+          return;
+        }
+
+        if (response.statusCode === 200) {
+          response.pipe(file);
+          file.on("finish", () => {
+            file.close(resolve);
+          });
+
+          return;
+        }
+
+        reject(new Error(`Error downloading file: ${response.statusCode} ${response.statusMessage}`));
+        console.error("Error downloading file:", response.statusCode);
       });
-    }).on("error", (err) => {
-      fs.unlink(dest, () => reject(err));
-    });
-  });
+    }
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
+    sendRequest(url);
+  });
 
 await download(_resolve(__dirname, "../mycli"));
 
