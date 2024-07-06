@@ -8,13 +8,13 @@ on:
     inputs:
       tag:
         description: 'Tag to publish'
-        required: true
+        required: false
 
   workflow_call:
     inputs:
       tag:
         description: 'Tag to publish'
-        required: true
+        required: false
         type: string
 
 jobs:
