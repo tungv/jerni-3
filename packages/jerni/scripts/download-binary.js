@@ -25,6 +25,8 @@ const osSuffixMap = {
 
 const suffix = `${osSuffixMap[os]}-${currentArch}`;
 
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
 const download = (dest) =>
   new Promise((resolve, reject) => {
     // check if the file exists
@@ -32,8 +34,8 @@ const download = (dest) =>
       return resolve();
     }
 
-    // read the version from package.json using fs and JSON.parse
-    const packageJSON = fs.readFileSync("package.json", "utf-8");
+    // read the version from package.json relative to this script using `fs`
+    const packageJSON = fs.readFileSync(_resolve(__dirname, "../package.json"), "utf-8");
     const { version } = JSON.parse(packageJSON);
 
     const url = `https://github.com/tungv/jerni-3/releases/download/${version}/mycli-${suffix}`;
