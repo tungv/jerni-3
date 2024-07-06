@@ -1,10 +1,10 @@
 {
   "name": "jerni",
-  "version": "v0.1.7",
+  "version": "v0.1.8",
   "type": "module",
   "main": "src/index.ts",
   "bin": {
-    "start-journey": "./scripts/run-cli.js"
+    "start-jerni": "./scripts/run-cli.js"
   },
   "dependencies": {
     "event-source-plus": "^0.1.1",
