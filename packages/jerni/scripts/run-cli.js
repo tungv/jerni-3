@@ -12,6 +12,20 @@ const binaryPath = _resolve(__dirname, "../mycli");
 
 await download(binaryPath);
 
+// need to run chmod +x to make the binary executable
+const chmodRun = spawn("chmod", ["+x", binaryPath]);
+
+await new Promise((resolve) => {
+  chmodRun.on("exit", (code) => {
+    if (code !== 0) {
+      console.error("Failed to make the binary executable");
+      process.exit(1);
+    }
+
+    resolve();
+  });
+});
+
 const child = spawn(binaryPath, process.argv.slice(2), {
   stdio: "inherit",
 });
