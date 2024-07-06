@@ -16,7 +16,6 @@ on:
 
 jobs:
   build:
-    name: Upload release asset
     uses: ./.github/workflows/release_binary_jerni_files.yml
     permissions: 
       contents: write
