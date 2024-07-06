@@ -34,11 +34,11 @@ const download = (dest) =>
       return resolve();
     }
 
-    // read the version from package.json relative to this script using `fs`
-    const packageJSON = fs.readFileSync(_resolve(__dirname, "../package.json"), "utf-8");
-    const { version } = JSON.parse(packageJSON);
+    // read the version from jsr.json relative to this script using `fs`
+    const JsrJson = fs.readFileSync(_resolve(__dirname, "../jsr.json"), "utf-8");
+    const { version } = JSON.parse(JsrJson);
 
-    const url = `https://github.com/tungv/jerni-3/releases/download/${version}/mycli-${suffix}`;
+    const url = `https://github.com/tungv/jerni-3/releases/download/v${version}/mycli-${suffix}`;
 
     const file = fs.createWriteStream(dest);
 
