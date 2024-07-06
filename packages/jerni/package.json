@@ -3,7 +3,9 @@
   "version": "v0.1.6",
   "type": "module",
   "main": "src/index.ts",
-  "bin": "./scripts/run-cli.js",
+  "bin": {
+    "start-journey": "./scripts/run-cli.js"
+  },
   "dependencies": {
     "event-source-plus": "^0.1.1",
     "hash-sum": "^2.0.0",

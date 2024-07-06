@@ -9,10 +9,5 @@
     "./lib/errors/UnrecoverableError": "./src/UnrecoverableError.ts",
     "./lib/skip": "./src/lib/skip.ts"
   },
-  "exclude": [
-    "src/tests",
-    "src/worker.ts",
-    "src/cli.ts",
-    "src/begin.ts"
-  ]
+  "exclude": ["src/tests", "src/worker.ts", "src/cli.ts", "src/begin.ts"]
 }
