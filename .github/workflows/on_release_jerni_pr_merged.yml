@@ -45,7 +45,8 @@ jobs:
             ./build/src/mycli-darwin-arm64
 
   publish_jsr:
-    if: github.event.pull_request.merged == true || github.event_name == 'workflow_dispatch'
+    # only run when PR is merged into main or manually triggered
+    if: (startsWith(github.event.pull_request.head.ref, 'release') && github.event.pull_request.merged == true) || github.event_name == 'workflow_dispatch'
     permissions: 
       contents: read
       id-token: write
