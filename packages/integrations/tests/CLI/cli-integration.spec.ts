@@ -16,9 +16,14 @@ it("CLI call should project events correctly", async () => {
   const port = server.port;
 
   const createJourneyPath = path.resolve(__dirname, "./makeTestJourneyCli.ts");
+  const jerniCliPath = path.resolve(__dirname, "../../../jerni/src/cli.ts");
 
-  exec(
-    `MONGODB_DBNAME=${dbName} MONGODB_URL=mongodb://127.0.0.1:27017 EVENTS_SERVER=http://localhost:${port}/ bunx jerni ${createJourneyPath}`,
+  const process = exec(
+    `MONGODB_DBNAME=${dbName} \
+    MONGODB_URL=mongodb://127.0.0.1:27017 \
+    EVENTS_SERVER=http://localhost:${port}/ \
+    bun run ${jerniCliPath} \
+    ${createJourneyPath}`,
     (error, stdout, stderr) => {
       if (error) {
         console.error(`exec error: ${error}`);
@@ -57,7 +62,7 @@ it("CLI call should project events correctly", async () => {
     id: 1,
     meta: {
       client: "jerni",
-      client_version: "3.0.0",
+      client_version: expect.any(String),
       committed_at: expect.any(Number),
       local_id: expect.any(String),
       server_url: `http://localhost:${port}/`,

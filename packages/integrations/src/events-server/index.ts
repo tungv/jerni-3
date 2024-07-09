@@ -1,6 +1,13 @@
 import { Database } from "bun:sqlite";
-import type { JourneyCommittedEvent, JourneyEvent } from "jerni/type";
 import { mock } from "bun:test";
+import type { JourneyCommittedEvent, JourneyEvent } from "jerni/type";
+
+interface SavedEvent {
+  id: number;
+  type: string;
+  payload: string;
+  meta?: string;
+}
 
 export default function createServer(subscriptionInterval = 300) {
   const db = createDb();
@@ -20,7 +27,7 @@ export default function createServer(subscriptionInterval = 300) {
 
       // 1. GET /events/latest
       if (req.method === "GET" && url.pathname === "/events/latest") {
-        const latest = db.query<JourneyCommittedEvent, []>("SELECT * FROM events ORDER BY id DESC LIMIT 1").get();
+        const latest = db.query<SavedEvent, []>("SELECT * FROM events ORDER BY id DESC LIMIT 1").get();
 
         if (!latest) {
           return Response.json({
@@ -31,11 +38,11 @@ export default function createServer(subscriptionInterval = 300) {
           });
         }
 
-        const latestEvent: JourneyCommittedEvent = {
+        const latestEvent = {
           id: latest.id,
           type: latest.type,
           payload: JSON.parse(latest.payload),
-          meta: JSON.parse(latest.meta),
+          meta: latest.meta ? JSON.parse(latest.meta) : {},
         };
 
         return Response.json(latestEvent);
@@ -111,7 +118,7 @@ export default function createServer(subscriptionInterval = 300) {
         type: "direct",
         async pull(controller) {
           const lastEventIdNumber = Number.parseInt(lastEventId || "0", 10);
-          const query = db.query<JourneyCommittedEvent, [number]>("SELECT * FROM events WHERE id > ?");
+          const query = db.query<SavedEvent, [number]>("SELECT * FROM events WHERE id > ?");
 
           let lastReturned = lastEventIdNumber;
 
@@ -132,7 +139,7 @@ export default function createServer(subscriptionInterval = 300) {
               id: row.id,
               type: row.type,
               payload: JSON.parse(row.payload),
-              meta: JSON.parse(row.meta),
+              meta: row.meta ? JSON.parse(row.meta) : {},
             }));
 
             const last = rows[rows.length - 1];
