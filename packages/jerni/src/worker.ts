@@ -38,6 +38,8 @@ export default async function initWorker(filePath: string | undefined) {
 
     const job: Job = {
       async start() {
+        await startHealthCheckServer(ctrl.signal);
+
         for await (const _outputs of begin(journey, ctrl.signal)) {
           // console.log("outputs", outputs);
         }
@@ -54,4 +56,36 @@ export default async function initWorker(filePath: string | undefined) {
 
     throw error;
   }
+}
+
+// create a http server that return status code 200 when it's ready
+// the server also take a signal to stop the server
+// should use Bun.server to create the server
+
+async function startHealthCheckServer(signal: AbortSignal) {
+  const server = Bun.serve({
+    port: 3000,
+
+    fetch(_req) {
+      return new Response("OK", {
+        status: 200,
+        headers: {
+          "Content-Type": "text/plain",
+        },
+      });
+    },
+  });
+
+  console.log("%s health check server is running at %s", INF, bold("http://localhost:3000"));
+
+  signal.addEventListener(
+    "abort",
+    () => {
+      const closeAllActiveConnections = true;
+      server.stop(closeAllActiveConnections);
+    },
+    {
+      once: true,
+    },
+  );
 }
