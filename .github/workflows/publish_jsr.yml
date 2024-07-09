@@ -35,5 +35,5 @@ jobs:
         run: chmod +x ./scripts/install-dependencies.sh && ./scripts/install-dependencies.sh
 
       - name: Publish package
-        working-directory: ./build
+        working-directory: ./packages/jerni
         run: bunx jsr publish --allow-dirty
