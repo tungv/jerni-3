@@ -1,12 +1,9 @@
-import type { LocalEvents } from "../types/events";
+import type { LocalEvents, TypedJourneyCommittedEvent } from "../types/events";
 
 type EventsMapInput<ReturnType> = {
-  [key in keyof Partial<LocalEvents>]: (event: {
-    id: number;
-    type: key;
-    payload: Exclude<LocalEvents[key], undefined>;
-    meta?: unknown;
-  }) => ReturnType | ReturnType[] | undefined;
+  [key in keyof Partial<LocalEvents>]: (
+    event: TypedJourneyCommittedEvent<key>,
+  ) => ReturnType | ReturnType[] | undefined;
 };
 
 type AnyCommittedEvent = { id: number; type: string; payload: unknown; meta?: unknown };

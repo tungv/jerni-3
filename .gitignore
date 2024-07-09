@@ -177,3 +177,5 @@ dist
 **.sqlite
 
 jerni-models
+mycli
+**.bun-build

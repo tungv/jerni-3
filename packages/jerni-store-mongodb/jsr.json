@@ -1,0 +1,8 @@
+{
+  "name": "@jerni/store-mongodb",
+  "version": "0.1.0",
+  "exports": {
+    ".": "./src/index.ts",
+    "./lib/src/types": "./src/types.ts"
+  }
+}
