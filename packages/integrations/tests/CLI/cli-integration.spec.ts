@@ -106,4 +106,23 @@ it("CLI call should project events correctly", async () => {
     name: "test",
     balance: 100,
   });
+
+  // the health check server should be running
+  const req = await fetch("http://localhost:3000");
+  expect(req.status).toBe(200);
+
+  process.kill();
+
+  // get error when the cli process is killed
+  let hasError = false;
+  try {
+    await fetch("http://localhost:3000");
+
+    // should not reach here
+    expect(true).toBe(false);
+  } catch {
+    hasError = true;
+  }
+
+  expect(hasError).toBe(true);
 });
