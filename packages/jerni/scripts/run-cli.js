@@ -4,11 +4,22 @@ import download from "./download-binary.js";
 
 // run the binary with the arguments from the command line
 import { spawn } from "node:child_process";
-import { resolve as _resolve, dirname } from "node:path";
+import { writeFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+// if the argument is init, we need to write the jerni-3.d.ts file that imports the types from jerni
+// the file need to be written in the current working directory
+if (process.argv[2] === "init") {
+  const importStatement = 'import type {} from "@jerni/jerni-3/type";';
+  const filePath = resolve(process.cwd(), "jerni-3.d.ts");
+  writeFileSync(filePath, importStatement);
+
+  process.exit(0);
+}
+
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const binaryPath = _resolve(__dirname, "../mycli");
+const binaryPath = resolve(__dirname, "../mycli");
 
 await download(binaryPath);
 
