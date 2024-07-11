@@ -20,6 +20,6 @@
   },
   "exports": {
     ".": "./src/index.ts",
-    "./lib/src/types": "./src/types.ts"
+    "./types": "./src/types.ts"
   }
 }
