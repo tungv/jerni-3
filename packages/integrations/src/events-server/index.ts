@@ -1,6 +1,6 @@
 import { Database } from "bun:sqlite";
 import { mock } from "bun:test";
-import type { JourneyCommittedEvent, JourneyEvent } from "jerni/type";
+import type { JourneyCommittedEvent, JourneyEvent } from "@jerni/jerni-3/types";
 
 interface SavedEvent {
   id: number;

@@ -1,6 +1,6 @@
 import { afterAll, describe, expect, it } from "bun:test";
+import dispose from "@jerni/jerni-3/lib/dispose";
 import { makeMongoDBStore } from "@jerni/store-mongodb";
-import dispose from "jerni/lib/dispose";
 import { nanoid } from "nanoid";
 import createServer from "src/events-server";
 import cleanUpTestDatabase from "./cleanUpTestDatabase";

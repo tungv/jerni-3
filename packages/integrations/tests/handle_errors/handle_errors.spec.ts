@@ -1,6 +1,6 @@
 import { afterAll, describe, expect, it } from "bun:test";
 import { MongoDBModel, makeMongoDBStore } from "@jerni/store-mongodb";
-import type { JourneyCommittedEvent } from "@jerni/store-mongodb/lib/src/types";
+import type { JourneyCommittedEvent } from "@jerni/store-mongodb/types";
 import dispose from "jerni/lib/dispose";
 import JerniPersistenceError from "jerni/lib/errors/JerniPersistenceError";
 import mapEvents from "jerni/lib/mapEvents";
@@ -10,7 +10,7 @@ import cleanUpTestDatabase from "../cleanUpTestDatabase";
 import initJourney from "../makeTestJourney";
 import startWorker from "../startWorker";
 
-declare module "jerni/type" {
+declare module "@jerni/jerni-3/types" {
   interface SubscribingEventDefinitions {
     FAILURE_EVENT: { [k: string]: never };
   }

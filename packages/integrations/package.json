@@ -5,7 +5,7 @@
   "description": "Integration test for jerni",
   "dependencies": {
     "@jerni/store-mongodb": "link:@jerni/store-mongodb",
-    "jerni": "link:jerni",
+    "@jerni/jerni-3": "link:@jerni/jerni-3",
     "mongodb": "^6.0.0",
     "mongodb-client-encryption": "^6.0.0",
     "nanoid": "^5.0.7"

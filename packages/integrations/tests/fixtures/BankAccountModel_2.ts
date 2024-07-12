@@ -1,5 +1,5 @@
 import { MongoDBModel } from "@jerni/store-mongodb";
-import type { MongoOps } from "@jerni/store-mongodb/lib/src/types";
+import type { MongoOps } from "@jerni/store-mongodb/types";
 import mapEvents from "jerni/lib/mapEvents";
 
 interface BankAccountDocumentModel {
@@ -8,7 +8,7 @@ interface BankAccountDocumentModel {
   balance: number;
 }
 
-declare module "jerni/type" {
+declare module "@jerni/jerni-3/types" {
   export interface SubscribingEventDefinitions {
     NEW_ACCOUNT_REGISTERED: {
       id: string;

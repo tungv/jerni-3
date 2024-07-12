@@ -1,8 +1,8 @@
-import makeTestLogger from "./makeTestLogger";
-import type { JourneyConfig } from "jerni/type";
-import createJourney from "jerni";
-import type { JourneyCommittedEvent } from "@jerni/store-mongodb/lib/src/types";
 import { mock } from "bun:test";
+import type { JourneyConfig } from "@jerni/jerni-3/types";
+import type { JourneyCommittedEvent } from "@jerni/store-mongodb/types";
+import createJourney from "jerni";
+import makeTestLogger from "./makeTestLogger";
 
 export default async function initJourney(
   stores: JourneyConfig["stores"],
