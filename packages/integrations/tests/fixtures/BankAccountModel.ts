@@ -7,7 +7,7 @@ interface BankAccountDocumentModel {
   balance: number;
 }
 
-declare module "jerni/type" {
+declare module "@jerni/jerni-3/types" {
   export interface CommittingEventDefinitions {
     NEW_ACCOUNT_REGISTERED: {
       id: string;

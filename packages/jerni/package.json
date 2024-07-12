@@ -1,6 +1,6 @@
 {
-  "name": "jerni",
-  "version": "v0.2.1",
+  "name": "@jerni/jerni-3",
+  "version": "v0.3.0",
   "type": "module",
   "main": "src/index.ts",
   "bin": {
@@ -10,13 +10,14 @@
     "event-source-plus": "^0.1.1",
     "hash-sum": "^2.0.0",
     "lodash": "^4.17.21",
+    "mongodb": "^6.8.0",
     "nanoid": "^4.0.2",
     "picocolors": "^1.0.0",
     "read-package-up": "^11.0.0",
     "typescript": "^5.2.2"
   },
   "scripts": {
-    "postinstall": "node ./scripts/download-binary.js",
+    "//postinstall": "node ./scripts/download-binary.js",
     "bump-patch": "node ./scripts/bump-version.js patch",
     "bump-minor": "node ./scripts/bump-version.js minor",
     "bump-major": "node ./scripts/bump-version.js major"

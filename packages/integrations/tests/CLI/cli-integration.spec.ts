@@ -61,7 +61,7 @@ it("CLI call should project events correctly", async () => {
   expect(event1).toEqual({
     id: 1,
     meta: {
-      client: "jerni",
+      client: "@jerni/jerni-3",
       client_version: expect.any(String),
       committed_at: expect.any(Number),
       local_id: expect.any(String),
@@ -108,7 +108,7 @@ it("CLI call should project events correctly", async () => {
   });
 
   // the health check server should be running
-  const req = await fetch("http://localhost:3000");
+  const req = await fetch("http://localhost:4000");
   expect(req.status).toBe(200);
 
   process.kill();
@@ -116,7 +116,7 @@ it("CLI call should project events correctly", async () => {
   // get error when the cli process is killed
   let hasError = false;
   try {
-    await fetch("http://localhost:3000");
+    await fetch("http://localhost:4000");
 
     // should not reach here
     expect(true).toBe(false);

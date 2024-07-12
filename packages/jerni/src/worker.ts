@@ -38,7 +38,7 @@ export default async function initWorker(filePath: string | undefined, port: num
 
     const job: Job = {
       async start() {
-        await startHealthCheckServer(port, ctrl.signal);
+        startHealthCheckServer(port, ctrl.signal);
 
         for await (const _outputs of begin(journey, ctrl.signal)) {
           // console.log("outputs", outputs);
@@ -78,14 +78,20 @@ async function startHealthCheckServer(port: number, signal: AbortSignal) {
 
   console.log("%s health check server is running at %s", INF, bold("http://localhost:3000"));
 
+  const closeAllActiveConnections = true;
+
   signal.addEventListener(
     "abort",
     () => {
-      const closeAllActiveConnections = true;
       server.stop(closeAllActiveConnections);
     },
     {
       once: true,
     },
   );
+
+  // call server.stop when process is killed
+  process.on("SIGINT", () => {
+    server.stop(closeAllActiveConnections);
+  });
 }

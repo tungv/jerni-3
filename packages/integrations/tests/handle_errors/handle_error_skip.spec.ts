@@ -9,7 +9,7 @@ import cleanUpTestDatabase from "../cleanUpTestDatabase";
 import initJourney from "../makeTestJourney";
 import startWorker from "../startWorker";
 
-declare module "jerni/type" {
+declare module "@jerni/jerni-3/types" {
   interface SubscribingEventDefinitions {
     FAILURE_EVENT: { [k: string]: never };
     OK_EVENT: { [k: string]: never };

@@ -1,6 +1,6 @@
 import { Database } from "bun:sqlite";
 import { mock } from "bun:test";
-import type { JourneyCommittedEvent } from "jerni/type";
+import type { JourneyCommittedEvent } from "../../types/events";
 import type { EventDatabase } from "../injectDatabase";
 
 const db = new Database(":memory:");
@@ -15,20 +15,24 @@ function getSqliteDb(): EventDatabase {
   const eventsTableName = `events_${Math.random().toString(36).slice(2)}`;
   const snapshotTableName = `snapshot_${Math.random().toString(36).slice(2)}`;
 
-  db.query(`
+  db.query(
+    `
   CREATE TABLE IF NOT EXISTS ${eventsTableName} (
     id INTEGER PRIMARY KEY,
     type TEXT NOT NULL,
     payload TEXT NOT NULL
   );
-`).get();
+`,
+  ).get();
 
-  db.query(`
+  db.query(
+    `
   CREATE TABLE IF NOT EXISTS ${snapshotTableName} (
     id TEXT PRIMARY KEY,
     LAST_EVENT_ID INTEGER NOT NULL
   );
-`).get();
+`,
+  ).get();
 
   return {
     getEventsFrom: async (eventId: number, limit = 200): Promise<JourneyCommittedEvent[]> => {
