@@ -1,6 +1,6 @@
 import { mock } from "bun:test";
-import type { JourneyConfig } from "jerni/type";
 import createJourney from "src/createJourney";
+import type { JourneyConfig } from "../../types/config";
 
 export async function initJourney(eventServerUrl: string, stores: JourneyConfig["stores"]) {
   const logger = makeTestLogger();

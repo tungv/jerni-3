@@ -19,7 +19,7 @@ function getMockStore(config: Partial<Store>) {
   } as unknown as Store;
 }
 
-declare module "jerni/type" {
+declare module "../types/events" {
   interface CommittingEventDefinitions {
     NEW_ACCOUNT_REGISTERED: {
       id: string;

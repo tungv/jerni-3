@@ -1,5 +1,5 @@
 import { Database } from "bun:sqlite";
-import type { JourneyCommittedEvent } from "jerni/type";
+import type { JourneyCommittedEvent } from "../types/events";
 import type { EventDatabase } from "./injectDatabase";
 
 // TODO: need to allow users to input the database name here
@@ -13,20 +13,24 @@ interface SavedEvent {
 
 export default function getSqliteDb(): EventDatabase {
   // create tables if not exists
-  db.query(`
+  db.query(
+    `
   CREATE TABLE IF NOT EXISTS events (
     id INTEGER PRIMARY KEY,
     type TEXT NOT NULL,
     payload TEXT NOT NULL
   );
-`).get();
+`,
+  ).get();
 
-  db.query(`
+  db.query(
+    `
   CREATE TABLE IF NOT EXISTS snapshot (
     id TEXT PRIMARY KEY,
     LAST_EVENT_ID INTEGER NOT NULL
   );
-`).get();
+`,
+  ).get();
 
   return {
     getEventsFrom: async (eventId: number, limit = 200): Promise<JourneyCommittedEvent[]> => {
