@@ -1,5 +1,6 @@
 import setup from "../asynclocal";
 import type { JourneyCommittedEvent } from "../types/events";
+import getMongodbDatabase from "./mongodb-database";
 import getSqliteDb from "./sqlite-database";
 
 export interface EventDatabase {
@@ -13,8 +14,14 @@ export interface EventDatabase {
   clean(): Promise<void>;
 }
 
-// TODO: need to provide user with other event database like mongodb or sql so that they can be persisted for later use easier
 async function getDB() {
+  if (process.env.EVENTS_DB_MONGODB_URL && process.env.EVENTS_DB_MONGODB_NAME) {
+    return getMongodbDatabase({
+      url: process.env.EVENTS_DB_MONGODB_URL,
+      dbName: process.env.EVENTS_DB_MONGODB_NAME,
+    });
+  }
+
   return getSqliteDb();
 }
 
