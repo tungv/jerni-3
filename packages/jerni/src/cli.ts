@@ -10,7 +10,9 @@ const [_bun, _script, fileName] = process.argv;
 
 await guardErrors(
   async () => {
-    const job = await startWorker(fileName);
+    const port = process.env.PORT ? Number.parseInt(process.env.PORT, 10) : 4000;
+
+    const job = await startWorker(fileName, port);
 
     await job.start();
   },

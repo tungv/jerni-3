@@ -10,7 +10,7 @@ interface Job {
   stop: () => Promise<void>;
 }
 
-export default async function initWorker(filePath: string | undefined) {
+export default async function initWorker(filePath: string | undefined, port: number) {
   // validate file path
 
   const validFilePath = await assertFilePath(filePath);
@@ -38,7 +38,7 @@ export default async function initWorker(filePath: string | undefined) {
 
     const job: Job = {
       async start() {
-        await startHealthCheckServer(ctrl.signal);
+        await startHealthCheckServer(port, ctrl.signal);
 
         for await (const _outputs of begin(journey, ctrl.signal)) {
           // console.log("outputs", outputs);
@@ -62,9 +62,9 @@ export default async function initWorker(filePath: string | undefined) {
 // the server also take a signal to stop the server
 // should use Bun.server to create the server
 
-async function startHealthCheckServer(signal: AbortSignal) {
+async function startHealthCheckServer(port: number, signal: AbortSignal) {
   const server = Bun.serve({
-    port: 3000,
+    port,
 
     fetch(_req) {
       return new Response("OK", {
