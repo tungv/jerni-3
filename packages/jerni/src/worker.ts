@@ -36,6 +36,11 @@ export default async function initWorker(filePath: string | undefined, port: num
 
     const ctrl = new AbortController();
 
+    // call server.stop when process is killed
+    process.on("SIGINT", () => {
+      ctrl.abort();
+    });
+
     const job: Job = {
       async start() {
         startHealthCheckServer(port, ctrl.signal);
@@ -89,9 +94,4 @@ async function startHealthCheckServer(port: number, signal: AbortSignal) {
       once: true,
     },
   );
-
-  // call server.stop when process is killed
-  process.on("SIGINT", () => {
-    server.stop(closeAllActiveConnections);
-  });
 }
