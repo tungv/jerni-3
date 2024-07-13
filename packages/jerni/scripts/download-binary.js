@@ -31,12 +31,16 @@ const download = (dest) =>
   new Promise((resolve, reject) => {
     // check if the file exists
     if (fs.existsSync(dest)) {
+      console.log("Binary already exists");
+
       return resolve();
     }
 
     // read the version from jsr.json relative to this script using `fs`
     const JsrJson = fs.readFileSync(_resolve(__dirname, "../jsr.json"), "utf-8");
     const { version } = JSON.parse(JsrJson);
+
+    console.log(`Downloading Binary v${version} for ${os} ${currentArch}`);
 
     const url = `https://github.com/tungv/jerni-3/releases/download/v${version}/mycli-${suffix}`;
 
@@ -54,6 +58,8 @@ const download = (dest) =>
         if (response.statusCode === 200) {
           response.pipe(file);
           file.on("finish", () => {
+            console.log("Download completed");
+
             file.close(resolve);
           });
 
