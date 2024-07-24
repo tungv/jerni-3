@@ -1,4 +1,6 @@
 import Database from "bun:sqlite";
+import fs from "node:fs";
+import path from "node:path";
 import { MongoClient } from "mongodb";
 
 const sqliteDb = new Database("mydb.sqlite");
@@ -19,4 +21,15 @@ export default async function cleanUpTestDatabase() {
   // clean up the sqlite if there are tables
   sqliteDb.query("DROP TABLE IF EXISTS snapshot").run();
   sqliteDb.query("DROP TABLE IF EXISTS events").run();
+
+  // clean up the event db files from jerni dev
+  const testDir = path.resolve(__dirname, "./CLI");
+  const files = fs.readdirSync(testDir);
+
+  const dbFiles = files.filter((file) => file.startsWith("test-events-db-"));
+
+  // remove all the files
+  for (const file of dbFiles) {
+    fs.unlinkSync(path.resolve(testDir, file));
+  }
 }
