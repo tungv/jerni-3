@@ -13,7 +13,7 @@ interface StartJerniDevOptions {
   cleanStart?: boolean;
 }
 
-export default async function initiateJerniDev(filePath: string | undefined) {
+export default async function initJerniDev(filePath: string | undefined) {
   const validFilePath = await assertFilePath(filePath);
 
   const { default: initializer } = await import(validFilePath);

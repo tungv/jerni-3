@@ -4,7 +4,7 @@ import type { JourneyCommittedEvent } from "../types/events";
 import appendEventToFile from "./appendEventToFile";
 import readFile from "./readFile";
 
-export default async function startEventsServerDev(inputFileName: string, port: number) {
+export default async function initEventsServerDev(inputFileName: string, port: number) {
   let server: Server;
 
   return {

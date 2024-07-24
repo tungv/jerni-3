@@ -5,9 +5,9 @@ import fs from "node:fs";
 import { debounce } from "lodash";
 import { INF } from "../cli-utils/log-headers";
 import guardErrors from "../guardErrors";
-import initiateJerniDev from "./jerniDev";
+import initEventsServerDev from "./initEventsServerDev";
+import initJerniDev from "./initJerniDev";
 import readFile from "./readFile";
-import startEventsServerDev from "./startEventServerDev";
 
 console.log("%s jerni dev is starting...", INF);
 
@@ -21,9 +21,9 @@ await guardErrors(
 
     process.env.EVENTS_SERVER = `http://localhost:${port}`;
 
-    const { start: startJourney, stop: stopJourney } = await initiateJerniDev(initFileName);
+    const { start: startJourney, stop: stopJourney } = await initJerniDev(initFileName);
 
-    const { start: startEventsServer, stop: stopEventsServer } = await startEventsServerDev(dbFilePath, port);
+    const { start: startEventsServer, stop: stopEventsServer } = await initEventsServerDev(dbFilePath, port);
 
     // call server.stop when process is killed
     process.on("SIGINT", () => {
