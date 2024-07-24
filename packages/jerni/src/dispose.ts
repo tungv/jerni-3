@@ -12,7 +12,7 @@ export default injectEventDatabase(async function dispose(journey: JourneyInstan
 
   // dispose all stores
   for (const store of config.stores) {
-    await store.dispose();
+    await store.clean();
   }
 
   // dispose all events stored
