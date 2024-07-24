@@ -29,6 +29,7 @@ await guardErrors(
     process.on("SIGINT", () => {
       stopJourney();
       stopEventsServer();
+      process.exit(0);
     });
 
     // onError, stop journey and server
