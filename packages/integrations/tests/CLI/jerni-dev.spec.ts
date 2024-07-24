@@ -69,4 +69,97 @@ describe("Jerni Dev Integration", () => {
 
     childProcess.kill();
   });
+
+  test("if checksum does not match, jerni should clean start", async () => {
+    // random a port
+    const port = Math.floor(Math.random() * 10000) + 10000;
+    const dbFileName = `./test-events-db-${nanoid()}.yml`;
+    const mongodbName = `jerni_integration_test_${nanoid()}`;
+
+    const devCliPath = path.resolve(__dirname, "../../../jerni/src/dev-cli/index.ts");
+    const initFileName = path.resolve(__dirname, "./makeTestJourneyCli.ts");
+    const dbFilePath = path.resolve(__dirname, dbFileName);
+
+    const childProcess = exec(
+      `PORT=${port}\
+        MONGODB_DBNAME=${mongodbName}\
+        bun run ${devCliPath} ${initFileName} ${dbFilePath}`,
+      (error, stdout, stderr) => {
+        // console.log("stdout: ", stdout);
+        // console.error("stderr: ", stderr);
+      },
+    );
+
+    await setTimeout(1000);
+
+    process.env.EVENTS_SERVER = `http://localhost:${port}`;
+    const mongoConfig = {
+      url: "mongodb://localhost:27017",
+      dbName: mongodbName,
+    };
+    const journey = await initializeJourney(mongoConfig);
+
+    // commit 2 events
+    const event1 = await journey.append<"NEW_ACCOUNT_REGISTERED">({
+      type: "NEW_ACCOUNT_REGISTERED",
+      payload: {
+        id: "123",
+        name: "test",
+      },
+    });
+    const event2 = await journey.append<"ACCOUNT_DEPOSITED">({
+      type: "ACCOUNT_DEPOSITED",
+      payload: {
+        id: "123",
+        amount: 100,
+      },
+    });
+
+    await journey.waitFor(event2);
+    // await setTimeout(1000);
+
+    // check balance to be 100
+    const BankAccounts = await journey.getReader(BankAccountModel_2);
+
+    const bankAccount1 = await BankAccounts.findOne({
+      id: "123",
+    });
+
+    expect(bankAccount1).toEqual({
+      __op: 0,
+      __v: 2,
+      _id: expect.anything(),
+      id: "123",
+      name: "test",
+      balance: 100,
+    });
+
+    // remove the last event from the db file, so the checksum will not match
+    const fileContent = fs.readFileSync(dbFilePath, "utf8");
+
+    const parsedContent = yaml.parse(fileContent);
+    parsedContent.events.pop();
+    const stringifiedContent = yaml.stringify(parsedContent);
+
+    fs.writeFileSync(dbFilePath, stringifiedContent);
+
+    // wait for the file to be read, and restart jerni dev
+    await setTimeout(1000);
+
+    // the data in the db should have balance 0
+    const bankAccount2 = await BankAccounts.findOne({
+      id: "123",
+    });
+
+    expect(bankAccount2).toEqual({
+      __op: 0,
+      __v: 1,
+      _id: expect.anything(),
+      id: "123",
+      name: "test",
+      balance: 0,
+    });
+
+    childProcess.kill();
+  });
 });
