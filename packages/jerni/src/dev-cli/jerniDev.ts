@@ -3,7 +3,13 @@ import InvalidInputError from "../InvalidInputError";
 import { assertFilePath } from "../assertFilePath";
 import begin from "../begin";
 import { ERR, INF } from "../cli-utils/log-headers";
+import dispose from "../dispose";
 import { printErrorObject } from "../printErrorObject";
+import type { JourneyInstance } from "../types/journey";
+
+interface StartJerniDevOptions {
+  cleanStart?: boolean;
+}
 
 export default async function initiateJerniDev(filePath: string | undefined) {
   const validFilePath = await assertFilePath(filePath);
@@ -25,20 +31,30 @@ export default async function initiateJerniDev(filePath: string | undefined) {
   let started = false;
 
   return {
-    start: async () => {
+    start: async (options?: StartJerniDevOptions) => {
+      const cleanStart = options?.cleanStart || false;
+
       try {
         if (started) {
           console.log("%s jerni dev is already started", INF);
           return;
         }
 
-        console.log("%s jerni dev start %s", INF, bold(validFilePath));
+        started = true;
 
         // try to run initializer to get the journey object
-        const journey = await initializer();
+        const journey = (await initializer()) as JourneyInstance;
+
+        if (cleanStart) {
+          console.log("%s clean start jerni, clearing database…", INF);
+
+          // clear database
+          await dispose(journey);
+        }
+
+        console.log("%s jerni dev start %s", INF, bold(validFilePath));
 
         ctrl = new AbortController();
-        started = true;
 
         ctrl.signal.addEventListener(
           "abort",

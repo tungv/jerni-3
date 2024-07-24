@@ -6,6 +6,7 @@ import { debounce } from "lodash";
 import { INF } from "../cli-utils/log-headers";
 import guardErrors from "../guardErrors";
 import initiateJerniDev from "./jerniDev";
+import readFile from "./readFile";
 import startEventsServerDev from "./startEventServerDev";
 
 console.log("%s jerni dev is starting...", INF);
@@ -49,6 +50,19 @@ await guardErrors(
 
         await stopEventsServer();
         await stopJourney();
+
+        const { fileChecksum, realChecksum } = readFile(dbFileName);
+
+        if (fileChecksum !== realChecksum) {
+          console.log("%s checksum mismatch, clean starting jerni dev...", INF);
+
+          startEventsServer();
+          startJourney({
+            cleanStart: true,
+          });
+
+          return;
+        }
 
         startEventsServer();
         startJourney();
