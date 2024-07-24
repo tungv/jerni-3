@@ -1,16 +1,15 @@
-import fs from "node:fs";
 import type { Server } from "bun";
-import hash_sum from "hash-sum";
 import { overEvery } from "lodash/fp";
-import yaml from "yaml";
 import type { JourneyCommittedEvent } from "../types/events";
+import appendEventToFile from "./appendEventToFile";
+import readFile from "./readFile";
 
 export default async function startEventsServerDev(inputFileName: string, port: number) {
   let server: Server;
 
   return {
     start: async () => {
-      const events = readFile(inputFileName);
+      const { events } = readFile(inputFileName);
 
       server = Bun.serve({
         port,
@@ -145,8 +144,6 @@ async function streamingResponse(req: Request, events: JourneyCommittedEvent[]) 
             return controller.close();
           }
 
-          console.log("returning", rows);
-
           // flush to client
           controller.write(`id: ${last.id}\nevent: INCMSG\ndata: ${JSON.stringify(rows)}\n\n`);
 
@@ -160,45 +157,4 @@ async function streamingResponse(req: Request, events: JourneyCommittedEvent[]) 
     }),
     { status: 200, headers },
   );
-}
-
-type SavedData = {
-  checksum: string;
-
-  events: JourneyCommittedEvent[];
-};
-
-function readFile(filePath: string) {
-  // check if file exists
-  if (!fs.existsSync(filePath)) {
-    // if not, create a new file
-    // the first line is checksum: $hash of the content
-
-    const content = {
-      checksum: "",
-      events: [],
-    };
-
-    const stringifiedContent = yaml.stringify(content);
-    fs.writeFileSync(filePath, stringifiedContent);
-  }
-
-  const fileContent = fs.readFileSync(filePath, "utf8");
-  const parsedContent = yaml.parse(fileContent) as SavedData;
-
-  return parsedContent.events;
-}
-
-function appendEventToFile(filePath: string, events: JourneyCommittedEvent[]) {
-  const fileContent = fs.readFileSync(filePath, "utf8");
-  const parsedContent = yaml.parse(fileContent) as SavedData;
-
-  parsedContent.events.push(...events);
-
-  const newHash = hash_sum(parsedContent);
-  parsedContent.checksum = newHash;
-
-  const stringifiedContent = yaml.stringify(parsedContent);
-
-  fs.writeFileSync(filePath, stringifiedContent);
 }
