@@ -68,6 +68,27 @@ await guardErrors(
         startJourney();
       }, 300),
     );
+
+    // listen for stdin
+    process.stdin.on("data", async (data) => {
+      const input = data.toString().trim();
+
+      if (input === "r") {
+        console.log("%s clean starting jerni dev...", INF);
+
+        await stopEventsServer();
+        await stopJourney();
+
+        startEventsServer();
+        startJourney({
+          cleanStart: true,
+        });
+
+        return;
+      }
+
+      console.log("%s unknown command: %s", INF, input);
+    });
   },
   () => {
     console.error("%s jerni client is shutting down…", INF);
