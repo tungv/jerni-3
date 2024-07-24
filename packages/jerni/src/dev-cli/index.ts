@@ -1,5 +1,8 @@
 #!/usr/bin/env bun
 
+import fs from "node:fs";
+
+import { debounce } from "lodash";
 import { INF } from "../cli-utils/log-headers";
 import guardErrors from "../guardErrors";
 import initiateJerniDev from "./jerniDev";
@@ -38,7 +41,19 @@ await guardErrors(
 
     startEventsServer();
 
-    console.log("%s jerni dev is started", INF);
+    // listen for file changes and restart journey
+    fs.watch(
+      dbFileName,
+      debounce(async () => {
+        console.log("%s file changed, restarting jerni dev...", INF);
+
+        await stopEventsServer();
+        await stopJourney();
+
+        startEventsServer();
+        startJourney();
+      }, 300),
+    );
   },
   () => {
     console.error("%s jerni client is shutting down…", INF);
