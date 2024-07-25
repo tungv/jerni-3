@@ -19,7 +19,7 @@ if (process.argv[2] === "init") {
 }
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const binaryPath = resolve(__dirname, "../mycli");
+const binaryPath = resolve(__dirname, "../jerni");
 
 await download(binaryPath);
 

@@ -42,7 +42,7 @@ const download = (dest) =>
 
     console.log(`Downloading Binary v${version} for ${os} ${currentArch}`);
 
-    const url = `https://github.com/tungv/jerni-3/releases/download/v${version}/mycli-${suffix}`;
+    const url = `https://github.com/tungv/jerni-3/releases/download/v${version}/jerni-${suffix}`;
 
     const file = fs.createWriteStream(dest);
 
@@ -74,6 +74,6 @@ const download = (dest) =>
     sendRequest(url);
   });
 
-await download(_resolve(__dirname, "../mycli"));
+await download(_resolve(__dirname, "../jerni"));
 
 export default download;
