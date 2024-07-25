@@ -38,11 +38,16 @@ jobs:
           tag: ${{ steps.package-version.outputs.current-version }}
           name: ${{ steps.package-version.outputs.current-version }}
           artifacts: 
-            ./build/src/mycli-linux-x64,
-            ./build/src/mycli-darwin-x64,
-            ./build/src/mycli-win-x64.exe,
-            ./build/src/mycli-linux-arm64,
-            ./build/src/mycli-darwin-arm64
+            ./build/src/jerni-linux-x64,
+            ./build/src/jerni-darwin-x64,
+            ./build/src/jerni-win-x64.exe,
+            ./build/src/jerni-linux-arm64,
+            ./build/src/jerni-darwin-arm64,
+            ./build/src/jerni-dev-linux-x64,
+            ./build/src/jerni-dev-darwin-x64,
+            ./build/src/jerni-dev-win-x64.exe,
+            ./build/src/jerni-dev-linux-arm64,
+            ./build/src/jerni-dev-darwin-arm64
 
   publish_jsr:
     # only run when PR is merged into main or manually triggered
