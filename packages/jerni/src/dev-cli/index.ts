@@ -8,6 +8,7 @@ import guardErrors from "../guardErrors";
 import initEventsServerDev from "./initEventsServerDev";
 import initJerniDev from "./initJerniDev";
 import readFile from "./readFile";
+import rewriteChecksum from "./rewriteChecksum";
 
 console.log("%s jerni dev is starting...", INF);
 
@@ -58,6 +59,8 @@ await guardErrors(
 
         if (fileChecksum !== realChecksum) {
           console.log("%s checksum mismatch, clean starting jerni dev...", INF);
+
+          rewriteChecksum(dbFilePath);
 
           startEventsServer();
           startJourney({
