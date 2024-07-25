@@ -8,6 +8,7 @@
     "@jerni/jerni-3": "link:@jerni/jerni-3",
     "mongodb": "^6.0.0",
     "mongodb-client-encryption": "^6.0.0",
-    "nanoid": "^5.0.7"
+    "nanoid": "^5.0.7",
+    "hash-sum": "^2.0.0"
   }
 }

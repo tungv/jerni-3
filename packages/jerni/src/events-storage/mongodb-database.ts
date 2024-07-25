@@ -102,6 +102,9 @@ export default async function getMongodbDatabase({ dbName, url }: MongodbConfig)
     clean: async () => {
       // delete all events
       await db.collection("events").deleteMany({});
+
+      // delete all snapshots
+      await db.collection("snapshot").deleteMany({});
     },
 
     dispose: async () => {

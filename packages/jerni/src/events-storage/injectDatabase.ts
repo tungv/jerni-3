@@ -17,15 +17,12 @@ export interface EventDatabase {
 async function getDB() {
   // TODO: improve log here, current settings make it log every time the query is called
   if (process.env.EVENTS_DB_MONGODB_URL && process.env.EVENTS_DB_MONGODB_NAME) {
-    console.log("Using MongoDB as event storage");
-
     return getMongodbDatabase({
       url: process.env.EVENTS_DB_MONGODB_URL,
       dbName: process.env.EVENTS_DB_MONGODB_NAME,
     });
   }
 
-  console.log("Using SQLite as event storage");
   return getSqliteDb();
 }
 

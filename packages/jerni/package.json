@@ -14,7 +14,8 @@
     "nanoid": "^4.0.2",
     "picocolors": "^1.0.0",
     "read-package-up": "^11.0.0",
-    "typescript": "^5.2.2"
+    "typescript": "^5.2.2",
+    "yaml": "^2.4.5"
   },
   "scripts": {
     "//postinstall": "node ./scripts/download-binary.js",
