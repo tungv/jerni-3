@@ -1,12 +1,11 @@
 #!/usr/bin/env node
 
-import download from "./download-binary.js";
-
 // run the binary with the arguments from the command line
 import { spawn } from "node:child_process";
 import { writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import downloadDev from "./download-dev";
 
 // if the argument is init, we need to write the jerni-3.d.ts file that imports the types from jerni
 // the file need to be written in the current working directory
@@ -19,9 +18,9 @@ if (process.argv[2] === "init") {
 }
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const binaryPath = resolve(__dirname, "../jerni");
+const binaryPath = resolve(__dirname, "../jerni-dev");
 
-await download(binaryPath);
+await downloadDev(binaryPath);
 
 // need to run chmod +x to make the binary executable
 const chmodRun = spawn("chmod", ["+x", binaryPath]);

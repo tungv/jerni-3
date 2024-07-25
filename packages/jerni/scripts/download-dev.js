@@ -27,7 +27,7 @@ const suffix = `${osSuffixMap[os]}-${currentArch}`;
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-const download = (dest) =>
+const downloadDev = (dest) =>
   new Promise((resolve, reject) => {
     // check if the file exists
     if (fs.existsSync(dest)) {
@@ -42,7 +42,7 @@ const download = (dest) =>
 
     console.log(`Downloading Binary v${version} for ${os} ${currentArch}`);
 
-    const url = `https://github.com/tungv/jerni-3/releases/download/v${version}/jerni-${suffix}`;
+    const url = `https://github.com/tungv/jerni-3/releases/download/v${version}/jerni-dev-${suffix}`;
 
     const file = fs.createWriteStream(dest);
 
@@ -74,6 +74,6 @@ const download = (dest) =>
     sendRequest(url);
   });
 
-await download(_resolve(__dirname, "../jerni"));
+await downloadDev(_resolve(__dirname, "../jerni-dev"));
 
-export default download;
+export default downloadDev;
