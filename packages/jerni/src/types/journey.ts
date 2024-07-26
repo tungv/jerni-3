@@ -27,5 +27,8 @@ export interface JourneyInstance {
 }
 
 // placeholder for getReader function
-// biome-ignore lint/suspicious/noExplicitAny: because this is a placeholder, the client that uses jerni would override this type
-export type GetReaderFn = (model: any) => Promise<any>;
+export interface GetReaderFn {
+  // biome-ignore lint/style/useShorthandFunctionType: this need to be a interface so that it can be augmented
+  // biome-ignore lint/suspicious/noExplicitAny: because this is a placeholder, the client that uses jerni would override this type
+  (model: any): Promise<any>;
+}

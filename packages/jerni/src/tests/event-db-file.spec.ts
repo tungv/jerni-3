@@ -33,12 +33,8 @@ describe("Manipulating event db file", () => {
       `PORT=${port}\
       bun run ${devCliPath} ${initFileName} ${dbFilePath}`,
       (error, stdout, stderr) => {
-        if (error) {
-          console.error(`exec error: ${error}`);
-          return;
-        }
-        console.log(`stdout: ${stdout}`);
-        console.error(`stderr: ${stderr}`);
+        // console.log(`stdout: ${stdout}`);
+        // console.error(`stderr: ${stderr}`);
       },
     );
 
@@ -77,12 +73,8 @@ describe("Manipulating event db file", () => {
         `PORT=${port}\
         bun run ${devCliPath} ${initFileName} ${dbFilePath}`,
         (error, stdout, stderr) => {
-          if (error) {
-            console.error(`exec error: ${error}`);
-            return;
-          }
-          console.log(`stdout: ${stdout}`);
-          console.error(`stderr: ${stderr}`);
+          // console.log(`stdout: ${stdout}`);
+          // console.error(`stderr: ${stderr}`);
         },
       );
 
