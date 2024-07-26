@@ -45,6 +45,8 @@ child.on("error", (err) => {
   process.exit(1);
 });
 
-child.on("exit", (code) => {
-  process.exit(code);
+process.on("SIGINT", () => {
+  child.kill("SIGINT");
+
+  process.exit(0);
 });
