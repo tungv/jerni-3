@@ -7,13 +7,14 @@ import {
   ToBeCommittedJourneyEvent,
   TypedJourneyCommittedEvent,
 } from "../types/events";
-import { JourneyInstance } from "../types/journey";
+import { GetReaderFn, JourneyInstance } from "../types/journey";
 
 export {
   JourneyCommittedEvent,
   JourneyConfig,
   JourneyEvent,
   JourneyInstance,
+  GetReaderFn,
   TypedJourneyCommittedEvent,
   ToBeCommittedJourneyEvent,
   CommittingEventDefinitions,
