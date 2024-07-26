@@ -1,6 +1,7 @@
 import { MongoDBModel } from "@jerni/store-mongodb";
 import type { MongoOps } from "@jerni/store-mongodb/types";
 import mapEvents from "jerni/lib/mapEvents";
+import type { Collection, Document, WithId } from "mongodb";
 
 interface BankAccountDocumentModel {
   id: string;
@@ -19,6 +20,18 @@ declare module "@jerni/jerni-3/types" {
       id: string;
       amount: number;
     };
+  }
+
+  type OptimisticDocumentType<T> = T & {
+    __op: number;
+    __v: number;
+  };
+
+  export interface GetReaderFn {
+    // biome-ignore lint/style/useShorthandFunctionType: need to be interface to override signature
+    <DocumentType extends Document>(model: MongoDBModel<DocumentType>): Promise<
+      Collection<OptimisticDocumentType<WithId<DocumentType>>>
+    >;
   }
 }
 
