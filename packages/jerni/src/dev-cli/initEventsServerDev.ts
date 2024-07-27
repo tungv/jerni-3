@@ -71,7 +71,7 @@ export default async function initEventsServerDev(inputFileName: string, port: n
     },
     stop: async () => {
       console.log("shutting down event server");
-      server.stop();
+      server?.stop();
     },
   };
 }
