@@ -82,7 +82,7 @@ export default function createWaiter(
     }
 
     const [value] = (await EventEmitter.once(emitter, "increment")) as [number];
-    if (value >= number) {
+    if (value < number) {
       return wait(number);
     }
   }
@@ -112,7 +112,7 @@ export default function createWaiter(
       signal,
     })) as [number];
 
-    if (value >= number) {
+    if (value < number) {
       return waitUntilAborted(number, signal);
     }
   }
