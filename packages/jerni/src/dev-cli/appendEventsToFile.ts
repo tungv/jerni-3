@@ -4,7 +4,7 @@ import yaml from "yaml";
 import type { JourneyCommittedEvent } from "../types/events";
 import type { SavedData } from "./readFile";
 
-export default function appendEventToFile(filePath: string, events: JourneyCommittedEvent[]) {
+export default function appendEventsToFile(filePath: string, events: JourneyCommittedEvent[]) {
   const fileContent = fs.readFileSync(filePath, "utf8");
   const parsedContent = yaml.parse(fileContent) as SavedData;
 
@@ -16,4 +16,6 @@ export default function appendEventToFile(filePath: string, events: JourneyCommi
   const stringifiedContent = yaml.stringify(parsedContent);
 
   fs.writeFileSync(filePath, stringifiedContent);
+
+  return parsedContent.events.length + 1;
 }
