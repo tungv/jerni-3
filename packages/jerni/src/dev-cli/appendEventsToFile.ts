@@ -17,5 +17,5 @@ export default function appendEventsToFile(filePath: string, events: JourneyComm
 
   fs.writeFileSync(filePath, stringifiedContent);
 
-  return parsedContent.events.length + 1;
+  return parsedContent.events.length;
 }

@@ -38,7 +38,7 @@ export default async function initEventsServerDev(inputFileName: string, port: n
             }
 
             const latestEvent = {
-              id: latest.id,
+              id: events.length,
               type: latest.type,
               payload: latest.payload,
               meta: latest.meta || {},
@@ -56,14 +56,17 @@ export default async function initEventsServerDev(inputFileName: string, port: n
 
             const newEvents = Array.isArray(event) ? event : [event];
 
-           const latestId = appendEventsToFile(inputFileName, newEvents);
+            const latestId = appendEventsToFile(inputFileName, newEvents);
 
             const latest = last(newEvents);
 
-            return Response.json({
-              ...latest,
-              id: latestId,
-            }, { status: 201 });
+            return Response.json(
+              {
+                ...latest,
+                id: latestId,
+              },
+              { status: 201 },
+            );
           }
 
           return new Response("not_found", {
