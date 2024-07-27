@@ -1,6 +1,6 @@
 import { dirname } from "node:path";
 import { URL } from "node:url";
-import { fileURLToPath } from "bun";
+import { fileURLToPath } from "node:url";
 import { nanoid } from "nanoid";
 import { readPackageUpSync } from "read-package-up";
 import type { Logger } from "src/types/Logger";
