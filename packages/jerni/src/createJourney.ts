@@ -1,4 +1,4 @@
-import { bold } from "picocolors";
+import picocolors from "picocolors";
 import JerniPersistenceError from "./JerniPersistenceError";
 import { DBG, INF } from "./cli-utils/log-headers";
 import commitToServer from "./lib/commit";
@@ -35,7 +35,7 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
   logger.debug("%s registering models...", DBG);
   for (const store of config.stores) {
     store.registerModels(modelToStoreMap);
-    logger.log("%s store %s complete", DBG, bold(store.toString()));
+    logger.log("%s store %s complete", DBG, picocolors.bold(store.toString()));
   }
 
   const waiter = createWaiter(config.stores.length);

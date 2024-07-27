@@ -1,13 +1,6 @@
-import {
-  bold,
-  white,
-  bgRed,
-  bgYellow,
-  black,
-  bgGreen,
-  bgMagenta,
-  bgCyan,
-} from "picocolors";
+import picocolors from "picocolors";
+
+const { bold, white, black, bgRed, bgYellow, bgGreen, bgMagenta, bgCyan } = picocolors;
 
 export const ERR = bold(white(bgRed("[ERR]")));
 export const WRN = bold(black(bgYellow("[WRN]")));
