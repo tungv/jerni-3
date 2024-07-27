@@ -38,7 +38,7 @@ export default async function initEventsServerDev(inputFileName: string, port: n
             }
 
             const latestEvent = {
-              id: latest.id,
+              id: events.length,
               type: latest.type,
               payload: latest.payload,
               meta: latest.meta || {},
@@ -56,14 +56,17 @@ export default async function initEventsServerDev(inputFileName: string, port: n
 
             const newEvents = Array.isArray(event) ? event : [event];
 
-           const latestId = appendEventsToFile(inputFileName, newEvents);
+            const latestId = appendEventsToFile(inputFileName, newEvents);
 
             const latest = last(newEvents);
 
-            return Response.json({
-              ...latest,
-              id: latestId,
-            }, { status: 201 });
+            return Response.json(
+              {
+                ...latest,
+                id: latestId,
+              },
+              { status: 201 },
+            );
           }
 
           return new Response("not_found", {
@@ -82,26 +85,6 @@ export default async function initEventsServerDev(inputFileName: string, port: n
 async function streamingResponse(req: Request, events: JourneyCommittedEvent[]) {
   const signal = req.signal;
 
-  const url = new URL(req.url);
-
-  // get last event id from req headers
-  const lastEventId = url.searchParams.get("lastEventId");
-  function largerThanLastEventId(event: JourneyCommittedEvent) {
-    return event.id > Number.parseInt(lastEventId || "0", 10);
-  }
-
-  const includes = url.searchParams.get("includes");
-  const includeList = includes ? includes.split(",") : [];
-  function isInIncludeList(event: JourneyCommittedEvent) {
-    if (includeList.length === 0) {
-      return true;
-    }
-
-    return includeList.includes(event.type as string);
-  }
-
-  const isEffectiveEvent = overEvery([isInIncludeList, largerThanLastEventId]);
-
   function injectId(event: JourneyCommittedEvent, index: number) {
     return {
       ...event,
@@ -109,7 +92,7 @@ async function streamingResponse(req: Request, events: JourneyCommittedEvent[]) 
     };
   }
 
-  const effectiveEvents = events.map(injectId).filter((e) => isEffectiveEvent(e));
+  const effectiveEvents = events.map(injectId);
 
   // write headers
   const headers = {

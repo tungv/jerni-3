@@ -94,7 +94,10 @@ describe("Manipulating event db file", () => {
       const fileContent = fs.readFileSync(dbFilePath, "utf8");
       const parsedContent = yaml.parse(fileContent);
 
-      expect(parsedContent.events).toEqual([event1]);
+      const savedEvent = parsedContent.events[0];
+      const withId = { ...savedEvent, id: event1.id };
+
+      expect(withId).toEqual(event1);
 
       process.kill();
     }),

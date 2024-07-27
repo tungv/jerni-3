@@ -36,7 +36,7 @@ const FailureModel = new MongoDBModel<{ text: string }>({
 
 afterAll(cleanUpTestDatabase);
 
-describe("e2e_handle_errors", () => {
+describe("e2e_handle_errors_multiple", () => {
   it("should continue to process if SKIP is returned", async () => {
     const { server } = createServer();
     const port = server.port;
@@ -96,7 +96,7 @@ describe("e2e_handle_errors", () => {
 
     // 4 - 6
     await app.journey.append(OK_EVENT);
-    await app.journey.append(OK_EVENT);
+    const event5 = await app.journey.append(OK_EVENT);
     await app.journey.append(FAILURE_EVENT);
 
     // 7 - 9
@@ -114,15 +114,12 @@ describe("e2e_handle_errors", () => {
     // start worker
     const stopped = startWorker(worker.journey, ctrl.signal);
 
-    await app.journey.waitFor(lastEvent);
+    // await for worker to stop due to the 6th event
+    await stopped;
 
     const Collection = await app.journey.getReader(FailureModel);
     const count = await Collection.countDocuments();
     expect(count).toEqual(4);
-
-    ctrl.abort();
-
-    await stopped;
 
     await dispose(app.journey);
     await dispose(worker.journey);
