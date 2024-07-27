@@ -1,4 +1,6 @@
+import { dirname } from "node:path";
 import { URL } from "node:url";
+import { fileURLToPath } from "bun";
 import { nanoid } from "nanoid";
 import { readPackageUpSync } from "read-package-up";
 import type { Logger } from "src/types/Logger";
@@ -8,6 +10,8 @@ import type {
   ToBeCommittedJourneyEvent,
   TypedJourneyCommittedEvent,
 } from "src/types/events";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const parentPackage = readPackageUpSync({
   cwd: __dirname,
