@@ -1,7 +1,7 @@
 import type { Server } from "bun";
-import { overEvery } from "lodash/fp";
+import { last, overEvery } from "lodash/fp";
 import type { JourneyCommittedEvent } from "../types/events";
-import appendEventToFile from "./appendEventToFile";
+import appendEventsToFile from "./appendEventsToFile";
 import readFile from "./readFile";
 
 export default async function initEventsServerDev(inputFileName: string, port: number) {
@@ -54,13 +54,16 @@ export default async function initEventsServerDev(inputFileName: string, port: n
           if (req.method === "POST" && url.pathname === "/commit") {
             const event = (await req.json()) as JourneyCommittedEvent | JourneyCommittedEvent[];
 
-            const events = Array.isArray(event) ? event : [event];
+            const newEvents = Array.isArray(event) ? event : [event];
 
-            appendEventToFile(inputFileName, events);
+           const latestId = appendEventsToFile(inputFileName, newEvents);
 
-            const latest = events[events.length - 1];
+            const latest = last(newEvents);
 
-            return Response.json(latest, { status: 201 });
+            return Response.json({
+              ...latest,
+              id: latestId,
+            }, { status: 201 });
           }
 
           return new Response("not_found", {

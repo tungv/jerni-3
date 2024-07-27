@@ -16,4 +16,6 @@ export default function appendEventsToFile(filePath: string, events: JourneyComm
   const stringifiedContent = yaml.stringify(parsedContent);
 
   fs.writeFileSync(filePath, stringifiedContent);
+
+  return parsedContent.events.length + 1;
 }
