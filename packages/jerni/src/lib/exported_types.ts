@@ -1,3 +1,4 @@
+import { JourneyTestInstance } from "../types/JourneyTestInstance";
 import { JourneyConfig } from "../types/config";
 import {
   CommittingEventDefinitions,
@@ -19,4 +20,5 @@ export {
   ToBeCommittedJourneyEvent,
   CommittingEventDefinitions,
   SubscribingEventDefinitions,
+  JourneyTestInstance,
 };
