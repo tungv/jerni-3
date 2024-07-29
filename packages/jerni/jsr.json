@@ -7,7 +7,8 @@
     "./lib/mapEvents": "./src/lib/mapEvents.ts",
     "./lib/errors/JerniPersistenceError": "./src/JerniPersistenceError.ts",
     "./lib/errors/UnrecoverableError": "./src/UnrecoverableError.ts",
-    "./lib/skip": "./src/lib/skip.ts"
+    "./lib/skip": "./src/lib/skip.ts",
+    "./test/testWrapper": "./src/lib/testWrapper.ts"
   },
   "exclude": [
     "src/tests",
