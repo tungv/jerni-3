@@ -96,7 +96,11 @@ describe("e2e_multiple_stores", () => {
       id: "123",
     });
 
-    expect(bankAccount_2.balance).toEqual(100);
+    expect(bankAccount_2).toEqual(
+      expect.objectContaining({
+        balance: 100,
+      }),
+    );
 
     ctrl.abort();
 
