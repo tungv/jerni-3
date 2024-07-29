@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import testWrapper from "@jerni/jerni-3/lib/testWrapper";
+import testWrapper from "@jerni/jerni-3/test/testWrapper";
 import { nanoid } from "nanoid";
 import cleanUpTestDatabase from "../cleanUpTestDatabase";
 import { BankAccountModel, BankAccountModel_2 } from "../models";
