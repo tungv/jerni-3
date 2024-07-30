@@ -5,8 +5,9 @@ import path from "node:path";
 import { setTimeout } from "node:timers/promises";
 import { nanoid } from "nanoid";
 import yaml from "yaml";
-import injectTestEventsMongoDB from "../events-storage/__mocks__/mongodb-database";
 import initializeJourney from "./helpers/makeTestJourneyCli";
+
+import "src/events-storage/__mocks__/sqlite-database";
 
 afterAll(() => {
   // get all the files with prefix test-events-db-
@@ -58,48 +59,45 @@ describe("Manipulating event db file", () => {
     process.kill();
   });
 
-  test(
-    "commit events successfully",
-    injectTestEventsMongoDB(async () => {
-      // random a port
-      const port = Math.floor(Math.random() * 10000) + 10000;
-      const dbFileName = `./test-events-db-${nanoid()}.yml`;
+  test("commit events successfully", async () => {
+    // random a port
+    const port = Math.floor(Math.random() * 10000) + 10000;
+    const dbFileName = `./test-events-db-${nanoid()}.yml`;
 
-      const devCliPath = path.resolve(__dirname, "../../../jerni/src/dev-cli/index.ts");
-      const initFileName = path.resolve(__dirname, "./helpers/makeTestJourneyCli.ts");
-      const dbFilePath = path.resolve(__dirname, dbFileName);
+    const devCliPath = path.resolve(__dirname, "../../../jerni/src/dev-cli/index.ts");
+    const initFileName = path.resolve(__dirname, "./helpers/makeTestJourneyCli.ts");
+    const dbFilePath = path.resolve(__dirname, dbFileName);
 
-      const process = exec(
-        `PORT=${port}\
+    const process = exec(
+      `PORT=${port}\
         bun run ${devCliPath} ${initFileName} ${dbFilePath}`,
-        (error, stdout, stderr) => {
-          // console.log(`stdout: ${stdout}`);
-          // console.error(`stderr: ${stderr}`);
-        },
-      );
+      (error, stdout, stderr) => {
+        // console.log(`stdout: ${stdout}`);
+        // console.error(`stderr: ${stderr}`);
+      },
+    );
 
-      await setTimeout(1000);
+    await setTimeout(1000);
 
-      const journey = await initializeJourney(`http://localhost:${port}/`);
+    const journey = await initializeJourney(`http://localhost:${port}/`);
 
-      // commit event
-      const event1 = await journey.append<"NEW_ACCOUNT_REGISTERED">({
-        type: "NEW_ACCOUNT_REGISTERED",
-        payload: {
-          id: "123",
-          name: "test",
-        },
-      });
+    // commit event
+    const event1 = await journey.append<"NEW_ACCOUNT_REGISTERED">({
+      type: "NEW_ACCOUNT_REGISTERED",
+      payload: {
+        id: "123",
+        name: "test",
+      },
+    });
 
-      const fileContent = fs.readFileSync(dbFilePath, "utf8");
-      const parsedContent = yaml.parse(fileContent);
+    const fileContent = fs.readFileSync(dbFilePath, "utf8");
+    const parsedContent = yaml.parse(fileContent);
 
-      const savedEvent = parsedContent.events[0];
-      const withId = { ...savedEvent, id: event1.id };
+    const savedEvent = parsedContent.events[0];
+    const withId = { ...savedEvent, id: event1.id };
 
-      expect(withId).toEqual(event1);
+    expect(withId).toEqual(event1);
 
-      process.kill();
-    }),
-  );
+    process.kill();
+  });
 });

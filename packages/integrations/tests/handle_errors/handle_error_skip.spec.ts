@@ -1,6 +1,5 @@
 import { afterAll, describe, expect, it } from "bun:test";
 import { MongoDBModel, makeMongoDBStore } from "@jerni/store-mongodb";
-import dispose from "jerni/lib/dispose";
 import mapEvents from "jerni/lib/mapEvents";
 import SKIP from "jerni/lib/skip";
 import { nanoid } from "nanoid";
@@ -99,7 +98,7 @@ describe("e2e_handle_errors", () => {
     const count = await Collection.countDocuments();
     expect(count).toEqual(9);
 
-    await dispose(app.journey);
-    await dispose(worker.journey);
+    await app.journey.dispose();
+    await worker.journey.dispose();
   });
 });

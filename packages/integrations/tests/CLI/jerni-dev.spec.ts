@@ -18,6 +18,7 @@ describe("Jerni Dev Integration", () => {
     const port = Math.floor(Math.random() * 10000) + 10000;
     const dbFileName = `./test-events-db-${nanoid()}.yml`;
     const mongodbName = `jerni_integration_test_${nanoid()}`;
+    const eventDbName = `jerni_integration_test_events_${nanoid()}`;
 
     const devCliPath = path.resolve(__dirname, "../../../jerni/src/dev-cli/index.ts");
     const initFileName = path.resolve(__dirname, "./makeTestJourneyCli.ts");
@@ -26,6 +27,8 @@ describe("Jerni Dev Integration", () => {
     const childProcess = exec(
       `PORT=${port}\
         MONGODB_DBNAME=${mongodbName}\
+        EVENTS_DB_MONGODB_URL=mongodb://127.0.0.1:27017 \
+        EVENTS_DB_MONGODB_NAME=${eventDbName} \
         bun run ${devCliPath} ${initFileName} ${dbFilePath}`,
       (error, stdout, stderr) => {
         // console.log(`stdout: ${stdout}`);

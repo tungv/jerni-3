@@ -11,6 +11,7 @@ afterAll(cleanUpTestDatabase);
 
 it("CLI call should project events correctly", async () => {
   const dbName = `jerni_integration_test_${nanoid()}`;
+  const eventDbName = `jerni_integration_test_events_${nanoid()}`;
 
   const { server } = createServer();
   const port = server.port;
@@ -21,6 +22,8 @@ it("CLI call should project events correctly", async () => {
   const process = exec(
     `MONGODB_DBNAME=${dbName} \
     MONGODB_URL=mongodb://127.0.0.1:27017 \
+    EVENTS_DB_MONGODB_URL=mongodb://127.0.0.1:27017 \
+    EVENTS_DB_MONGODB_NAME=${eventDbName} \
     EVENTS_SERVER=http://localhost:${port}/ \
     bun run ${jerniCliPath} \
     ${createJourneyPath}`,

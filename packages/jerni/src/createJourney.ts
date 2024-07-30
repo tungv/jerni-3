@@ -120,5 +120,10 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
       return store.getDriver(model);
     },
     getConfig: () => config,
+    dispose: async () => {
+      for (const store of config.stores) {
+        await store.dispose();
+      }
+    },
   };
 }

@@ -3,7 +3,7 @@ import type { JourneyInstance } from "./types/journey";
 
 const defaultLogger = console;
 
-export default injectEventDatabase(async function dispose(journey: JourneyInstance) {
+export default injectEventDatabase(async function clearData(journey: JourneyInstance) {
   const config = journey.getConfig();
 
   const { logger = defaultLogger } = config;
@@ -16,5 +16,5 @@ export default injectEventDatabase(async function dispose(journey: JourneyInstan
   }
 
   // dispose all events stored
-  await getEventDatabase().dispose();
+  await getEventDatabase().clean();
 });

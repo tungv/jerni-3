@@ -1,3 +1,4 @@
+import { memoize, noop } from "lodash";
 import setup from "../asynclocal";
 import type { JourneyCommittedEvent } from "../types/events";
 import getMongodbDatabase from "./mongodb-database";
@@ -14,19 +15,34 @@ export interface EventDatabase {
   clean(): Promise<void>;
 }
 
+const isTest = process.env.NODE_ENV === "test";
+
+const log = isTest ? noop : console.log;
+
 async function getDB() {
-  // TODO: improve log here, current settings make it log every time the query is called
   if (process.env.EVENTS_DB_MONGODB_URL && process.env.EVENTS_DB_MONGODB_NAME) {
+    log("Using MongoDB as event storage");
+
     return getMongodbDatabase({
       url: process.env.EVENTS_DB_MONGODB_URL,
       dbName: process.env.EVENTS_DB_MONGODB_NAME,
     });
   }
 
+  log("Using SQLite as event storage");
+
   return getSqliteDb();
 }
 
-const store = setup<EventDatabase>(getDB);
+// biome-ignore lint/suspicious/noExplicitAny: any is used to mock any function
+type AnyFunction = (...args: any[]) => any;
+function identity(fn: AnyFunction) {
+  return fn;
+}
+
+const memoizeFn = isTest ? identity : memoize;
+
+const store = setup<EventDatabase>(memoizeFn(getDB));
 
 export const injectEventDatabase = store.inject;
 export const getEventDatabase = store.get;

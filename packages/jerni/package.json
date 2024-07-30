@@ -1,6 +1,6 @@
 {
   "name": "@jerni/jerni-3",
-  "version": "v0.5.2",
+  "version": "v0.5.3",
   "type": "module",
   "main": "src/index.ts",
   "bin": {
@@ -31,7 +31,7 @@
     "./lib/errors/UnrecoverableError": "./src/UnrecoverableError.ts",
     "./lib/skip": "./src/lib/skip.ts",
     "./lib/begin": "./src/begin.ts",
-    "./lib/dispose": "./src/dispose.ts",
+    "./lib/clearData": "./src/clearData.ts",
     "./test/testWrapper": "./src/lib/testWrapper.ts"
   }
 }
