@@ -108,8 +108,8 @@ export default async function getMongodbDatabase({ dbName, url }: MongodbConfig)
     },
 
     dispose: async () => {
-      // delete all events and snapshot
-      await db.dropDatabase();
+      // terminate connection
+      await client.close();
     },
   };
 }

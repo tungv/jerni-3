@@ -97,9 +97,8 @@ export default function getSqliteDb(): EventDatabase {
     },
 
     dispose: async () => {
-      // delete all events and snapshot
-      db.query("DROP TABLE IF EXISTS events").run();
-      db.query("DROP TABLE IF EXISTS snapshot").run();
+      // terminate the connection
+      db.close();
     },
   };
 }

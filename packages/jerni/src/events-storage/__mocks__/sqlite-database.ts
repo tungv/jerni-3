@@ -106,8 +106,8 @@ function getSqliteDb(): EventDatabase {
     },
 
     dispose: async () => {
-      db.query(`DROP TABLE ${eventsTableName}`).get();
-      db.query(`DROP TABLE ${snapshotTableName}`).get();
+      // close connection
+      db.close();
     },
   };
 }
