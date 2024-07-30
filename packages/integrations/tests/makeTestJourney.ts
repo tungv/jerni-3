@@ -1,3 +1,5 @@
+import "./mock_read_package_up";
+
 import { mock } from "bun:test";
 import type { JourneyConfig } from "@jerni/jerni-3/types";
 import type { JourneyCommittedEvent } from "@jerni/store-mongodb/types";

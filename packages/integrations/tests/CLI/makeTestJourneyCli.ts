@@ -1,7 +1,9 @@
-import createJourney from "jerni";
+import "../mock_read_package_up";
+
 import { makeMongoDBStore } from "@jerni/store-mongodb";
-import { BankAccountModel, BankAccountModel_2 } from "../models";
+import createJourney from "jerni";
 import makeTestLogger from "../makeTestLogger";
+import { BankAccountModel, BankAccountModel_2 } from "../models";
 
 function getEventsServerUrl() {
   if (!process.env.EVENTS_SERVER) {

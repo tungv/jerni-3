@@ -51,7 +51,7 @@ describe("e2e_mongodb_create_and_get", () => {
     expect(event1).toEqual({
       id: 1,
       meta: {
-        client: "@jerni/jerni-3",
+        client: "mock-client",
         client_version: expect.any(String),
         committed_at: expect.any(Number),
         local_id: expect.any(String),
