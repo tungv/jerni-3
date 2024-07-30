@@ -1,6 +1,5 @@
 import { afterAll, describe, expect, it } from "bun:test";
 import { makeMongoDBStore } from "@jerni/store-mongodb";
-import dispose from "jerni/lib/dispose";
 import { nanoid } from "nanoid";
 import createServer from "src/events-server";
 import cleanUpTestDatabase from "./cleanUpTestDatabase";
@@ -105,7 +104,7 @@ describe("e2e_mongodb_create_and_get", () => {
 
     ctrl.abort();
 
-    await dispose(app.journey);
-    await dispose(worker.journey);
+    await app.journey.dispose();
+    await worker.journey.dispose();
   });
 });

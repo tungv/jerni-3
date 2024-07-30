@@ -24,6 +24,8 @@ export interface JourneyInstance {
   getReader: GetReaderFn;
 
   getConfig: () => JourneyConfig;
+
+  dispose: () => Promise<void>;
 }
 
 // placeholder for getReader function
