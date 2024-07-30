@@ -3,6 +3,9 @@
   "private": true,
   "version": "3.0.0",
   "description": "Integration test for jerni",
+  "scripts": {
+    "test": "NODE_ENV=test bun test"
+  },
   "dependencies": {
     "@jerni/store-mongodb": "link:@jerni/store-mongodb",
     "@jerni/jerni-3": "link:@jerni/jerni-3",

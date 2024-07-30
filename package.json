@@ -8,6 +8,9 @@
   "peerDependencies": {
     "typescript": "5.3"
   },
+  "scripts": {
+    "test": "NODE_ENV=test bun test"
+  },
   "type": "module",
   "workspaces": [
     "packages/*"
