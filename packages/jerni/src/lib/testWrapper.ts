@@ -50,6 +50,7 @@ export default async function testWrapper(
     getConfig: jerni.getConfig,
     getReader: jerni.getReader,
     waitFor: jerni.waitFor,
+    dispose: jerni.dispose,
     async waitAll() {
       // place holder only, the way current append and commit work, all the events are already processed
     },
