@@ -1,6 +1,4 @@
-import { dirname } from "node:path";
 import { URL } from "node:url";
-import { fileURLToPath } from "node:url";
 import { nanoid } from "nanoid";
 import { readPackageUpSync } from "read-package-up";
 import type { Logger } from "src/types/Logger";
@@ -11,11 +9,7 @@ import type {
   TypedJourneyCommittedEvent,
 } from "src/types/events";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-
-const parentPackage = readPackageUpSync({
-  cwd: __dirname,
-});
+const parentPackage = readPackageUpSync();
 
 export default async function commitToServer<T extends keyof CommittingEventDefinitions>(
   logger: Logger,
