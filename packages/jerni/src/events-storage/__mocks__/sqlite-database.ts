@@ -1,5 +1,6 @@
 import { Database } from "bun:sqlite";
 import { mock } from "bun:test";
+import setup from "../../asynclocal";
 import type { JourneyCommittedEvent } from "../../types/events";
 import type { EventDatabase } from "../injectDatabase";
 
@@ -11,7 +12,7 @@ interface SavedEvent {
   payload: string;
 }
 
-function getSqliteDb(): EventDatabase {
+async function getSqliteDb(): Promise<EventDatabase> {
   const eventsTableName = `events_${Math.random().toString(36).slice(2)}`;
   const snapshotTableName = `snapshot_${Math.random().toString(36).slice(2)}`;
 
@@ -112,6 +113,12 @@ function getSqliteDb(): EventDatabase {
   };
 }
 
-mock.module("src/events-storage/sqlite-database", () => ({
-  default: getSqliteDb,
+const store = setup<EventDatabase>(getSqliteDb);
+
+export const injectEventDatabase = store.inject;
+export const getEventDatabase = store.get;
+
+mock.module("src/events-storage/injectDatabase", () => ({
+  injectEventDatabase,
+  getEventDatabase,
 }));
