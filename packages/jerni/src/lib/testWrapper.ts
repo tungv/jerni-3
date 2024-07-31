@@ -1,6 +1,7 @@
 import type { JourneyTestInstance } from "../types/JourneyTestInstance";
 import type {
   CommittingEventDefinitions,
+  LocalEvents,
   ToBeCommittedJourneyEvent,
   TypedJourneyCommittedEvent,
 } from "../types/events";
@@ -27,7 +28,7 @@ export default async function testWrapper(
     }
   }
 
-  async function handleEvent<P extends keyof CommittingEventDefinitions>(
+  async function handleEvent<P extends keyof LocalEvents>(
     event: ToBeCommittedJourneyEvent<keyof CommittingEventDefinitions>,
   ): Promise<TypedJourneyCommittedEvent<P>> {
     const withId = {
