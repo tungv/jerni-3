@@ -14,7 +14,11 @@ await guardErrors(
 
     const job = await startWorker(fileName, port);
 
-    await job.start();
+    try {
+      await job.start();
+    } finally {
+      await job.stop();
+    }
   },
   () => {
     console.error("%s jerni client is shutting down…", INF);
