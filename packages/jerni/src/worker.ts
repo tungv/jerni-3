@@ -39,6 +39,12 @@ export default async function initWorker(filePath: string | undefined, port: num
     // call server.stop when process is killed
     process.on("SIGINT", () => {
       ctrl.abort();
+      process.exit(0);
+    });
+    // call server.stop ctrl + c is pressed
+    process.on("SIGTERM", () => {
+      ctrl.abort();
+      process.exit(0);
     });
 
     const job: Job = {
