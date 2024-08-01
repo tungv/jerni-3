@@ -89,8 +89,6 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
         }
       }
 
-      logger.debug("event", event.id, "is ready");
-
       if (
         event.meta &&
         typeof event.meta === "object" &&
@@ -107,6 +105,8 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
           turnaround,
           elapsed,
         });
+      } else {
+        logger.debug("event", event.id, "is ready");
       }
     },
     // biome-ignore lint/suspicious/noExplicitAny: because this is a placeholder, the client that uses jerni would override this type

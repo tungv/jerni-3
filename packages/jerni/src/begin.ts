@@ -5,6 +5,7 @@ import hash from "hash-sum";
 import UnrecoverableError from "./UnrecoverableError";
 import { DBG, INF } from "./cli-utils/log-headers";
 import { getEventDatabase, injectEventDatabase } from "./events-storage/injectDatabase";
+import customFetch from "./helpers/fetch";
 import normalizeUrl from "./lib/normalize-url";
 import skip from "./lib/skip";
 import listenForEventsInServer from "./listenForEventsInServer";
@@ -53,7 +54,7 @@ export default async function* begin(journey: JourneyInstance, signal: AbortSign
   const getLatestUrl = new URL("events/latest", url);
 
   logger.log("%s sync'ing with server...", INF);
-  const response = await fetch(getLatestUrl.toString(), {
+  const response = await customFetch(getLatestUrl.toString(), {
     headers: {
       "content-type": "application/json",
     },

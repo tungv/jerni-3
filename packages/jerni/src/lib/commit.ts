@@ -8,6 +8,7 @@ import type {
   ToBeCommittedJourneyEvent,
   TypedJourneyCommittedEvent,
 } from "src/types/events";
+import customFetch from "../helpers/fetch";
 
 const parentPackage = readPackageUpSync();
 
@@ -48,7 +49,7 @@ export default async function commitToServer<T extends keyof CommittingEventDefi
     event_local_id: localId,
   });
 
-  const res = await fetch(commitUrl.toString(), {
+  const res = await customFetch(commitUrl.toString(), {
     method: "POST",
     headers: {
       "content-type": "application/json",
@@ -58,7 +59,8 @@ export default async function commitToServer<T extends keyof CommittingEventDefi
   });
 
   // the only reasonable response is 201
-  if (res.status !== 201) {
+  // for now, accept 200 as well
+  if (res.status !== 201 && res.status !== 200) {
     onReport("commit_failed", {
       event_local_id: localId,
       status: res.status,
