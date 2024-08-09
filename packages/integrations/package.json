@@ -7,8 +7,8 @@
     "test": "NODE_ENV=test bun test"
   },
   "dependencies": {
-    "@jerni/store-mongodb": "link:@jerni/store-mongodb",
-    "@jerni/jerni-3": "link:@jerni/jerni-3",
+    "@jerni/store-mongodb": "workspace:*",
+    "@jerni/jerni-3": "workspace:*",
     "mongodb": "^6.0.0",
     "mongodb-client-encryption": "^6.0.0",
     "nanoid": "^5.0.7",
