@@ -1,4 +1,4 @@
-import type skip from "src/lib/skip";
+import type skip from "../lib/skip";
 import type { Logger } from "./Logger";
 import type { JourneyCommittedEvent } from "./events";
 
@@ -59,6 +59,8 @@ export interface Store {
   dispose: () => Promise<void>;
 }
 
-type OnError = (error: Error, event: JourneyCommittedEvent) => undefined | typeof skip;
+type OnError =
+  | ((error: Error, event: JourneyCommittedEvent) => typeof skip)
+  | ((error: Error, event: JourneyCommittedEvent) => void);
 
 type OnReport = (name: string, msg?: unknown) => void;

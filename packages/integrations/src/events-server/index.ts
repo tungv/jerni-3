@@ -128,9 +128,10 @@ export default function createServer(subscriptionInterval = 300) {
           do {
             // query for new events
             const rows = query.all(lastReturned);
+            const last = rows[rows.length - 1];
 
             // if empty, wait for 1 second
-            if (rows.length === 0) {
+            if (!last) {
               await Bun.sleep(subscriptionInterval);
               continue;
             }
@@ -142,7 +143,6 @@ export default function createServer(subscriptionInterval = 300) {
               meta: row.meta ? JSON.parse(row.meta) : {},
             }));
 
-            const last = rows[rows.length - 1];
             lastReturned = last.id;
 
             // check if client is still connected
