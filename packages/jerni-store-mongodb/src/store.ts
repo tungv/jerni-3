@@ -120,8 +120,15 @@ export default async function makeMongoDBStore(config: MongoDBStoreConfig): Prom
     await handleEventsRecursive(events, changes);
 
     return Object.fromEntries(
-      models.map((model, modelIndex) => {
-        return [`${model.name}_v${model.version}`, changes[modelIndex] ?? { added: 0, updated: 0, deleted: 0 }];
+      models.flatMap((model, modelIndex) => {
+        if (!changes[modelIndex]) {
+          return [];
+        }
+        if (changes[modelIndex].added === 0 && changes[modelIndex].updated === 0 && changes[modelIndex].deleted === 0) {
+          return [];
+        }
+
+        return [[`${model.name}_v${model.version}`, changes[modelIndex] ?? { added: 0, updated: 0, deleted: 0 }]];
       }),
     );
   }
