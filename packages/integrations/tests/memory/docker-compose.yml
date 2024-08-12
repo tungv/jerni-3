@@ -1,0 +1,43 @@
+services:
+  test:
+    image: "memory-leak-test"
+
+    build:
+      context: ./fixtures
+      dockerfile: ./memory_leak.dockerfile
+
+    environment:
+      - MONGODB_URL=mongodb://mongodb_v5:27017
+      - EVENTS_SERVER_URL=http://events-server:4000
+
+    depends_on:
+      - mongodb_v5
+      - events-server
+
+    ports:
+      - 4000:4000
+
+    ## set memory limit
+    deploy:
+      resources:
+        limits:
+          memory: 512MB
+
+  events-server:
+    image: "mock-events-server"
+
+    build:
+      context: ./mock-server
+      dockerfile: ./events_server.dockerfile
+
+  mongodb_v5:
+    image: mongo:5
+    ports:
+      - 27017:27017
+    volumes:
+      - mongodb_v5:/data/db
+    networks:
+      - default
+
+volumes:
+  mongodb_v5:
