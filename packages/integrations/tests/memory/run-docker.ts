@@ -2,7 +2,7 @@ import { $ } from "bun";
 
 import path from "node:path";
 
-const pathToCliSrc = path.resolve(import.meta.dir, "../../../jerni/src/cli.ts");
+const pathToCliSrc = path.resolve(import.meta.dir, "./fixtures/start.ts");
 const pathToLinuxBinary = path.resolve(import.meta.dir, "./fixtures/cli-linux");
 
 // build linux binary

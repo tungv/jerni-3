@@ -1,14 +1,10 @@
-import { heapStats } from "bun:jsc";
 import createJourney from "@jerni/jerni-3";
-
 import { MongoDBModel, makeMongoDBStore, readPipeline } from "@jerni/store-mongodb";
-import prettyBytes from "@minikit/pretty-bytes";
-import makeTestLogger from "../../makeTestLogger";
 
 export default async function init() {
   const stores = [];
   // duplicate the store 100x
-  for (let i = 0; i < 100; i++) {
+  for (let i = 0; i < 0; i++) {
     const model = new MongoDBModel({
       name: `test_${i}`,
       version: "6",
@@ -28,6 +24,9 @@ export default async function init() {
             },
           },
         ];
+      },
+      meta: {
+        includes: ["Type_A", "Type_B", "Type_C"],
       },
     });
     const store = await makeMongoDBStore({
@@ -57,6 +56,7 @@ export default async function init() {
     logger: logger,
   });
   console.log("store created");
+
   return journey;
 }
 
@@ -69,13 +69,3 @@ const logger = {
   warn: log,
   error: log,
 };
-
-const id = setInterval(() => {
-  console.log("keep alive");
-  // const stats = heapStats();
-  // console.log(
-  //   `heap size: ${prettyBytes(stats.heapCapacity)}, used: ${prettyBytes(stats.heapSize)} | ${(
-  //     stats.objectCount / 1000
-  //   ).toFixed(2)}k objects`,
-  // );
-}, 500);

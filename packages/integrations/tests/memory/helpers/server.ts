@@ -129,7 +129,7 @@ export default function createServer(events: JourneyCommittedEvent[]) {
             controller.flush();
 
             // sleep for 1 second
-            // await Bun.sleep(subscriptionInterval);
+            await Bun.sleep(100);
           } while (!signal.aborted);
         },
       }),

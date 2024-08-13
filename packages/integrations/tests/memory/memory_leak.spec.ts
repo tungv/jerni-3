@@ -3,7 +3,7 @@ import path from "node:path";
 import prettyBytes from "@minikit/pretty-bytes";
 import { $ } from "bun";
 import pidusage from "pidusage";
-import createServer from "./mock-server/helpers/server";
+import createServer from "./helpers/server";
 
 declare module "@jerni/jerni-3/types" {
   interface SubscribingEventDefinitions {
@@ -25,9 +25,7 @@ describe("memory leak", () => {
 
   test("memory leak", async () => {
     // run the test in bun
-    const pathToFixture = `${import.meta.dir}/fixtures/init.ts`;
-
-    const pathToSrc = path.resolve(import.meta.dir, "../../../jerni/src/cli.ts");
+    const pathToSrc = path.resolve(import.meta.dir, "./fixtures/start.ts");
     const pathToBin = `${import.meta.dir}/cli`;
 
     // build the fixture
@@ -48,7 +46,7 @@ describe("memory leak", () => {
 
     const url = mock.server.url.toString();
 
-    child = Bun.spawn([pathToBin, pathToFixture], {
+    child = Bun.spawn(["bun", pathToSrc], {
       env: {
         MONGODB_URL: "mongodb://localhost:27017",
         EVENTS_SERVER_URL: url,
