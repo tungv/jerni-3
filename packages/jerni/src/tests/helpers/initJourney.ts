@@ -11,9 +11,7 @@ export async function initJourney(eventServerUrl: string, stores: JourneyConfig[
     server: eventServerUrl,
     // server,
     stores,
-    onError: () => {
-      return undefined;
-    },
+    onError: () => {},
     onReport: (reportType, reportData) => {
       onReport(reportType, reportData);
     },
