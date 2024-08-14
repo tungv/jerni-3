@@ -15,6 +15,7 @@ it("CLI call should project events correctly", async () => {
 
   const { server } = createServer();
   const port = server.port;
+  const healthCheckPort = Math.floor(Math.random() * 10000) + 10000;
 
   const createJourneyPath = path.resolve(__dirname, "./makeTestJourneyCli.ts");
   const jerniCliPath = path.resolve(__dirname, "../../../jerni/src/cli.ts");
@@ -25,6 +26,7 @@ it("CLI call should project events correctly", async () => {
     EVENTS_DB_MONGODB_URL=mongodb://127.0.0.1:27017 \
     EVENTS_DB_MONGODB_NAME=${eventDbName} \
     EVENTS_SERVER=http://localhost:${port}/ \
+    PORT=${healthCheckPort} \
     bun run ${jerniCliPath} \
     ${createJourneyPath}`,
     (error, stdout, stderr) => {
@@ -107,21 +109,13 @@ it("CLI call should project events correctly", async () => {
   });
 
   // the health check server should be running
-  const req = await fetch("http://localhost:4000");
+  const req = await fetch(`http://localhost:${healthCheckPort}`);
   expect(req.status).toBe(200);
 
   process.kill();
 
-  // get error when the cli process is killed
-  let hasError = false;
-  try {
-    await fetch("http://localhost:4000");
-
-    // should not reach here
-    expect(true).toBe(false);
-  } catch {
-    hasError = true;
-  }
-
-  expect(hasError).toBe(true);
+  expect(fetch(`http://localhost:${healthCheckPort}`)).rejects.toHaveProperty(
+    "message",
+    "Unable to connect. Is the computer able to access the url?",
+  );
 });
