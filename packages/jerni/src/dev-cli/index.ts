@@ -58,7 +58,7 @@ await guardErrors(
         const { fileChecksum, realChecksum } = readFile(dbFilePath);
 
         if (fileChecksum !== realChecksum) {
-          console.log("%s checksum mismatch, clean starting jerni dev...", INF);
+          console.log("%s checksum mismatch, clean starting jerni dev…", INF);
 
           rewriteChecksum(dbFilePath);
 
