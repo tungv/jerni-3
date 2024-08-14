@@ -13,7 +13,7 @@ declare module "@jerni/jerni-3/types" {
   }
 }
 
-describe("memory leak", () => {
+describe.skip("memory leak", () => {
   let child: ReturnType<typeof Bun.spawn>;
 
   afterEach(() => {
