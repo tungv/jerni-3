@@ -40,15 +40,20 @@ export default async function* begin(journey: JourneyInstance, signal: AbortSign
     includeAll = true;
   }
 
+  const sortedIncludes = Array.from(includedTypes).sort();
+
   // $SERVER/subscribe
   const subscriptionUrl = new URL("subscribe", url);
   // subscribe url may have a include filter
   if (!includeAll) {
-    logger.debug("%s includes", DBG, Array.from(includedTypes).join(","));
-    subscriptionUrl.searchParams.set("includes", Array.from(includedTypes).join(","));
+    logger.debug("%s includes", DBG, sortedIncludes.join(","));
+    subscriptionUrl.searchParams.set("includes", sortedIncludes.join(","));
   } else {
     logger.debug("%s include all", DBG);
   }
+
+  // this is used to identify the stream of events
+  const eventStreamHashKey = getHashedIncludes(sortedIncludes);
 
   // $SERVER/events/latest
   const getLatestUrl = new URL("events/latest", url);
@@ -62,7 +67,7 @@ export default async function* begin(journey: JourneyInstance, signal: AbortSign
   });
   const latestEvent = (await response.json()) as JourneyCommittedEvent;
 
-  const clientLatest = await getLatestSavedEventId(includedTypes);
+  const clientLatest = await getLatestSavedEventId(eventStreamHashKey);
 
   const serverLatest = latestEvent.id;
 
@@ -85,14 +90,14 @@ export default async function* begin(journey: JourneyInstance, signal: AbortSign
 
       logger.log("saving %d events from event id #%d - #%d", data.length, data[0].id, data[data.length - 1].id);
 
-      await saveEvents(includedTypes, data);
+      await saveEvents(eventStreamHashKey, data);
 
       eventEmitter.emit(RECEIVED_EVENTS);
     }
   })();
 
   // ensure all events are cleaned up before the projection starts
-  await ensureIncludedEvents(includedTypes);
+  await ensureIncludedEvents(eventStreamHashKey);
 
   yield* longRunningHandleEvents(config, eventEmitter, signal);
 }
