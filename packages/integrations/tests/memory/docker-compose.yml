@@ -32,8 +32,6 @@ services:
 
   mongodb_v5:
     image: mongo:5
-    ports:
-      - 27017:27017
     volumes:
       - mongodb_v5:/data/db
     networks:

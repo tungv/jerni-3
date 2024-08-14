@@ -3,11 +3,10 @@ import { MongoDBModel, makeMongoDBStore, readPipeline } from "@jerni/store-mongo
 
 export default async function init() {
   const stores = [];
-  // duplicate the store 100x
-  for (let i = 0; i < 0; i++) {
+  for (let i = 0; i < 10; i++) {
     const model = new MongoDBModel({
       name: `test_${i}`,
-      version: "6",
+      version: "1",
       transform(event) {
         // console.log("transforming", event);
         // readPipeline([
@@ -35,13 +34,7 @@ export default async function init() {
       // biome-ignore lint/style/noNonNullAssertion: <explanation>
       url: process.env.MONGODB_URL!,
       models: [model],
-      logger: {
-        log: console.log,
-        debug: console.log,
-        error: () => {},
-        warn: () => {},
-        info: () => {},
-      },
+      logger,
     });
     stores.push(store);
   }

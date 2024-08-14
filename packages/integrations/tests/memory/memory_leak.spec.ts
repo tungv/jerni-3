@@ -7,7 +7,7 @@ import createServer from "./helpers/server";
 
 declare module "@jerni/jerni-3/types" {
   interface SubscribingEventDefinitions {
-    Test: {
+    Type_A: {
       key: number;
     };
   }
@@ -26,10 +26,6 @@ describe("memory leak", () => {
   test("memory leak", async () => {
     // run the test in bun
     const pathToSrc = path.resolve(import.meta.dir, "./fixtures/start.ts");
-    const pathToBin = `${import.meta.dir}/cli`;
-
-    // build the fixture
-    await $`bun build --compile ${pathToSrc} --outfile ${pathToBin}`;
 
     // clean mongodb db before the test
     await $`mongosh mongodb://localhost:27017/memory_leak --eval "db.dropDatabase()"`;
@@ -37,7 +33,7 @@ describe("memory leak", () => {
     using mock = createServer(
       Array.from({ length: 1000 }).map((_, i) => ({
         id: i + 1,
-        type: "Test",
+        type: "Type_A",
         payload: {
           key: i + 1,
         },

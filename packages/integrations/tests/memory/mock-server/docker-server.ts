@@ -3,9 +3,9 @@
 // it will assume it has a 10_000 events of type "Type_A", "Type_B", "Type_C"
 // it will repeat in this pattern, A, A, B, B, C, C, C, C, A, A, B, B, ...
 
-const MAX_EVENTS = 10_000;
+const MAX_EVENTS = 1000;
 const PULSE_COUNT = 200;
-const PULSE_TIME = 10;
+const PULSE_TIME = 100;
 
 // it will repeat in this pattern, A, A, B, B, C, C, C, C, A, A, B, B, ...
 const A = "Type_A";
@@ -15,14 +15,14 @@ const C = "Type_C";
 // a bunch of large size texts
 const texts = [
   "Ullam ut quaerat alias repellendus veniam minima nihil necessitatibus. Facilis ex recusandae nobis aliquid neque. Alias animi iure illo incidunt ratione ea libero ex. Eum facere atque debitis aperiam deserunt. Ea ex nobis expedita nisi ullam temporibus explicabo.".repeat(
-    20,
+    1,
   ),
 
   "Molestiae aliquam molestiae pariatur repellat ducimus adipisci. Quos dolorem tempora itaque eveniet mollitia dolor corporis quos neque. Rerum labore aut porro sequi. Nam occaecati deleniti totam. Atque culpa aperiam at ex. Unde dolorum nobis.".repeat(
-    20,
+    1,
   ),
   "Accusamus quisquam cum ipsa repellendus nisi. Explicabo quisquam occaecati. Quis cumque autem facere doloremque doloribus id mollitia possimus delectus.".repeat(
-    20,
+    1,
   ),
 ];
 
@@ -46,7 +46,6 @@ const server = Bun.serve({
 
     if (req.method === "GET" && url.pathname === "/events/latest") {
       const lastEvent = getEventById(MAX_EVENTS);
-      console.log("lastEvent", lastEvent);
 
       return Response.json(lastEvent);
     }
