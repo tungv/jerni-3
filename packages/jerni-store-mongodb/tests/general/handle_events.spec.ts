@@ -55,18 +55,7 @@ describe("handle events for models", () => {
 
     expect(lastSeen).toBe(3);
 
-    expect(changes).toEqual({
-      model_1_v1: {
-        added: 0,
-        updated: 0,
-        deleted: 0,
-      },
-      model_2_v1: {
-        added: 0,
-        updated: 0,
-        deleted: 0,
-      },
-    });
+    expect(changes).toEqual({});
 
     await store.dispose();
   });
