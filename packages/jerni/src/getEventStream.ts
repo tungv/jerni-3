@@ -1,5 +1,4 @@
 import type { URL } from "node:url";
-import { type EventSourceController, EventSourcePlus } from "event-source-plus";
 import messageListFromString from "./getMessage";
 import type { Logger } from "./types/Logger";
 import type { JourneyCommittedEvent } from "./types/events";
