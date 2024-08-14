@@ -37,8 +37,9 @@ export default async function getEventStreamFromUrl(
 
             if (msg.type === "idle") {
               logger.log(`idle for ${msg.idle_period}ms`);
-              // double the idle time
+              // double the idle time, but not more than 15 minutes
               idleTime *= 2;
+              idleTime = Math.min(idleTime, 15 * 60 * 1000);
               break;
             }
 
