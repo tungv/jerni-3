@@ -276,21 +276,14 @@ function getHashedIncludes(includes: string[]) {
   return hash(includes.sort());
 }
 
-export const getLatestSavedEventId = injectEventDatabase(async function getLatestSavedEventId(
-  includedTypes: Set<string>,
-) {
-  const includes = Array.from(includedTypes);
-  const hashed = getHashedIncludes(includes);
-
+export const getLatestSavedEventId = injectEventDatabase(async function getLatestSavedEventId(hashed: string) {
   return getEventDatabase().getLatestEventId(hashed);
 });
 
-export const saveEvents = injectEventDatabase(async function handleEvents(
-  includeList: Set<string>,
+export const saveEvents = injectEventDatabase(async function saveEvents(
+  hashed: string,
   events: JourneyCommittedEvent[],
 ) {
-  const hashed = getHashedIncludes(Array.from(includeList));
-
   const eventDatabase = getEventDatabase();
   await eventDatabase.insertEvents(hashed, events);
 });
@@ -301,10 +294,8 @@ const getEventStream = injectEventDatabase(async function getEventStream(
   return getEventDatabase().streamEventsFrom(lastProcessedId);
 });
 
-export const ensureIncludedEvents = injectEventDatabase(async function ensureIncludedEvents(includes: Set<string>) {
+export const ensureIncludedEvents = injectEventDatabase(async function ensureIncludedEvents(hashed: string) {
   const eventDatabase = getEventDatabase();
-
-  const hashed = getHashedIncludes(Array.from(includes));
 
   const lastSavedEventId = await eventDatabase.getLatestEventId(hashed);
 
