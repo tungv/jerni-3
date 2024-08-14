@@ -114,10 +114,11 @@ describe("New events added to subscription list", () => {
         inputSpies.subscriptionInputSpy.mock.calls[inputSpies.subscriptionInputSpy.mock.calls.length - 1];
       const searchParams = lastCall[0];
       const expectedParams = new URLSearchParams({
-        includes: "NEW_ACCOUNT_REGISTERED,ACCOUNT_UPDATED",
-        // expect subscribe from the beginning when there is a new event in the includes list
-        lastEventId: "0",
+        includes: "ACCOUNT_UPDATED,NEW_ACCOUNT_REGISTERED",
       });
+      const req = lastCall[1];
+
+      expect(req.headers.get("Last-Event-Id")).toBe("0");
 
       expect(searchParams).toEqual(expectedParams.toString());
 
