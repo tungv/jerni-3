@@ -61,8 +61,8 @@ describe("Multiple models", () => {
       },
     ]);
 
-    const reader1 = store.getDriver(model1);
-    const reader2 = store.getDriver(model2);
+    await using reader1 = await store.getDriver(model1);
+    await using reader2 = await store.getDriver(model2);
 
     const docs1 = await reader1.find({}).toArray();
     const docs2 = await reader2.find({}).toArray();

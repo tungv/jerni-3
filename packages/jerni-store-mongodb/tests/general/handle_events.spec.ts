@@ -106,7 +106,7 @@ describe("handle events for models", () => {
       },
     ]);
 
-    const collection = store.getDriver(model);
+    await using collection = await store.getDriver(model);
 
     expect(collection.collectionName).toBe("model_1_v1");
 

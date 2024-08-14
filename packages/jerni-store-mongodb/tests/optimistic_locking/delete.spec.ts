@@ -82,7 +82,7 @@ describe("Optimistic Locking - Delete", () => {
       },
     ]);
 
-    const collection = store.getDriver(model);
+    await using collection = await store.getDriver(model);
     const result = await collection.find().sort({ id: "desc" }).toArray();
 
     expect(result.length).toBe(4);
@@ -167,7 +167,7 @@ describe("Optimistic Locking - Delete", () => {
       },
     ]);
 
-    const collection = store.getDriver(model);
+    await using collection = await store.getDriver(model);
     const result = await collection.find().sort({ id: "desc" }).toArray();
 
     expect(result.length).toBe(3);

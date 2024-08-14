@@ -1,7 +1,7 @@
-import makeMongoDBStore from "../../src/store";
-import type MongoDBModel from "../../src/model";
-import type { JourneyCommittedEvent } from "../../src/types";
 import { describe, expect, test } from "bun:test";
+import type MongoDBModel from "../../src/model";
+import makeMongoDBStore from "../../src/store";
+import type { JourneyCommittedEvent } from "../../src/types";
 
 describe("Optimistic Locking - Insert", () => {
   test("it should not apply an insertOne twice", async () => {
@@ -59,7 +59,7 @@ describe("Optimistic Locking - Insert", () => {
       },
     ]);
 
-    const collection = store.getDriver(model);
+    await using collection = await store.getDriver(model);
     const result = await collection.find().toArray();
 
     expect(result.length).toBe(3);
@@ -123,7 +123,7 @@ describe("Optimistic Locking - Insert", () => {
       },
     ]);
 
-    const collection = store.getDriver(model);
+    await using collection = await store.getDriver(model);
     const result = await collection.find().toArray();
 
     expect(result.length).toBe(6);
