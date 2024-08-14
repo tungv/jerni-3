@@ -13,7 +13,7 @@ export default async function getEventStreamFromUrl(
   signal: AbortSignal,
   logger: Logger,
 ) {
-  console.log("getEventStreamFromUrl", url.toString());
+  logger.debug("getEventStreamFromUrl", url.toString());
   let currentFrom = initialFrom;
   let retryTime = 10;
   let errorCount = 0;
