@@ -5,10 +5,10 @@ import hash from "hash-sum";
 import UnrecoverableError from "./UnrecoverableError";
 import { DBG, INF } from "./cli-utils/log-headers";
 import { getEventDatabase, injectEventDatabase } from "./events-storage/injectDatabase";
+import getEventStreamFromUrl from "./getEventStream";
 import customFetch from "./helpers/fetch";
 import normalizeUrl from "./lib/normalize-url";
 import skip from "./lib/skip";
-import listenForEventsInServer from "./listenForEventsInServer";
 import type { JourneyConfig, Store } from "./types/config";
 import type { JourneyCommittedEvent } from "./types/events";
 import type { JourneyInstance } from "./types/journey";
@@ -75,19 +75,15 @@ export default async function* begin(journey: JourneyInstance, signal: AbortSign
   logger.debug("%s client latest event id:", DBG, clientLatest);
 
   if (serverLatest > clientLatest) {
-    logger.debug("%s catching up...", DBG);
+    logger.debug("%s catching up... (%d events left)", DBG, serverLatest - clientLatest);
   }
-
-  subscriptionUrl.searchParams.set("lastEventId", clientLatest.toString());
 
   const eventEmitter = new EventEmitter();
 
-  const eventStream = listenForEventsInServer(subscriptionUrl, signal, logger);
+  const eventStream = await getEventStreamFromUrl(clientLatest.toString(), subscriptionUrl, signal, logger);
 
   (async function receiveAndSaveEvents() {
-    for await (const stream of eventStream) {
-      const data = JSON.parse(stream) as JourneyCommittedEvent[];
-
+    for await (const data of eventStream) {
       logger.log("saving %d events from event id #%d - #%d", data.length, data[0].id, data[data.length - 1].id);
 
       await saveEvents(eventStreamHashKey, data);
