@@ -138,7 +138,6 @@ export default async function makeMongoDBStore(config: MongoDBStoreConfig): Prom
     // when it's no longer needed
     const disposable = Object.assign(collection, {
       [Symbol.asyncDispose]: async () => {
-        console.log("disposing");
         await client.close();
       },
     });
