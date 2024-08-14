@@ -5,10 +5,10 @@ import hash from "hash-sum";
 import UnrecoverableError from "./UnrecoverableError";
 import { DBG, INF } from "./cli-utils/log-headers";
 import { getEventDatabase, injectEventDatabase } from "./events-storage/injectDatabase";
+import getEventStreamFromUrl from "./getEventStream";
 import customFetch from "./helpers/fetch";
 import normalizeUrl from "./lib/normalize-url";
 import skip from "./lib/skip";
-import listenForEventsInServer from "./listenForEventsInServer";
 import type { JourneyConfig, Store } from "./types/config";
 import type { JourneyCommittedEvent } from "./types/events";
 import type { JourneyInstance } from "./types/journey";
@@ -40,15 +40,20 @@ export default async function* begin(journey: JourneyInstance, signal: AbortSign
     includeAll = true;
   }
 
+  const sortedIncludes = Array.from(includedTypes).sort();
+
   // $SERVER/subscribe
   const subscriptionUrl = new URL("subscribe", url);
   // subscribe url may have a include filter
   if (!includeAll) {
-    logger.debug("%s includes", DBG, Array.from(includedTypes).join(","));
-    subscriptionUrl.searchParams.set("includes", Array.from(includedTypes).join(","));
+    logger.debug("%s includes", DBG, sortedIncludes.join(","));
+    subscriptionUrl.searchParams.set("includes", sortedIncludes.join(","));
   } else {
     logger.debug("%s include all", DBG);
   }
+
+  // this is used to identify the stream of events
+  const eventStreamHashKey = getHashedIncludes(sortedIncludes);
 
   // $SERVER/events/latest
   const getLatestUrl = new URL("events/latest", url);
@@ -62,7 +67,7 @@ export default async function* begin(journey: JourneyInstance, signal: AbortSign
   });
   const latestEvent = (await response.json()) as JourneyCommittedEvent;
 
-  const clientLatest = await getLatestSavedEventId(includedTypes);
+  const clientLatest = await getLatestSavedEventId(eventStreamHashKey);
 
   const serverLatest = latestEvent.id;
 
@@ -70,29 +75,25 @@ export default async function* begin(journey: JourneyInstance, signal: AbortSign
   logger.debug("%s client latest event id:", DBG, clientLatest);
 
   if (serverLatest > clientLatest) {
-    logger.debug("%s catching up...", DBG);
+    logger.debug("%s catching up... (%d events left)", DBG, serverLatest - clientLatest);
   }
-
-  subscriptionUrl.searchParams.set("lastEventId", clientLatest.toString());
 
   const eventEmitter = new EventEmitter();
 
-  const eventStream = listenForEventsInServer(subscriptionUrl, signal, logger);
+  const eventStream = await getEventStreamFromUrl(clientLatest.toString(), subscriptionUrl, signal, logger);
 
   (async function receiveAndSaveEvents() {
-    for await (const stream of eventStream) {
-      const data = JSON.parse(stream) as JourneyCommittedEvent[];
-
+    for await (const data of eventStream) {
       logger.log("saving %d events from event id #%d - #%d", data.length, data[0].id, data[data.length - 1].id);
 
-      await saveEvents(includedTypes, data);
+      await saveEvents(eventStreamHashKey, data);
 
       eventEmitter.emit(RECEIVED_EVENTS);
     }
   })();
 
   // ensure all events are cleaned up before the projection starts
-  await ensureIncludedEvents(includedTypes);
+  await ensureIncludedEvents(eventStreamHashKey);
 
   yield* longRunningHandleEvents(config, eventEmitter, signal);
 }
@@ -271,21 +272,14 @@ function getHashedIncludes(includes: string[]) {
   return hash(includes.sort());
 }
 
-export const getLatestSavedEventId = injectEventDatabase(async function getLatestSavedEventId(
-  includedTypes: Set<string>,
-) {
-  const includes = Array.from(includedTypes);
-  const hashed = getHashedIncludes(includes);
-
+export const getLatestSavedEventId = injectEventDatabase(async function getLatestSavedEventId(hashed: string) {
   return getEventDatabase().getLatestEventId(hashed);
 });
 
-export const saveEvents = injectEventDatabase(async function handleEvents(
-  includeList: Set<string>,
+export const saveEvents = injectEventDatabase(async function saveEvents(
+  hashed: string,
   events: JourneyCommittedEvent[],
 ) {
-  const hashed = getHashedIncludes(Array.from(includeList));
-
   const eventDatabase = getEventDatabase();
   await eventDatabase.insertEvents(hashed, events);
 });
@@ -296,10 +290,8 @@ const getEventStream = injectEventDatabase(async function getEventStream(
   return getEventDatabase().streamEventsFrom(lastProcessedId);
 });
 
-export const ensureIncludedEvents = injectEventDatabase(async function ensureIncludedEvents(includes: Set<string>) {
+export const ensureIncludedEvents = injectEventDatabase(async function ensureIncludedEvents(hashed: string) {
   const eventDatabase = getEventDatabase();
-
-  const hashed = getHashedIncludes(Array.from(includes));
 
   const lastSavedEventId = await eventDatabase.getLatestEventId(hashed);
 

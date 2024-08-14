@@ -12,7 +12,7 @@
     "jsx": "preserve",
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
-    "allowJs": true,
+    "verbatimModuleSyntax": true,
     "noEmit": true,
     "types": [
       "bun-types" // add Bun global

@@ -55,7 +55,9 @@ test(
 
     // check that the last event id is sent in the headers
     const lastCall = inputSpies.subscriptionInputSpy.mock.calls[inputSpies.subscriptionInputSpy.mock.calls.length - 1];
-    expect(lastCall[0]).toEqual("lastEventId=1");
+    const req = lastCall[1];
+
+    expect(req.headers.get("Last-Event-Id")).toBe("1");
 
     // check that the events are persisted in the database
     const eventDatabase = getEventDatabase();

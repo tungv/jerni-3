@@ -1,14 +1,14 @@
 import { URL } from "node:url";
 import { nanoid } from "nanoid";
 import { readPackageUpSync } from "read-package-up";
-import type { Logger } from "src/types/Logger";
+import customFetch from "../helpers/fetch";
+import type { Logger } from "../types/Logger";
 import type {
   CommittingEventDefinitions,
   JourneyCommittedEvent,
   ToBeCommittedJourneyEvent,
   TypedJourneyCommittedEvent,
-} from "src/types/events";
-import customFetch from "../helpers/fetch";
+} from "../types/events";
 
 const parentPackage = readPackageUpSync();
 

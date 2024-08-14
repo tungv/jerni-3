@@ -7,11 +7,16 @@
     "test": "NODE_ENV=test bun test"
   },
   "dependencies": {
-    "@jerni/store-mongodb": "link:@jerni/store-mongodb",
-    "@jerni/jerni-3": "link:@jerni/jerni-3",
+    "@jerni/jerni-3": "workspace:*",
+    "@jerni/store-mongodb": "workspace:*",
+    "@types/pidusage": "^2.0.5",
+    "hash-sum": "^2.0.0",
     "mongodb": "^6.0.0",
     "mongodb-client-encryption": "^6.0.0",
     "nanoid": "^5.0.7",
-    "hash-sum": "^2.0.0"
+    "pidusage": "^3.0.2"
+  },
+  "devDependencies": {
+    "@minikit/pretty-bytes": "^0.2.0"
   }
 }

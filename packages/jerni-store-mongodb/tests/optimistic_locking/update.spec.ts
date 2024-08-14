@@ -1,7 +1,7 @@
-import makeMongoDBStore from "../../src/store";
-import type MongoDBModel from "../../src/model";
-import type { JourneyCommittedEvent } from "../../src/types";
 import { describe, expect, test } from "bun:test";
+import type MongoDBModel from "../../src/model";
+import makeMongoDBStore from "../../src/store";
+import type { JourneyCommittedEvent } from "../../src/types";
 
 describe("Optimistic Locking - Update", () => {
   test("it should not apply an updateOne twice with `changes`", async () => {
@@ -76,7 +76,7 @@ describe("Optimistic Locking - Update", () => {
       },
     ]);
 
-    const collection = store.getDriver(model);
+    await using collection = await store.getDriver(model);
     const result = await collection.find().sort({ id: "desc" }).toArray();
     expect(result.length).toBe(4);
     expect(result.map((x) => x.name)).toEqual(["test_4", "------", "------", "test_1"]);
@@ -157,7 +157,7 @@ describe("Optimistic Locking - Update", () => {
       },
     ]);
 
-    const collection = store.getDriver(model);
+    await using collection = await store.getDriver(model);
     const result = await collection.find().sort({ id: "desc" }).toArray();
     expect(result.length).toBe(4);
     expect(result.map((x) => x.name)).toEqual(["test_4", "------", "------", "test_1"]);
@@ -239,7 +239,7 @@ describe("Optimistic Locking - Update", () => {
       },
     ]);
 
-    const collection = store.getDriver(model);
+    await using collection = await store.getDriver(model);
     const result = await collection.find().sort({ id: "desc" }).toArray();
     expect(result.length).toBe(6);
     expect(result.map((x) => x.name)).toEqual(["test_6", "------", "------", "test_3", "------", "test_1"]);
@@ -323,7 +323,7 @@ describe("Optimistic Locking - Update", () => {
       },
     ]);
 
-    const collection = store.getDriver(model);
+    await using collection = await store.getDriver(model);
     const result = await collection.find().sort({ id: "desc" }).toArray();
     expect(result.length).toBe(6);
     expect(result.map((x) => x.name)).toEqual(["test_6", "------", "------", "test_3", "------", "test_1"]);

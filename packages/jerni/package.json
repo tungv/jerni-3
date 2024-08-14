@@ -7,7 +7,6 @@
     "start-jerni": "./scripts/run-cli.js"
   },
   "dependencies": {
-    "event-source-plus": "^0.1.1",
     "hash-sum": "^2.0.0",
     "lodash": "^4.17.21",
     "mongodb": "^6.8.0",

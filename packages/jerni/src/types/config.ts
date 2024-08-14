@@ -1,4 +1,4 @@
-import type skip from "src/lib/skip";
+import type skip from "../lib/skip";
 import type { Logger } from "./Logger";
 import type { JourneyCommittedEvent } from "./events";
 
@@ -48,7 +48,7 @@ export interface Store {
   registerModels: (map: Map<any, Store>) => void;
 
   // biome-ignore lint/suspicious/noExplicitAny: Jerni can take any model and store, there is no way to enforce the type here. However, the type of mongodb store is enforced in the store-mongodb package
-  getDriver(model: any): any;
+  getDriver(model: any): Promise<AsyncDisposable>;
   // biome-ignore lint/suspicious/noExplicitAny: the return type is dependent on the implementation of the store
   handleEvents: (events: JourneyCommittedEvent[]) => Promise<any>;
   getLastSeenId: () => Promise<number>;
@@ -59,6 +59,8 @@ export interface Store {
   dispose: () => Promise<void>;
 }
 
-type OnError = (error: Error, event: JourneyCommittedEvent) => undefined | typeof skip;
+type OnError =
+  | ((error: Error, event: JourneyCommittedEvent) => typeof skip)
+  | ((error: Error, event: JourneyCommittedEvent) => void);
 
 type OnReport = (name: string, msg?: unknown) => void;

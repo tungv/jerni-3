@@ -30,43 +30,43 @@ export default async function initWorker(filePath: string | undefined, port: num
     );
   }
 
-  try {
-    // try to run initializer to get the journey object
-    const journey = await initializer();
+  const ctrl = new AbortController();
 
-    const ctrl = new AbortController();
+  // call server.stop when process is killed
+  process.on("SIGINT", () => {
+    ctrl.abort();
+    process.exit(0);
+  });
+  // call server.stop ctrl + c is pressed
+  process.on("SIGTERM", () => {
+    ctrl.abort();
+    process.exit(0);
+  });
 
-    // call server.stop when process is killed
-    process.on("SIGINT", () => {
-      ctrl.abort();
-      process.exit(0);
-    });
-    // call server.stop ctrl + c is pressed
-    process.on("SIGTERM", () => {
-      ctrl.abort();
-      process.exit(0);
-    });
+  const job: Job = {
+    async start() {
+      // try to run initializer to get the journey object
+      try {
+        const journey = await initializer();
 
-    const job: Job = {
-      async start() {
         startHealthCheckServer(port, ctrl.signal);
 
         for await (const _outputs of begin(journey, ctrl.signal)) {
           // console.log("outputs", outputs);
         }
-      },
+      } catch (error) {
+        console.error("%s cannot initialize journey object", ERR);
 
-      async stop() {
-        ctrl.abort();
-      },
-    };
+        throw error;
+      }
+    },
 
-    return job;
-  } catch (error) {
-    console.error("%s cannot initialize journey object", ERR);
+    async stop() {
+      ctrl.abort();
+    },
+  };
 
-    throw error;
-  }
+  return job;
 }
 
 // create a http server that return status code 200 when it's ready
@@ -87,7 +87,7 @@ async function startHealthCheckServer(port: number, signal: AbortSignal) {
     },
   });
 
-  console.log("%s health check server is running at %s", INF, bold("http://localhost:3000"));
+  console.log("%s health check server is running at %s", INF, bold(`http://localhost:${port}`));
 
   const closeAllActiveConnections = true;
 

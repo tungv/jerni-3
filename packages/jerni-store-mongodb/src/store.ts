@@ -1,5 +1,5 @@
 import { setTimeout } from "node:timers/promises";
-import { type Collection, type Document, MongoClient } from "mongodb";
+import { type Collection, type Db, type Document, MongoClient } from "mongodb";
 import makeTestLogger from "../tests/helpers/makeTestLogger";
 import getCollectionName from "./getCollectionName";
 import type MongoDBModel from "./model";
@@ -16,8 +16,28 @@ const defaultLogger = console;
 const testLogger = makeTestLogger();
 
 export default async function makeMongoDBStore(config: MongoDBStoreConfig): Promise<MongoDBStore> {
-  const client = await MongoClient.connect(config.url);
-  const db = client.db(config.dbName);
+  const { url, dbName } = config;
+
+  async function runDb<T>(cb: (client: MongoClient, db: Db) => Promise<T> | T) {
+    const client = new MongoClient(url);
+    await client.connect();
+    const db = client.db(dbName);
+
+    try {
+      return await cb(client, db);
+    } finally {
+      await client.close();
+    }
+  }
+
+  async function getCollection() {
+    const client = new MongoClient(url);
+    await client.connect();
+    const db = client.db(dbName);
+
+    return [client, db] as const;
+  }
+
   let hasStopped = false;
 
   const models = config.models;
@@ -25,26 +45,28 @@ export default async function makeMongoDBStore(config: MongoDBStoreConfig): Prom
   // use test logger if NODE_ENV is test
   const logger = process.env.NODE_ENV === "test" ? testLogger : config.logger || defaultLogger;
 
-  const snapshotCollection = db.collection<SnapshotDocument>("jerni__snapshot");
+  await runDb(async (_, db) => {
+    const snapshotCollection = db.collection<SnapshotDocument>("jerni__snapshot");
 
-  // ensure snapshot collection
-  for (const model of models) {
-    const fullCollectionName = getCollectionName(model);
-    await snapshotCollection.updateOne(
-      {
-        full_collection_name: fullCollectionName,
-      },
-      {
-        $setOnInsert: {
-          __v: 0,
+    // ensure snapshot collection
+    for (const model of models) {
+      const fullCollectionName = getCollectionName(model);
+      await snapshotCollection.updateOne(
+        {
           full_collection_name: fullCollectionName,
         },
-      },
-      {
-        upsert: true,
-      },
-    );
-  }
+        {
+          $setOnInsert: {
+            __v: 0,
+            full_collection_name: fullCollectionName,
+          },
+        },
+        {
+          upsert: true,
+        },
+      );
+    }
+  });
 
   async function* listen() {
     while (!hasStopped) {
@@ -107,8 +129,21 @@ export default async function makeMongoDBStore(config: MongoDBStoreConfig): Prom
     }
   }
 
-  function getDriver<T extends Document>(model: MongoDBModel<T>): Collection<T> {
-    return db.collection(getCollectionName(model));
+  async function getDriver<T extends Document>(model: MongoDBModel<T>): Promise<Collection<T> & AsyncDisposable> {
+    const [client, db] = await getCollection();
+    const collection = db.collection<T>(getCollectionName(model));
+
+    // add [Symbol.asyncDispose] to the return value
+    // so that the driver can be disposed by the caller
+    // when it's no longer needed
+    const disposable = Object.assign(collection, {
+      [Symbol.asyncDispose]: async () => {
+        console.log("disposing");
+        await client.close();
+      },
+    });
+
+    return disposable;
   }
 
   async function handleEvents(events: JourneyCommittedEvent[]): Promise<{ [modelIdentifier: string]: Changes }> {
@@ -117,16 +152,24 @@ export default async function makeMongoDBStore(config: MongoDBStoreConfig): Prom
       updated: 0,
       deleted: 0,
     }));
-    await handleEventsRecursive(events, changes);
+
+    await runDb((_, db) => handleEventsRecursive(db, events, changes));
 
     return Object.fromEntries(
-      models.map((model, modelIndex) => {
-        return [`${model.name}_v${model.version}`, changes[modelIndex] ?? { added: 0, updated: 0, deleted: 0 }];
+      models.flatMap((model, modelIndex) => {
+        if (!changes[modelIndex]) {
+          return [];
+        }
+        if (changes[modelIndex].added === 0 && changes[modelIndex].updated === 0 && changes[modelIndex].deleted === 0) {
+          return [];
+        }
+
+        return [[`${model.name}_v${model.version}`, changes[modelIndex] ?? { added: 0, updated: 0, deleted: 0 }]];
       }),
     );
   }
 
-  async function handleEventsRecursive(events: JourneyCommittedEvent[], changes: Changes[]) {
+  async function handleEventsRecursive(db: Db, events: JourneyCommittedEvent[], changes: Changes[]) {
     let interruptedIndex = -1;
     const signals: Signal<Document>[] = [];
 
@@ -192,7 +235,7 @@ export default async function makeMongoDBStore(config: MongoDBStoreConfig): Prom
             __v: events[eventIndex].id,
           };
         });
-        const collection = getDriver(model);
+        const collection = db.collection(getCollectionName(model));
 
         const bulkWriteOperations = getBulkOperations(changesWithOp);
 
@@ -209,6 +252,7 @@ export default async function makeMongoDBStore(config: MongoDBStoreConfig): Prom
     if (interruptedIndex !== 0) {
       // the last seen id of snapshot should be the interrupted index -1 or the last event id if no interruption
       const lastSeenId = interruptedIndex === -1 ? events[events.length - 1].id : events[interruptedIndex - 1].id;
+      const snapshotCollection = db.collection<SnapshotDocument>("jerni__snapshot");
       await snapshotCollection.updateMany(
         {
           full_collection_name: { $in: models.map(getCollectionName) },
@@ -241,51 +285,57 @@ export default async function makeMongoDBStore(config: MongoDBStoreConfig): Prom
         return;
       }
 
-      await handleEventsRecursive(remainingEvents, changes);
+      await handleEventsRecursive(db, remainingEvents, changes);
     }
   }
 
   async function getLastSeenId() {
-    const snapshotCollection = db.collection<SnapshotDocument>("jerni__snapshot");
+    return await runDb(async (_, db) => {
+      const snapshotCollection = db.collection<SnapshotDocument>("jerni__snapshot");
 
-    const registeredModels = await snapshotCollection
-      .find({
-        full_collection_name: { $in: models.map(getCollectionName) },
-      })
-      .toArray();
+      const registeredModels = await snapshotCollection
+        .find({
+          full_collection_name: { $in: models.map(getCollectionName) },
+        })
+        .toArray();
 
-    if (registeredModels.length === 0) return 0;
+      if (registeredModels.length === 0) return 0;
 
-    return Math.max(0, Math.min(...registeredModels.map((doc) => doc.__v)));
+      return Math.max(0, Math.min(...registeredModels.map((doc) => doc.__v)));
+    });
   }
 
   async function clean() {
-    // delete mongodb collections
-    for (const model of models) {
-      try {
-        const collection = getDriver(model);
-        await collection.drop();
-      } catch (ex) {
-        // ignore
+    await runDb(async (_, db) => {
+      // delete mongodb collections
+      for (const model of models) {
+        try {
+          const collection = db.collection(getCollectionName(model));
+          await collection.drop();
+        } catch (ex) {
+          // ignore
+        }
       }
-    }
 
-    // delete rows in snapshot collection
-    await snapshotCollection.updateMany(
-      {
-        full_collection_name: { $in: models.map(getCollectionName) },
-      },
-      {
-        $set: {
-          __v: 0,
+      // delete rows in snapshot collection
+
+      const snapshotCollection = db.collection<SnapshotDocument>("jerni__snapshot");
+      await snapshotCollection.updateMany(
+        {
+          full_collection_name: { $in: models.map(getCollectionName) },
         },
-      },
-    );
+        {
+          $set: {
+            __v: 0,
+          },
+        },
+      );
+    });
   }
 
   async function dispose() {
     hasStopped = true;
     // close connections
-    await client.close();
+    // await client.close();
   }
 }

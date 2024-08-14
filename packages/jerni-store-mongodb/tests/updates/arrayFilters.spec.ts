@@ -1,7 +1,7 @@
-import makeMongoDBStore from "../../src/store";
-import type MongoDBModel from "../../src/model";
-import type { JourneyCommittedEvent } from "../../src/types";
 import { describe, expect, test } from "bun:test";
+import type MongoDBModel from "../../src/model";
+import makeMongoDBStore from "../../src/store";
+import type { JourneyCommittedEvent } from "../../src/types";
 
 describe("Update Many using Array Filters", () => {
   test("it should apply arrayFilters option", async () => {
@@ -64,7 +64,7 @@ describe("Update Many using Array Filters", () => {
       },
     ]);
 
-    const collection = store.getDriver(model);
+    await using collection = await store.getDriver(model);
     const result = await collection.find().sort({ id: "desc" }).toArray();
     expect(result.length).toBe(3);
     expect(result.map((student) => student.grades)).toEqual([

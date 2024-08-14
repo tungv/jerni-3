@@ -2,14 +2,13 @@ import "./mock_read_package_up";
 
 import { mock } from "bun:test";
 import type { JourneyConfig } from "@jerni/jerni-3/types";
-import type { JourneyCommittedEvent } from "@jerni/store-mongodb/types";
 import createJourney from "jerni";
 import makeTestLogger from "./makeTestLogger";
 
 export default async function initJourney(
   stores: JourneyConfig["stores"],
   serverPort: number,
-  onError?: (error: Error, event: JourneyCommittedEvent) => void,
+  onError?: JourneyConfig["onError"],
 ) {
   const logger = makeTestLogger();
 
