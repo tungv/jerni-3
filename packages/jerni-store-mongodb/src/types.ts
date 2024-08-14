@@ -63,7 +63,7 @@ export interface MongoDBStore {
     >,
   ) => void;
 
-  getDriver<T extends Document>(model: MongoDBModel<T>): Promise<Collection<T> & AsyncDisposable>;
+  getDriver<T extends Document>(model: MongoDBModel<T>): Promise<AsyncDisposable>;
   handleEvents: (events: JourneyCommittedEvent[]) => Promise<{ [modelIdentifier: string]: Changes }>;
   getLastSeenId: () => Promise<number>;
   toString(): string;
