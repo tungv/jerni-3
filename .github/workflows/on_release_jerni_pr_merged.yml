@@ -9,25 +9,28 @@ on:
       - main
 
   workflow_dispatch:
-    
+
 jobs:
   upload_artifact:
     # only run when PR is merged into main or manually triggered
     if: (startsWith(github.event.pull_request.head.ref, 'release') && github.event.pull_request.merged == true) || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
-    permissions: 
+    permissions:
       contents: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: get version from package.json
         id: package-version
         uses: martinbeentjes/npm-get-version-action@v1.3.1
         with:
           path: packages/jerni
 
-      - uses: oven-sh/setup-bun@v1
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.1.22
+
       - name: Build jerni CLI
         run: ./scripts/build-cli.sh
 
@@ -37,8 +40,7 @@ jobs:
         with:
           tag: ${{ steps.package-version.outputs.current-version }}
           name: ${{ steps.package-version.outputs.current-version }}
-          artifacts: 
-            ./build/src/jerni-linux-x64,
+          artifacts: ./build/src/jerni-linux-x64,
             ./build/src/jerni-darwin-x64,
             ./build/src/jerni-win-x64.exe,
             ./build/src/jerni-linux-arm64,
@@ -52,10 +54,9 @@ jobs:
   publish_jsr:
     # only run when PR is merged into main or manually triggered
     if: (startsWith(github.event.pull_request.head.ref, 'release') && github.event.pull_request.merged == true) || github.event_name == 'workflow_dispatch'
-    permissions: 
+    permissions:
       contents: read
       id-token: write
     needs: upload_artifact
 
     uses: ./.github/workflows/publish_jsr.yml
-      
