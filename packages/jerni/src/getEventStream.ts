@@ -23,6 +23,7 @@ export default async function getEventStreamFromUrl(
     async start(controller) {
       while (!signal.aborted) {
         const connectionStart = Date.now();
+
         try {
           const eventStream = retrieveJourneyCommittedEvents(url, currentFrom, idleTime, signal);
 
@@ -52,7 +53,7 @@ export default async function getEventStreamFromUrl(
             }
           }
 
-          // has returned due to counterBeforeReset
+          // has returned due to inactivity
           retryTime = 10;
           logger.log("reconnect due to inactivity");
         } catch (ex) {
@@ -113,7 +114,7 @@ async function* retrieveJourneyCommittedEvents(
 
     const stream = resp.body;
 
-    let pending = "";
+    const pending = [] as string[];
 
     const decoder = new TextDecoder();
 
@@ -122,11 +123,12 @@ async function* retrieveJourneyCommittedEvents(
     // read the body
     for await (const chunk of stream) {
       const utf8 = decoder.decode(chunk, { stream: true });
-      pending += utf8;
+      pending.push(utf8);
 
-      const r = messageListFromString(pending);
+      const r = messageListFromString(pending.join(""));
 
-      pending = r.leftoverData;
+      pending[0] = r.leftoverData;
+      pending.length = 1;
 
       const events = r.messages.flatMap((message) => {
         if (message.event === "INCMSG") {
