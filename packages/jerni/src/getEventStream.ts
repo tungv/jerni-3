@@ -4,6 +4,7 @@ import type { Logger } from "./types/Logger";
 import type { JourneyCommittedEvent } from "./types/events";
 
 const THIRTY_SECONDS = 30 * 1000;
+const FIFTEEN_MINUTES = 15 * 60 * 1000;
 
 const RETRY_TIMES = [10, 20, 30, 60, 120, 300, 600, 1200, 1800, 3600];
 
@@ -25,6 +26,7 @@ export default async function getEventStreamFromUrl(
         const connectionStart = Date.now();
 
         try {
+          logger.info(`connecting to ${url.toString()} from ${currentFrom} | max idle time: ${idleTime}ms`);
           const eventStream = retrieveJourneyCommittedEvents(url, currentFrom, idleTime, signal);
 
           for await (const msg of eventStream) {
@@ -38,8 +40,7 @@ export default async function getEventStreamFromUrl(
             if (msg.type === "idle") {
               logger.log(`idle for ${msg.idle_period}ms`);
               // double the idle time, but not more than 15 minutes
-              idleTime *= 2;
-              idleTime = Math.min(idleTime, 15 * 60 * 1000);
+              idleTime = Math.min(idleTime * 2, FIFTEEN_MINUTES);
               break;
             }
 
@@ -63,7 +64,6 @@ export default async function getEventStreamFromUrl(
           logger.error("reconnect due to error", ex);
         }
 
-        Bun.gc(false);
         await Bun.sleep(retryTime);
       }
     },
