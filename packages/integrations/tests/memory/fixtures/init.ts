@@ -9,13 +9,13 @@ export default async function init() {
       version: "1",
       transform(event) {
         // console.log("transforming", event);
-        // readPipeline([
-        //   {
-        //     $match: {
-        //       id: { $lte: event.payload.id },
-        //     },
-        //   },
-        // ]);
+        readPipeline([
+          {
+            $match: {
+              id: { $lte: event.payload.id },
+            },
+          },
+        ]);
         return [
           {
             insertOne: {

@@ -55,7 +55,12 @@ export function runWithModel<DocumentType extends Document>(
 }
 
 export function clearModelSlots() {
+  // clear all slots
+  for (const slots of modelSlotsMap.values()) {
+    slots.clear();
+  }
   modelSlotsMap.clear();
+  Bun.gc(true);
 }
 
 export default function readPipeline<DocumentType extends Document>(
