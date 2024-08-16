@@ -1,4 +1,4 @@
-interface Message {
+export interface Message {
   id: string;
   data: string;
   event: string;
