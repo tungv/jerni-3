@@ -12,6 +12,7 @@
     "mongodb": "^6.8.0",
     "nanoid": "^4.0.2",
     "picocolors": "^1.0.0",
+    "pretty-bytes": "^6.1.1",
     "read-package-up": "^11.0.0",
     "typescript": "^5.2.2",
     "yaml": "^2.4.5"
