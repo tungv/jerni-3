@@ -60,7 +60,6 @@ export function clearModelSlots() {
     slots.clear();
   }
   modelSlotsMap.clear();
-  Bun.gc(true);
 }
 
 export default function readPipeline<DocumentType extends Document>(
