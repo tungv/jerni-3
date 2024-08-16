@@ -69,7 +69,8 @@ export default async function* begin(journey: JourneyInstance, signal: AbortSign
   const lastSeenIds = await Promise.all(config.stores.map((store) => store.getLastSeenId()));
 
   // adding a zero to the list to ensure it will always return a finite number
-  const clientLatest = Math.max(0, Math.min(...lastSeenIds.filter((id) => id !== null)));
+  const furthest = Math.min(...lastSeenIds.filter((id) => id !== null));
+  const clientLatest = Number.isFinite(furthest) ? furthest : 0;
 
   const serverLatest = latestEvent.id;
 
