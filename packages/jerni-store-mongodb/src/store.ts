@@ -238,7 +238,7 @@ export default async function makeMongoDBStore(config: MongoDBStoreConfig): Prom
 
         const bulkWriteOperations = getBulkOperations(changesWithOp);
 
-        const res = await collection.bulkWrite(bulkWriteOperations);
+        const res = await collection.bulkWrite(bulkWriteOperations, { ordered: true });
 
         changesForThisModel.added += res.upsertedCount;
         changesForThisModel.updated += res.modifiedCount;
