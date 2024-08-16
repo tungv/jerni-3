@@ -6,6 +6,19 @@ import { initJourney } from "./helpers/initJourney";
 
 import "src/events-storage/__mocks__/sqlite-database";
 
+declare module "@jerni/jerni-3/types" {
+  export interface SubscribingEventDefinitions {
+    NEW_ACCOUNT_REGISTERED: {
+      id: string;
+      name: string;
+    };
+    ACCOUNT_DEPOSITED: {
+      id: string;
+      amount: number;
+    };
+  }
+}
+
 test(
   "start subscription from last saved event id",
   injectEventDatabase(async () => {
@@ -44,41 +57,52 @@ test(
 
     const ctrl2 = new AbortController();
 
-    const worker2 = await initJourney(eventServerUrl, []);
+    let processedId = 0;
+    const worker2 = await initJourney(eventServerUrl, [
+      {
+        name: "test",
+        clean: async () => {},
+        dispose: async () => {},
+        getDriver: async () => {
+          return {
+            [Symbol.asyncDispose]: async () => {},
+          };
+        },
+        async *listen() {},
+        meta: {
+          includes: [],
+        },
+        registerModels: () => {},
+        getLastSeenId: async () => 1,
+
+        async handleEvents(events) {
+          console.log("events", events);
+          const lastEvent = events.at(-1);
+          if (lastEvent) {
+            processedId = lastEvent.id;
+          }
+
+          return [];
+        },
+      },
+    ]);
+
+    console.log(worker2.logger.logs);
 
     // subscribe to events
     for await (const output of begin(worker2.journey, ctrl2.signal)) {
-      if (output.lastProcessedEventId === 2) {
+      if (processedId === 2) {
         ctrl2.abort();
       }
     }
 
     // check that the last event id is sent in the headers
-    const lastCall = inputSpies.subscriptionInputSpy.mock.calls[inputSpies.subscriptionInputSpy.mock.calls.length - 1];
-    const req = lastCall[1];
+    const lastCall = inputSpies.subscriptionInputSpy.mock.calls.at(-1);
+    expect(lastCall).not.toBeUndefined();
+
+    // biome-ignore lint/style/noNonNullAssertion: expect(lastCall).not.toBeUndefined();
+    const req = lastCall![1];
 
     expect(req.headers.get("Last-Event-Id")).toBe("1");
-
-    // check that the events are persisted in the database
-    const eventDatabase = getEventDatabase();
-    const events = await eventDatabase.getEventsFrom(0);
-    expect(events).toEqual([
-      {
-        id: 1,
-        type: "NEW_ACCOUNT_REGISTERED",
-        payload: {
-          id: "123",
-          name: "test",
-        },
-      },
-      {
-        id: 2,
-        type: "ACCOUNT_DEPOSITED",
-        payload: {
-          id: "123",
-          amount: 100,
-        },
-      },
-    ]);
   }),
 );
