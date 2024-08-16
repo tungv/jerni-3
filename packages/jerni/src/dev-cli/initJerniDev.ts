@@ -79,7 +79,7 @@ export default async function initJerniDev(filePath: string | undefined) {
           //    },
           // ]
 
-          for (const storeOutput of outputs.output) {
+          for (const storeOutput of outputs) {
             const collectionNames = Object.keys(storeOutput);
             for (const collectionName of collectionNames) {
               const collectionOutput = storeOutput[collectionName];
@@ -103,7 +103,7 @@ export default async function initJerniDev(filePath: string | undefined) {
           console.log(
             "%s output: %O",
             INF,
-            inspect(outputs.output, { depth: 2, colors: true, compact: 1, breakLength: Number.POSITIVE_INFINITY }),
+            inspect(outputs, { depth: 2, colors: true, compact: 1, breakLength: Number.POSITIVE_INFINITY }),
           );
         }
       } catch (error) {
