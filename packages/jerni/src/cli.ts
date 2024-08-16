@@ -11,8 +11,9 @@ const [_bun, _script, fileName] = process.argv;
 await guardErrors(
   async () => {
     const port = process.env.PORT ? Number.parseInt(process.env.PORT, 10) : 4000;
+    const sqlitePath = process.env.JERNI_CLI_SQLITE_PATH || ":memory:";
 
-    const job = await startWorker(fileName, port);
+    const job = await startWorker(fileName, port, sqlitePath);
 
     try {
       await job.start();
