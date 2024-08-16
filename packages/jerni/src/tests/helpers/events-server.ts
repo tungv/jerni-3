@@ -61,7 +61,7 @@ export default function createServer(events: JourneyCommittedEvent[], subscripti
     const url = new URL(req.url);
 
     // get last event id from req headers
-    const lastEventId = url.searchParams.get("lastEventId");
+    const lastEventId = req.headers.get("last-event-id");
     function largerThanLastEventId(event: JourneyCommittedEvent) {
       return event.id > Number.parseInt(lastEventId || "0", 10);
     }
