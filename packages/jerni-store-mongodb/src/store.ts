@@ -266,13 +266,7 @@ export default async function makeMongoDBStore(config: MongoDBStoreConfig): Prom
 
     // continue with remaining events
     if (interruptedIndex !== -1) {
-      const interruptedEvent = events[interruptedIndex];
       const remainingEvents = events.slice(interruptedIndex);
-
-      logger.debug(
-        "priming data for event:\n%s",
-        require("node:util").inspect(interruptedEvent, { depth: null, colors: true }),
-      );
 
       // execute signals
       for (const signal of signals) {
