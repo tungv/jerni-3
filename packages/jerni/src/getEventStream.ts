@@ -98,6 +98,13 @@ export default async function getEventStreamFromUrl(
           retryTime = 10;
           logger.log("reconnect due to inactivity");
         } catch (ex) {
+          // check if the error is due to abort signal
+          // immediately terminate the stream if signal is aborted
+          if (signal.aborted) {
+            logger.info("terminating ReadableStream due to AbortSignal");
+            break;
+          }
+
           errorCount++;
           retryTime = RETRY_TIMES[errorCount] ?? RETRY_TIMES.at(-1);
           logger.error("reconnect due to error", ex);
@@ -105,6 +112,8 @@ export default async function getEventStreamFromUrl(
 
         await Bun.sleep(retryTime);
       }
+
+      controller.close();
     },
   });
 }
@@ -135,6 +144,7 @@ async function* retrieveJourneyCommittedEvents(
   batchSize: number,
   signal: AbortSignal,
 ): AsyncGenerator<EventStreamReturnType, void, unknown> {
+  signal.throwIfAborted();
   try {
     const resp = await fetch(url.toString(), {
       headers: {
