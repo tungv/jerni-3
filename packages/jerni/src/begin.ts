@@ -9,6 +9,7 @@ import getEventStreamFromUrl from "./getEventStream";
 import customFetch from "./helpers/fetch";
 import normalizeUrl from "./lib/normalize-url";
 import skip from "./lib/skip";
+import type { Logger } from "./types/Logger";
 import type { JourneyConfig, Store } from "./types/config";
 import type { JourneyCommittedEvent } from "./types/events";
 import type { JourneyInstance } from "./types/journey";
@@ -52,9 +53,6 @@ export default async function* begin(journey: JourneyInstance, signal: AbortSign
     logger.debug("%s include all", DBG);
   }
 
-  // this is used to identify the stream of events
-  const eventStreamHashKey = getHashedIncludes(sortedIncludes);
-
   // $SERVER/events/latest
   const getLatestUrl = new URL("events/latest", url);
 
@@ -67,7 +65,11 @@ export default async function* begin(journey: JourneyInstance, signal: AbortSign
   });
   const latestEvent = (await response.json()) as JourneyCommittedEvent;
 
-  const clientLatest = await getLatestSavedEventId(eventStreamHashKey);
+  // get latest projected id
+  const lastSeenIds = await Promise.all(config.stores.map((store) => store.getLastSeenId()));
+
+  // adding a zero to the list to ensure it will always return a finite number
+  const clientLatest = Math.max(0, Math.min(...lastSeenIds.filter((id) => id !== null)));
 
   const serverLatest = latestEvent.id;
 
@@ -78,100 +80,37 @@ export default async function* begin(journey: JourneyInstance, signal: AbortSign
     logger.debug("%s catching up... (%d events left)", DBG, serverLatest - clientLatest);
   }
 
-  const eventEmitter = new EventEmitter();
+  // const eventEmitter = new EventEmitter();
 
   const eventStream = await getEventStreamFromUrl(clientLatest.toString(), subscriptionUrl, signal, logger);
 
-  (async function receiveAndSaveEvents() {
-    for await (const data of eventStream) {
-      logger.log("saving %d events from event id #%d - #%d", data.length, data[0].id, data[data.length - 1].id);
-
-      await saveEvents(eventStreamHashKey, data);
-
-      eventEmitter.emit(RECEIVED_EVENTS);
-    }
-  })();
+  for await (const data of eventStream) {
+    const outputs = await handleEventBatch(config.stores, config.onError, data, logger, signal);
+    yield outputs;
+  }
 
   // ensure all events are cleaned up before the projection starts
-  await ensureIncludedEvents(eventStreamHashKey);
+  // await ensureIncludedEvents(eventStreamHashKey);
 
-  yield* longRunningHandleEvents(config, eventEmitter, signal);
+  // yield* longRunningHandleEvents(config, eventEmitter, signal);
 }
 
-export async function* longRunningHandleEvents(config: JourneyConfig, eventEmitter: EventEmitter, signal: AbortSignal) {
-  const { logger = defaultLogger } = config;
+async function handleEventBatch(
+  stores: JourneyConfig["stores"],
+  onError: JourneyConfig["onError"],
+  batch: JourneyCommittedEvent[],
+  logger: Logger,
+  signal: AbortSignal,
+) {
+  const output = await Promise.all(
+    stores.map(async (store) => {
+      const output = await singleStoreHandleEvents(store, batch);
 
-  try {
-    yield* handleEventsInDatabase(config, signal);
+      return output;
+    }),
+  );
 
-    const { promise, resolve } = Promise.withResolvers();
-
-    signal.addEventListener("abort", resolve, { once: true });
-
-    while (!signal.aborted) {
-      await Promise.race([promise, EventEmitter.once(eventEmitter, RECEIVED_EVENTS)]);
-
-      yield* handleEventsInDatabase(config, signal);
-    }
-  } catch (ex) {
-    if (ex instanceof UnrecoverableError) {
-      logger.info("projection forcefully closed because of unrecoverable error");
-
-      logger.error("unrecoverable error", ex);
-
-      return;
-    }
-
-    console.log("ex", ex);
-  }
-}
-
-async function* handleEventsInDatabase(config: JourneyConfig, signal: AbortSignal) {
-  const { logger = defaultLogger, onReport = noop, onError } = config;
-
-  // get latest projected id
-  const lastSeenIds = await Promise.all(config.stores.map((store) => store.getLastSeenId()));
-
-  const furthest = Math.min(...lastSeenIds.filter((id) => id !== null));
-  const clientLatestId = furthest === Number.POSITIVE_INFINITY ? 0 : furthest;
-
-  logger.debug("starting projection from event id #%d", clientLatestId);
-
-  // should start projection from the last seen id + 1
-  const eventsStream = await getEventStream(clientLatestId + 1);
-
-  for await (const events of eventsStream) {
-    logger.debug(
-      `get ${events.length} events from sqlite to process, range from ${events[0].id} to ${
-        events[events.length - 1].id
-      }`,
-    );
-
-    if (signal.aborted) {
-      logger.info("aborting projection...");
-      break;
-    }
-
-    const output = await Promise.all(
-      config.stores.map(async (store) => {
-        const output = await singleStoreHandleEvents(store, events);
-        onReport("store_output", {
-          store,
-          output,
-        });
-        return output;
-      }),
-    );
-
-    logger.debug(`processed ${events.length} events from ${events[0].id} to ${events[events.length - 1].id}`);
-    const loggedOutput = output.map((o) => JSON.stringify(o)).join("\n");
-    logger.debug("output: \n", loggedOutput);
-
-    yield {
-      output,
-      lastProcessedEventId: events[events.length - 1].id,
-    };
-  }
+  return output;
 
   async function singleStoreHandleEvents(
     store: Store,
@@ -267,40 +206,6 @@ async function* handleEventsInDatabase(config: JourneyConfig, signal: AbortSigna
     }
   }
 }
-
-function getHashedIncludes(includes: string[]) {
-  return hash(includes.sort());
-}
-
-export const getLatestSavedEventId = injectEventDatabase(async function getLatestSavedEventId(hashed: string) {
-  return getEventDatabase().getLatestEventId(hashed);
-});
-
-export const saveEvents = injectEventDatabase(async function saveEvents(
-  hashed: string,
-  events: JourneyCommittedEvent[],
-) {
-  const eventDatabase = getEventDatabase();
-  await eventDatabase.insertEvents(hashed, events);
-});
-
-const getEventStream = injectEventDatabase(async function getEventStream(
-  lastProcessedId: number,
-): Promise<AsyncGenerator<JourneyCommittedEvent[]>> {
-  return getEventDatabase().streamEventsFrom(lastProcessedId);
-});
-
-export const ensureIncludedEvents = injectEventDatabase(async function ensureIncludedEvents(hashed: string) {
-  const eventDatabase = getEventDatabase();
-
-  const lastSavedEventId = await eventDatabase.getLatestEventId(hashed);
-
-  // if the last saved event id of the hashed is 0, it means this is a new list of events
-  // therefore we need to remove all events so that when the worker starts, it will not read the out dated events
-  if (lastSavedEventId === 0) {
-    await eventDatabase.clean();
-  }
-});
 
 function wrapError(errorOrUnknown: unknown): Error {
   if (errorOrUnknown instanceof Error) {
