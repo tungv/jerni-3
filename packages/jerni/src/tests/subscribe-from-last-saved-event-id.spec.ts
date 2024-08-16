@@ -76,7 +76,6 @@ test(
         getLastSeenId: async () => 1,
 
         async handleEvents(events) {
-          console.log("events", events);
           const lastEvent = events.at(-1);
           if (lastEvent) {
             processedId = lastEvent.id;
@@ -86,8 +85,6 @@ test(
         },
       },
     ]);
-
-    console.log(worker2.logger.logs);
 
     // subscribe to events
     for await (const output of begin(worker2.journey, ctrl2.signal)) {
