@@ -1,5 +1,4 @@
 import { AsyncLocalStorage } from "node:async_hooks";
-import { flow as lodashFlow } from "lodash";
 
 // biome-ignore lint/suspicious/noExplicitAny: any function
 type Fn = (...args: any[]) => any;
@@ -60,8 +59,4 @@ export default function setup<T>(initializer: () => Promise<T>): AsyncLocal<T> {
       storage.disable();
     },
   };
-}
-
-export function flow(...injectors: Inject<unknown>[]): Inject<unknown> {
-  return lodashFlow(...injectors);
 }
