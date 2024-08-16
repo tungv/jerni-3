@@ -1,8 +1,8 @@
 import type { URL } from "node:url";
 import prettyBytes from "pretty-bytes";
-import messageListFromString from "./getMessage";
+import messageListFromString, { type Message } from "./getMessage";
+import type { EventDatabase } from "./sqlite";
 import type { Logger } from "./types/Logger";
-import type { JourneyCommittedEvent } from "./types/events";
 
 function readConfig<T>(key: string, defaultValue: string, transformFn: (value: string) => T): T {
   return transformFn(process.env[key] ?? defaultValue);
@@ -19,6 +19,7 @@ const RETRY_TIMES = [10, 20, 30, 60, 120, 300, 600, 1200, 1800, 3600];
 export default async function getEventStreamFromUrl(
   initialFrom: string,
   url: URL,
+  db: EventDatabase,
   signal: AbortSignal,
   logger: Logger,
 ) {
@@ -30,7 +31,7 @@ export default async function getEventStreamFromUrl(
   let batchSize = BATCH_SIZE;
   let wasStoppedByLargeData = false;
 
-  return new ReadableStream<JourneyCommittedEvent[]>({
+  return new ReadableStream<number>({
     async start(controller) {
       while (!signal.aborted) {
         const connectionStart = Date.now();
@@ -75,19 +76,25 @@ export default async function getEventStreamFromUrl(
               break;
             }
 
-            const eventBatch = msg.events;
+            const eventBatchAsJSON = msg.messages;
 
-            const lastEvent = eventBatch.at(-1);
-            if (lastEvent) {
+            const lastBatch = eventBatchAsJSON.at(-1);
+            if (lastBatch) {
               // reset idle time
               idleTime = IDLE_TIME;
-              currentFrom = String(lastEvent.id);
-              controller.enqueue(eventBatch);
+              currentFrom = String(lastBatch.id);
+
+              // save to database
+              db.persistBatch(eventBatchAsJSON);
+
+              const lastId = Number.parseInt(lastBatch.id, 10);
+
+              controller.enqueue(lastId);
             }
 
             // if things go back to normal, reset the batch size
             if (wasStoppedByLargeData) {
-              logger.info("data is back to normal, reset batch size top 200");
+              logger.info(`data is back to normal, reset batch size to ${BATCH_SIZE}`);
               wasStoppedByLargeData = false;
               batchSize = BATCH_SIZE;
               break;
@@ -133,8 +140,8 @@ type EventStreamReturnType =
       count: number;
     }
   | {
-      type: "event";
-      events: JourneyCommittedEvent[];
+      type: "incoming_message";
+      messages: Message[];
     };
 
 async function* retrieveJourneyCommittedEvents(
@@ -196,18 +203,18 @@ async function* retrieveJourneyCommittedEvents(
         incomingChunkCountBeforeAFullMessage++;
       }
 
-      const events = r.messages.flatMap((message) => {
+      const messages = r.messages.flatMap((message) => {
         if (message.event === "INCMSG") {
-          return JSON.parse(message.data) as JourneyCommittedEvent[];
+          return message;
         }
 
         return [];
       });
 
-      if (events.length > 0) {
+      if (messages.length > 0) {
         yield {
-          type: "event",
-          events,
+          type: "incoming_message",
+          messages,
         };
         timeSinceLastData = Date.now();
         incomingChunkCountBeforeAFullMessage = 0;

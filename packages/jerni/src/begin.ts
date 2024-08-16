@@ -9,6 +9,7 @@ import getEventStreamFromUrl from "./getEventStream";
 import customFetch from "./helpers/fetch";
 import normalizeUrl from "./lib/normalize-url";
 import skip from "./lib/skip";
+import makeDb, { type EventDatabase } from "./sqlite";
 import type { Logger } from "./types/Logger";
 import type { JourneyConfig, Store } from "./types/config";
 import type { JourneyCommittedEvent } from "./types/events";
@@ -18,11 +19,20 @@ const RECEIVED_EVENTS = "RECEIVED_EVENTS";
 const defaultLogger = console;
 const noop = () => {};
 
-export default async function* begin(journey: JourneyInstance, signal: AbortSignal) {
+interface RunConfig {
+  filePath: string;
+}
+
+export default async function* begin(journey: JourneyInstance, signal: AbortSignal, runConfig?: RunConfig) {
   const config = journey.getConfig();
   const { logger = defaultLogger } = config;
 
   const { url } = normalizeUrl(config);
+
+  const fullRunConfig = {
+    filePath: ":memory:",
+    ...runConfig,
+  };
 
   // we need to resolve all the event types needed
   const includedTypes = new Set<string>();
@@ -83,29 +93,30 @@ export default async function* begin(journey: JourneyInstance, signal: AbortSign
 
   // const eventEmitter = new EventEmitter();
 
-  const eventStream = await getEventStreamFromUrl(clientLatest.toString(), subscriptionUrl, signal, logger);
+  const db = makeDb(fullRunConfig.filePath);
+  const eventStream = await getEventStreamFromUrl(clientLatest.toString(), subscriptionUrl, db, signal, logger);
 
-  for await (const data of eventStream) {
-    const outputs = await handleEventBatch(config.stores, config.onError, data, logger, signal);
+  let previous = clientLatest;
+
+  for await (const latestId of eventStream) {
+    const outputs = await handleEventBatch(config.stores, config.onError, db, [previous, latestId], logger, signal);
+    previous = latestId;
     yield outputs;
   }
-
-  // ensure all events are cleaned up before the projection starts
-  // await ensureIncludedEvents(eventStreamHashKey);
-
-  // yield* longRunningHandleEvents(config, eventEmitter, signal);
 }
 
 async function handleEventBatch(
   stores: JourneyConfig["stores"],
   onError: JourneyConfig["onError"],
-  batch: JourneyCommittedEvent[],
+  db: EventDatabase,
+  idArray: [start: number, end: number],
   logger: Logger,
   signal: AbortSignal,
 ) {
+  const events = db.getBlock(idArray[0], idArray[1]);
   const output = await Promise.all(
     stores.map(async (store) => {
-      const output = await singleStoreHandleEvents(store, batch);
+      const output = await singleStoreHandleEvents(store, events);
 
       return output;
     }),
