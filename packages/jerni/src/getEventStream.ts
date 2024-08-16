@@ -12,7 +12,7 @@ const IDLE_TIME = readConfig("IDLE_TIME", "30000", Number);
 const MAX_IDLE_TIME = readConfig("MAX_IDLE_TIME", "900000", Number);
 const BATCH_SIZE = readConfig("BATCH_SIZE", "256", Number);
 const MAX_CHUNK_SIZE = readConfig("MAX_CHUNK_SIZE", "1048576", Number);
-const MAX_CHUNK_COUNT = readConfig("MAX_BATCH_SIZE", "2000", Number);
+const MAX_CHUNK_COUNT = readConfig("MAX_CHUNK_COUNT", "2000", Number);
 
 const RETRY_TIMES = [10, 20, 30, 60, 120, 300, 600, 1200, 1800, 3600];
 
@@ -215,7 +215,6 @@ async function* retrieveJourneyCommittedEvents(
 
       // reset pending size
       pendingSize = r.leftoverData.length;
-      console.log("pendingSize after reset %s", prettyBytes(pendingSize));
 
       const elapsed = Date.now() - timeSinceLastData;
       if (elapsed > idleTime) {
