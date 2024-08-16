@@ -3,6 +3,7 @@ import JerniPersistenceError from "./JerniPersistenceError";
 import { DBG, INF } from "./cli-utils/log-headers";
 import commitToServer from "./lib/commit";
 import normalizeUrl from "./lib/normalize-url";
+import once from "./lib/once";
 import type { JourneyConfig } from "./types/config";
 import type {
   CommittingEventDefinitions,
@@ -39,6 +40,7 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
   }
 
   const waiter = createWaiter(config.stores.length);
+  const registerOnce = once(registerModels);
 
   return {
     async commit<T extends keyof CommittingEventDefinitions>(
@@ -111,6 +113,7 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
     },
     // biome-ignore lint/suspicious/noExplicitAny: because this is a placeholder, the client that uses jerni would override this type
     async getReader(model: any): Promise<AsyncDisposable> {
+      registerOnce();
       const store = modelToStoreMap.get(model);
 
       if (!store) {
@@ -126,4 +129,13 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
       }
     },
   };
+
+  function registerModels() {
+    // loop through all stores and map them to their models
+    logger.debug("%s registering models...", DBG);
+    for (const store of config.stores) {
+      store.registerModels(modelToStoreMap);
+      logger.log("%s store %s complete", DBG, picocolors.bold(store.toString()));
+    }
+  }
 }
