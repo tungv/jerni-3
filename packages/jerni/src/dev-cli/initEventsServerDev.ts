@@ -1,5 +1,5 @@
 import type { Server } from "bun";
-import { last, overEvery } from "lodash/fp";
+
 import type { JourneyCommittedEvent } from "../types/events";
 import appendEventsToFile from "./appendEventsToFile";
 import readFile from "./readFile";
@@ -58,7 +58,7 @@ export default async function initEventsServerDev(inputFileName: string, port: n
 
             const latestId = appendEventsToFile(inputFileName, newEvents);
 
-            const latest = last(newEvents);
+            const latest = newEvents.at(-1);
 
             return Response.json(
               {
