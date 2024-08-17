@@ -1,10 +1,5 @@
-import { EventEmitter } from "node:events";
-import { URL } from "node:url";
-import hash from "hash-sum";
-
 import UnrecoverableError from "./UnrecoverableError";
 import { DBG, INF } from "./cli-utils/log-headers";
-import { getEventDatabase, injectEventDatabase } from "./events-storage/injectDatabase";
 import getEventStreamFromUrl from "./getEventStream";
 import customFetch from "./helpers/fetch";
 import normalizeUrl from "./lib/normalize-url";
@@ -15,9 +10,7 @@ import type { JourneyConfig, Store } from "./types/config";
 import type { JourneyCommittedEvent } from "./types/events";
 import type { JourneyInstance } from "./types/journey";
 
-const RECEIVED_EVENTS = "RECEIVED_EVENTS";
 const defaultLogger = console;
-const noop = () => {};
 
 interface RunConfig {
   filePath: string;
@@ -94,14 +87,37 @@ export default async function* begin(journey: JourneyInstance, signal: AbortSign
   // const eventEmitter = new EventEmitter();
 
   const db = makeDb(fullRunConfig.filePath);
-  const eventStream = await getEventStreamFromUrl(clientLatest.toString(), subscriptionUrl, db, signal, logger);
 
-  let previous = clientLatest;
+  let latestPersisted = clientLatest;
+  let latestHandled = clientLatest;
 
-  for await (const latestId of eventStream) {
-    const outputs = await handleEventBatch(config.stores, config.onError, db, [previous, latestId], logger, signal);
-    previous = latestId;
-    yield outputs;
+  (async () => {
+    const eventStream = await getEventStreamFromUrl(clientLatest.toString(), subscriptionUrl, db, signal, logger);
+    for await (const latestId of eventStream) {
+      if (latestId > latestPersisted) {
+        latestPersisted = latestId;
+      }
+    }
+  })();
+
+  // yield [];
+
+  // pick up event to handle
+  while (!signal.aborted) {
+    if (latestHandled < latestPersisted) {
+      const outputs = await handleEventBatch(
+        config.stores,
+        config.onError,
+        db,
+        [latestHandled, latestPersisted],
+        logger,
+        signal,
+      );
+      latestHandled = latestPersisted;
+      yield outputs;
+    }
+
+    await Bun.sleep(10);
   }
 }
 
@@ -114,6 +130,14 @@ async function handleEventBatch(
   signal: AbortSignal,
 ) {
   const events = db.getBlock(idArray[0], idArray[1]);
+  const firstId = events[0].id;
+  const lastId = events.at(-1)?.id;
+
+  if (!lastId) {
+    logger.info("No events to handle");
+    return [];
+  }
+
   const output = await Promise.all(
     stores.map(async (store) => {
       const output = await singleStoreHandleEvents(store, events);
@@ -130,12 +154,6 @@ async function handleEventBatch(
     indent = 0,
     total = events.length,
   ) {
-    if (events.length === 0) {
-      return [];
-    }
-
-    const firstId = events[0].id;
-    const lastId = events[events.length - 1].id;
     const conclusion = "└";
     const intermediateStep = "├";
     const indentStr = "│ ".repeat(indent);
@@ -146,7 +164,11 @@ async function handleEventBatch(
     const T = "└─".repeat(indent); // termination line
 
     if (indent === 0) {
-      logger.info("%s store: %s is handling events [#%d - #%d]", intermediateStep, store.name, firstId, lastId);
+      const msg =
+        lastId === firstId
+          ? `${I} ${store.name} is handling event #${firstId}`
+          : `${I} ${store.name} is handling events [#${firstId} - #${lastId}]`;
+      logger.info(msg);
     }
 
     try {
