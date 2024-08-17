@@ -1,18 +1,9 @@
 import type { URL } from "node:url";
 import prettyBytes from "pretty-bytes";
+import { BATCH_SIZE, IDLE_TIME, MAX_CHUNK_COUNT, MAX_CHUNK_SIZE, MAX_IDLE_TIME } from "./constants";
 import messageListFromString, { type Message } from "./getMessage";
 import type { EventDatabase } from "./sqlite";
 import type { Logger } from "./types/Logger";
-
-function readConfig<T>(key: string, defaultValue: string, transformFn: (value: string) => T): T {
-  return transformFn(process.env[key] ?? defaultValue);
-}
-
-const IDLE_TIME = readConfig("IDLE_TIME", "30000", Number);
-const MAX_IDLE_TIME = readConfig("MAX_IDLE_TIME", "900000", Number);
-const BATCH_SIZE = readConfig("BATCH_SIZE", "256", Number);
-const MAX_CHUNK_SIZE = readConfig("MAX_CHUNK_SIZE", "1048576", Number);
-const MAX_CHUNK_COUNT = readConfig("MAX_CHUNK_COUNT", "2000", Number);
 
 const RETRY_TIMES = [10, 20, 30, 60, 120, 300, 600, 1200, 1800, 3600];
 
