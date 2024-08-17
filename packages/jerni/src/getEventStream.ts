@@ -40,7 +40,7 @@ export default async function getEventStreamFromUrl(
           logger.info(
             `connecting to ${url.toString()} from ${currentFrom} | max idle time: ${idleTime}ms | batch size: ${batchSize}`,
           );
-          const eventStream = retrieveJourneyCommittedEvents(url, currentFrom, idleTime, batchSize, signal);
+          const eventStream = retrieveJourneyCommittedEvents(url, currentFrom, idleTime, batchSize, db, signal);
 
           for await (const msg of eventStream) {
             if (msg.type === "connected") {
@@ -76,21 +76,10 @@ export default async function getEventStreamFromUrl(
               break;
             }
 
-            const eventBatchAsJSON = msg.messages;
-
-            const lastBatch = eventBatchAsJSON.at(-1);
-            if (lastBatch) {
-              // reset idle time
-              idleTime = IDLE_TIME;
-              currentFrom = String(lastBatch.id);
-
-              // save to database
-              db.persistBatch(eventBatchAsJSON);
-
-              const lastId = Number.parseInt(lastBatch.id, 10);
-
-              controller.enqueue(lastId);
-            }
+            // enqueue and reset
+            controller.enqueue(msg.lastId);
+            idleTime = IDLE_TIME;
+            currentFrom = String(msg.lastId);
 
             // if things go back to normal, reset the batch size
             if (wasStoppedByLargeData) {
@@ -103,7 +92,11 @@ export default async function getEventStreamFromUrl(
 
           // has returned due to inactivity
           retryTime = 10;
-          logger.log("reconnect due to inactivity");
+          if (wasStoppedByLargeData) {
+            logger.log("reconnect due to data overflow");
+          } else {
+            logger.log("reconnect due to inactivity");
+          }
         } catch (ex) {
           // check if the error is due to abort signal
           // immediately terminate the stream if signal is aborted
@@ -141,7 +134,7 @@ type EventStreamReturnType =
     }
   | {
       type: "incoming_message";
-      messages: Message[];
+      lastId: number;
     };
 
 async function* retrieveJourneyCommittedEvents(
@@ -149,6 +142,7 @@ async function* retrieveJourneyCommittedEvents(
   lastSeenId: string,
   idleTime: number,
   batchSize: number,
+  db: EventDatabase,
   signal: AbortSignal,
 ): AsyncGenerator<EventStreamReturnType, void, unknown> {
   signal.throwIfAborted();
@@ -212,9 +206,13 @@ async function* retrieveJourneyCommittedEvents(
       });
 
       if (messages.length > 0) {
+        // biome-ignore lint/style/noNonNullAssertion: messages.length > 0
+        const lastMessage = messages.at(-1)!;
+
+        db.persistBatch(messages);
         yield {
           type: "incoming_message",
-          messages,
+          lastId: Number.parseInt(lastMessage.id, 10),
         };
         timeSinceLastData = Date.now();
         incomingChunkCountBeforeAFullMessage = 0;
