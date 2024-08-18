@@ -12,33 +12,26 @@ interface SavedEvent {
   message: string;
 }
 
-type Database = ReturnType<typeof sqlite.open>;
-
 export default function makeDb(filePath: string): EventDatabase {
-  function withDb<T>(callback: (db: Database) => T): T {
-    const db = sqlite.open(filePath);
+  const db = sqlite.open(filePath);
 
-    try {
-      return callback(db);
-    } finally {
-      db.close();
-    }
-  }
-
-  withDb((db) => {
+  try {
     db.query(
       `
-  CREATE TABLE IF NOT EXISTS events (
-    id INTEGER PRIMARY KEY,
-    message TEXT NOT NULL
+CREATE TABLE IF NOT EXISTS events (
+  id INTEGER PRIMARY KEY,
+  message TEXT NOT NULL
   );
-`,
+  `,
     ).get();
-  });
+  } finally {
+    db.close();
+  }
 
   return {
     getBlock(from: number, to: number) {
-      return withDb((db) => {
+      const db = sqlite.open(filePath);
+      try {
         return db
           .query<
             SavedEvent,
@@ -52,11 +45,14 @@ export default function makeDb(filePath: string): EventDatabase {
             const data = JSON.parse(event.message) as JourneyCommittedEvent[];
             return data;
           }) as JourneyCommittedEvent[];
-      });
+      } finally {
+        db.close();
+      }
     },
 
     persistBatch(events: Message[]) {
-      return withDb((db) => {
+      const db = sqlite.open(filePath);
+      try {
         const trx = db.transaction(() => {
           const insertStmt = db.prepare("INSERT INTO events (id, message) VALUES ($id, $message)");
           for (const event of events) {
@@ -68,7 +64,9 @@ export default function makeDb(filePath: string): EventDatabase {
         });
 
         trx();
-      });
+      } finally {
+        db.close();
+      }
     },
   };
 }
