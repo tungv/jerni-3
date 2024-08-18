@@ -1,4 +1,3 @@
-import { URL } from "node:url";
 import { nanoid } from "nanoid";
 import { readPackageUpSync } from "read-package-up";
 import customFetch from "../helpers/fetch";

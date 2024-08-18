@@ -1,5 +1,4 @@
 import { mock } from "bun:test";
-import { URL } from "node:url";
 import { overEvery } from "lodash/fp";
 import type { JourneyCommittedEvent } from "../../types/events";
 
