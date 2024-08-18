@@ -168,11 +168,9 @@ async function* retrieveJourneyCommittedEvents(
       connected_at: Date.now(),
     };
 
-    const stream = resp.body;
+    const stream = resp.body.pipeThrough(new TextDecoderStream());
 
     const pending = [] as string[];
-
-    const decoder = new TextDecoder();
 
     let timeSinceLastData = Date.now();
 
@@ -180,8 +178,7 @@ async function* retrieveJourneyCommittedEvents(
     let incomingChunkCountBeforeAFullMessage = 0;
 
     // read the body
-    for await (const chunk of stream) {
-      const utf8 = decoder.decode(chunk, { stream: true });
+    for await (const utf8 of stream) {
       const utf8Size = utf8.length;
       pendingSize += utf8Size;
 
