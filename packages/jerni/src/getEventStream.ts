@@ -5,6 +5,13 @@ import messageListFromString, { type Message } from "./getMessage";
 import type { EventDatabase } from "./sqlite";
 import type { Logger } from "./types/Logger";
 
+declare global {
+  // biome-ignore lint/suspicious/noExplicitAny: explicit any is needed here
+  interface ReadableStream<R = any> {
+    [Symbol.asyncIterator](): AsyncIterableIterator<R>;
+  }
+}
+
 const RETRY_TIMES = [10, 20, 30, 60, 120, 300, 600, 1200, 1800, 3600];
 
 export default async function getEventStreamFromUrl(
