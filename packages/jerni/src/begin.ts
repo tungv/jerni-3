@@ -85,7 +85,6 @@ export default async function* begin(journey: JourneyInstance, signal: AbortSign
   }
 
   // const eventEmitter = new EventEmitter();
-
   const db = makeDb(fullRunConfig.filePath);
 
   let latestPersisted = clientLatest;
@@ -99,8 +98,6 @@ export default async function* begin(journey: JourneyInstance, signal: AbortSign
       }
     }
   })();
-
-  // yield [];
 
   // pick up event to handle
   while (!signal.aborted) {
@@ -208,7 +205,7 @@ async function handleEventBatch(
           logger.info(`${I} Retry LEFT ..............${tab} [#${firstId} - #${midId - 1}]`);
         }
         const start = Date.now();
-        const leftOutput = await singleStoreHandleEvents(store, left, indent + 1, total);
+        await singleStoreHandleEvents(store, left, indent + 1, total);
         const end = Date.now();
         logger.log(`${I} 🟢    LEFT SUCCESS (took ${end - start}ms)`);
       } catch (retryEx) {
@@ -227,7 +224,7 @@ async function handleEventBatch(
           logger.info(`${I} Retry RIGHT .............${tab} [#${midId} - #${lastId}]`);
         }
         const start = Date.now();
-        const rightOutput = await singleStoreHandleEvents(store, right, indent + 1, total);
+        await singleStoreHandleEvents(store, right, indent + 1, total);
         const end = Date.now();
         logger.log(`${I} 🟢 RIGHT SUCCESS (took ${end - start}ms)`);
       } catch (retryEx) {
