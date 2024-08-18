@@ -1,5 +1,6 @@
 import prettyBytes from "pretty-bytes";
 import { BATCH_SIZE, IDLE_TIME, MAX_CHUNK_COUNT, MAX_CHUNK_SIZE, MAX_IDLE_TIME } from "./constants";
+import messageListFromString from "./getMessage";
 import formatUrl from "./lib/formatUrl";
 import type { EventDatabase } from "./sqlite";
 import type { Logger } from "./types/Logger";
