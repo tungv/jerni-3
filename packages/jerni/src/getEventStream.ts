@@ -1,7 +1,6 @@
-import type { URL } from "node:url";
 import prettyBytes from "pretty-bytes";
 import { BATCH_SIZE, IDLE_TIME, MAX_CHUNK_COUNT, MAX_CHUNK_SIZE, MAX_IDLE_TIME } from "./constants";
-import messageListFromString, { type Message } from "./getMessage";
+import formatUrl from "./lib/formatUrl";
 import type { EventDatabase } from "./sqlite";
 import type { Logger } from "./types/Logger";
 
@@ -36,7 +35,9 @@ export default async function getEventStreamFromUrl(
 
         try {
           logger.info(
-            `connecting to ${url.toString()} from ${currentFrom} | max idle time: ${idleTime}ms | batch size: ${batchSize}`,
+            `connecting to ${formatUrl(
+              url,
+            )} from ${currentFrom} | max idle time: ${idleTime}ms | batch size: ${batchSize}`,
           );
           const eventStream = retrieveJourneyCommittedEvents(url, currentFrom, idleTime, batchSize, db, signal);
 
