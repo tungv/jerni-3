@@ -3,7 +3,7 @@ import type { Message } from "./getMessage";
 import type { JourneyCommittedEvent } from "./types/events";
 
 export interface EventDatabase {
-  getBlock(from: number, to: number): JourneyCommittedEvent[];
+  getBlock(from: number, to: number, maxLength: number): JourneyCommittedEvent[];
   persistBatch(events: Message[]): void;
 }
 
@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS events (
   }
 
   return {
-    getBlock(from: number, to: number) {
+    getBlock(from: number, to: number, maxLength: number) {
       const db = sqlite.open(filePath);
       try {
         return db
@@ -38,13 +38,15 @@ CREATE TABLE IF NOT EXISTS events (
             {
               $from: number;
               $to: number;
+              $maxLength: number;
             }
-          >("SELECT * FROM events WHERE id > $from AND id <= $to")
-          .all({ $from: from, $to: to })
+          >("SELECT * FROM events WHERE id > $from AND id <= $to LIMIT $maxLength")
+          .all({ $from: from, $to: to, $maxLength: maxLength })
           .flatMap((event: SavedEvent) => {
             const data = JSON.parse(event.message) as JourneyCommittedEvent[];
             return data;
-          }) as JourneyCommittedEvent[];
+          })
+          .slice(0, maxLength) as JourneyCommittedEvent[];
       } finally {
         db.close();
       }
