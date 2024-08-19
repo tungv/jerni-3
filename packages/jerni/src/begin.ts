@@ -1,13 +1,14 @@
 import { memoryUsage } from "bun:jsc";
 import { mkdir } from "node:fs/promises";
 import prettyBytes from "pretty-bytes";
+import prettyMilliseconds from "pretty-ms";
 import UnrecoverableError from "./UnrecoverableError";
-import { DBG, INF } from "./cli-utils/log-headers";
+import { DBG, ERR, INF } from "./cli-utils/log-headers";
 import getEventStreamFromUrl from "./getEventStream";
 import customFetch from "./helpers/fetch";
 import normalizeUrl from "./lib/normalize-url";
 import skip from "./lib/skip";
-import makeDb, { type EventDatabase } from "./sqlite";
+import makeDb from "./sqlite";
 import type { Logger } from "./types/Logger";
 import type { JourneyConfig, Store } from "./types/config";
 import type { JourneyCommittedEvent } from "./types/events";
@@ -106,29 +107,70 @@ export default async function* begin(journey: JourneyInstance, signal: AbortSign
   })();
 
   // pick up event to handle
+  let maxEvents = 256;
+  let tooMuch = false;
+  let lastProcessingTime = Date.now();
+  const timeBudget = 10_000;
+
   while (!signal.aborted) {
     while (latestHandled < latestPersisted) {
-      logger.info("new events waiting to be handled");
-      const currentLatestPersisted = latestPersisted;
-      const outputs = await handleEventBatch(
-        config.stores,
-        config.onError,
-        db,
-        [latestHandled, currentLatestPersisted],
-        logger,
-        signal,
+      const timeout = AbortSignal.timeout(timeBudget);
+
+      logger.info(
+        `${INF} [HANDLING_EVENT] handling events from #${latestHandled} to #${latestPersisted}, but at most ${maxEvents}`,
       );
-      latestHandled = currentLatestPersisted;
-      logger.info("processed events up to #%d", latestHandled);
-      yield outputs;
-      logger.debug(`current memory usage: ${prettyBytes(memoryUsage().current)} (AFTER EVENT PROCESSING)`);
+      const events = db.getBlock(latestHandled, latestPersisted, maxEvents);
+
+      logger.info(`${INF} [HANDLING_EVENT] there are ${events.length} new events ready to be handled`);
+      logger.debug(`${DBG} [HANDLING_EVENT] attempting to process new events in ${prettyMilliseconds(timeBudget)}`);
+
+      try {
+        // handle events must stop after 10 seconds
+        const start = Date.now();
+        const { output, lastId } = await handleEventBatch(config.stores, config.onError, events, logger, timeout);
+        latestHandled = lastId;
+        const total = Date.now() - start;
+        logger.info(
+          `${INF} [HANDLING_EVENT] processed events up to #${latestHandled} in ${total}ms (pace: ${(
+            total / events.length
+          ).toFixed(3)}ms/event)`,
+        );
+
+        lastProcessingTime = Date.now();
+
+        yield output;
+
+        logger.debug(`current memory usage: ${prettyBytes(memoryUsage().current)} (AFTER EVENT PROCESSING)`);
+
+        // if all events are handled, we can increase the maxEvents
+        if (tooMuch) {
+          maxEvents = 256;
+          tooMuch = false;
+        }
+      } catch (ex) {
+        if (timeout.aborted) {
+          tooMuch = true;
+          maxEvents = Math.max(1, Math.floor(events.length / 2));
+
+          logger.info(`${INF} [HANDLING_EVENT] timeout while handling events`);
+          logger.info(`${INF} [HANDLING_EVENT] retrying with maxEvents = ${maxEvents}`);
+          break;
+        }
+        console.error(`${ERR} [HANDLING_EVENT] something went wrong while handling events`, ex);
+      }
     }
+
+    logger.debug(
+      `${DBG} [HANDLING_EVENT] waiting for new events… after ${prettyMilliseconds(Date.now() - lastProcessingTime, {
+        colonNotation: true,
+      })}`,
+    );
 
     const { promise, resolve } = Promise.withResolvers();
     const ctrl = new AbortController();
 
-    // check for new events at most every 10 seconds
-    Bun.sleep(10_000).then(() => {
+    // check for new events at most every 60 seconds
+    Bun.sleep(60_000).then(() => {
       ctrl.abort();
       resolve();
     });
@@ -142,29 +184,26 @@ export default async function* begin(journey: JourneyInstance, signal: AbortSign
 async function handleEventBatch(
   stores: JourneyConfig["stores"],
   onError: JourneyConfig["onError"],
-  db: EventDatabase,
-  idArray: [start: number, end: number],
+  events: JourneyCommittedEvent[],
   logger: Logger,
-
-  // FIXME: store.handleEvents should also be cancellable
-  _signal: AbortSignal,
+  signal: AbortSignal,
 ) {
-  const events = db.getBlock(idArray[0], idArray[1]);
+  // biome-ignore lint/style/noNonNullAssertion: we just check events.length
+  const lastId = events.at(-1)!.id;
 
-  if (!events.length) {
-    logger.info("No events to handle");
-    return [];
-  }
+  // race between signal and handling events
+  const output = await Promise.race([
+    Promise.all(
+      stores.map(async (store) => {
+        const output = await singleStoreHandleEvents(store, events, 0, events.length, logger, onError, signal);
 
-  const output = await Promise.all(
-    stores.map(async (store) => {
-      const output = await singleStoreHandleEvents(store, events, 0, events.length, logger, onError);
+        return output;
+      }),
+    ),
+    new Promise((_, reject) => signal.addEventListener("abort", reject, { once: true })),
+  ] as const);
 
-      return output;
-    }),
-  );
-
-  return output;
+  return { output, lastId };
 }
 
 async function singleStoreHandleEvents(
@@ -174,6 +213,7 @@ async function singleStoreHandleEvents(
   total: number,
   logger: Logger,
   onError: JourneyConfig["onError"],
+  signal: AbortSignal,
 ) {
   const firstId = events[0].id;
   const lastId = events.at(-1)?.id;
@@ -196,7 +236,7 @@ async function singleStoreHandleEvents(
   }
 
   try {
-    const output = await store.handleEvents(events);
+    const output = await store.handleEvents(events, signal);
 
     return output;
   } catch (ex) {
