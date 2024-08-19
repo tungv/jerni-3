@@ -125,7 +125,9 @@ async function handleEventBatch(
   db: EventDatabase,
   idArray: [start: number, end: number],
   logger: Logger,
-  signal: AbortSignal,
+
+  // FIXME: store.handleEvents should also be cancellable
+  _signal: AbortSignal,
 ) {
   const events = db.getBlock(idArray[0], idArray[1]);
   const firstId = events[0].id;
