@@ -9,7 +9,7 @@ export default function formatUrl(url: URL) {
   masked.password = "***";
 
   for (const [key, value] of masked.searchParams.entries()) {
-    masked.searchParams.set(key, `${value.slice(0, 5)}…`);
+    masked.searchParams.set(key, `${value.slice(0, 5)}...`);
   }
 
   return masked.toString();
