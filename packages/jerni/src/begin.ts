@@ -107,20 +107,21 @@ export default async function* begin(journey: JourneyInstance, signal: AbortSign
 
   // pick up event to handle
   while (!signal.aborted) {
-    if (latestHandled < latestPersisted) {
+    while (latestHandled < latestPersisted) {
       logger.info("new events waiting to be handled");
+      const currentLatestPersisted = latestPersisted;
       const outputs = await handleEventBatch(
         config.stores,
         config.onError,
         db,
-        [latestHandled, latestPersisted],
+        [latestHandled, currentLatestPersisted],
         logger,
         signal,
       );
-      latestHandled = latestPersisted;
+      latestHandled = currentLatestPersisted;
       logger.info("processed events up to #%d", latestHandled);
       yield outputs;
-      console.log(prettyBytes(memoryUsage().current));
+      logger.debug(`current memory usage: ${prettyBytes(memoryUsage().current)} (AFTER EVENT PROCESSING)`);
     }
 
     const { promise, resolve } = Promise.withResolvers();
