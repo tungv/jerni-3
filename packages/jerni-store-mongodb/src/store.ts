@@ -145,14 +145,19 @@ export default async function makeMongoDBStore(config: MongoDBStoreConfig): Prom
     return disposable;
   }
 
-  async function handleEvents(events: JourneyCommittedEvent[]): Promise<{ [modelIdentifier: string]: Changes }> {
+  async function handleEvents(
+    events: JourneyCommittedEvent[],
+    signal?: AbortSignal,
+  ): Promise<{ [modelIdentifier: string]: Changes }> {
     const changes = models.map(() => ({
       added: 0,
       updated: 0,
       deleted: 0,
     }));
 
-    await runDb((_, db) => handleEventsRecursive(db, events, changes));
+    const recursiveSignal = signal ?? AbortSignal.timeout(60_000);
+
+    await runDb((_, db) => handleEventsRecursive(db, events, changes, recursiveSignal));
 
     return Object.fromEntries(
       models.flatMap((model, modelIndex) => {
@@ -168,7 +173,16 @@ export default async function makeMongoDBStore(config: MongoDBStoreConfig): Prom
     );
   }
 
-  async function handleEventsRecursive(db: Db, events: JourneyCommittedEvent[], changes: Changes[]) {
+  async function handleEventsRecursive(
+    db: Db,
+    events: JourneyCommittedEvent[],
+    changes: Changes[],
+    abortSignal: AbortSignal,
+  ) {
+    if (abortSignal.aborted) {
+      return;
+    }
+
     let interruptedIndex = -1;
     const signals: Signal<Document>[] = [];
 
@@ -240,6 +254,11 @@ export default async function makeMongoDBStore(config: MongoDBStoreConfig): Prom
 
         const res = await collection.bulkWrite(bulkWriteOperations, { ordered: true });
 
+        // check if the operation is interrupted
+        if (abortSignal.aborted) {
+          return;
+        }
+
         changesForThisModel.added += res.upsertedCount;
         changesForThisModel.updated += res.modifiedCount;
         changesForThisModel.deleted += res.deletedCount;
@@ -248,7 +267,7 @@ export default async function makeMongoDBStore(config: MongoDBStoreConfig): Prom
     }
 
     // if the first event is interrupted, we do NOT need to update the snapshot collection
-    if (interruptedIndex !== 0) {
+    if (interruptedIndex !== 0 && !abortSignal.aborted) {
       // the last seen id of snapshot should be the interrupted index -1 or the last event id if no interruption
       const lastSeenId = interruptedIndex === -1 ? events[events.length - 1].id : events[interruptedIndex - 1].id;
       const snapshotCollection = db.collection<SnapshotDocument>("jerni__snapshot");
@@ -270,6 +289,9 @@ export default async function makeMongoDBStore(config: MongoDBStoreConfig): Prom
 
       // execute signals
       for (const signal of signals) {
+        if (abortSignal.aborted) {
+          return;
+        }
         await signal.execute(db);
       }
 
@@ -278,7 +300,7 @@ export default async function makeMongoDBStore(config: MongoDBStoreConfig): Prom
         return;
       }
 
-      await handleEventsRecursive(db, remainingEvents, changes);
+      await handleEventsRecursive(db, remainingEvents, changes, abortSignal);
     }
   }
 
