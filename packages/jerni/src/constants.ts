@@ -1,9 +1,20 @@
+import bytes from "bytes";
+import ms from "ms";
+
 function readConfig<T>(key: string, defaultValue: string, transformFn: (value: string) => T): T {
   return transformFn(process.env[key] ?? defaultValue);
 }
 
-export const IDLE_TIME = readConfig("IDLE_TIME", "30000", Number);
-export const MAX_IDLE_TIME = readConfig("MAX_IDLE_TIME", "900000", Number);
-export const BATCH_SIZE = readConfig("BATCH_SIZE", "256", Number);
-export const MAX_CHUNK_SIZE = readConfig("MAX_CHUNK_SIZE", "1048576", Number);
-export const MAX_CHUNK_COUNT = readConfig("MAX_CHUNK_COUNT", "2000", Number);
+// text/event-stream pulse settings
+export const INITIAL_PULSE_COUNT = readConfig("JERNI_CLI_INITIAL_PULSE_COUNT", "256", Number);
+
+// idle time settings
+export const INITIAL_IDLE_TIME = readConfig("JERNI_CLI_INITIAL_IDLE_TIME", "30s", Number);
+export const MAX_IDLE_TIME = readConfig("JERNI_CLI_MAX_IDLE_TIME", "15m", ms);
+
+// fetch response buffer
+export const MAX_STREAMING_BUFFER_SIZE = readConfig("JERNI_CLI_MAX_STREAMING_BUFFER_SIZE", String(bytes("1MB")), bytes);
+export const MAX_STREAMING_BUFFER_COUNT = readConfig("JERNI_CLI_MAX_STREAMING_BUFFER_COUNT", "2000", Number);
+
+// event processing settings
+export const HANDLING_EVENT_TIMEOUT = readConfig("JERNI_CLI_HANDLING_EVENT_TIMEOUT", "10s", ms);
