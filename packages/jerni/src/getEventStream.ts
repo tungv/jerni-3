@@ -21,7 +21,7 @@ export default async function getEventStreamFromUrl(
   signal: AbortSignal,
   logger: Logger,
 ) {
-  logger.debug("getEventStreamFromUrl", url.toString());
+  const safeUrlString = formatUrl(url);
   let currentFrom = initialFrom;
   let retryTime = 10;
   let errorCount = 0;
@@ -36,9 +36,7 @@ export default async function getEventStreamFromUrl(
 
         try {
           logger.info(
-            `connecting to ${formatUrl(
-              url,
-            )} from ${currentFrom} | max idle time: ${idleTime}ms | batch size: ${batchSize}`,
+            `connecting to ${safeUrlString} from ${currentFrom} | max idle time: ${idleTime}ms | batch size: ${batchSize}`,
           );
           const eventStream = retrieveJourneyCommittedEvents(url, currentFrom, idleTime, batchSize, db, signal);
 
