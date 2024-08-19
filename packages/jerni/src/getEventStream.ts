@@ -228,6 +228,11 @@ async function* retrieveJourneyCommittedEvents(
 
       const elapsed = Date.now() - timeSinceLastData;
       if (elapsed > idleTime) {
+        if (pendingSize > 0) {
+          // keep this here for investigating the issue
+          // when data is not fully processed but the stream is idle
+          console.log("idle but pending data", r.leftoverData);
+        }
         yield {
           type: "idle",
           idle_period: elapsed,
