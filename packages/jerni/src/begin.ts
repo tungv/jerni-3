@@ -1,4 +1,6 @@
+import { memoryUsage } from "bun:jsc";
 import { mkdir } from "node:fs/promises";
+import prettyBytes from "pretty-bytes";
 import UnrecoverableError from "./UnrecoverableError";
 import { DBG, INF } from "./cli-utils/log-headers";
 import getEventStreamFromUrl from "./getEventStream";
@@ -91,11 +93,14 @@ export default async function* begin(journey: JourneyInstance, signal: AbortSign
   let latestPersisted = clientLatest;
   let latestHandled = clientLatest;
 
+  const newEventNotifier = new EventTarget();
+
   (async () => {
     const eventStream = await getEventStreamFromUrl(clientLatest.toString(), subscriptionUrl, db, signal, logger);
     for await (const latestId of eventStream) {
       if (latestId > latestPersisted) {
         latestPersisted = latestId;
+        newEventNotifier.dispatchEvent(new Event("latest"));
       }
     }
   })();
@@ -103,6 +108,7 @@ export default async function* begin(journey: JourneyInstance, signal: AbortSign
   // pick up event to handle
   while (!signal.aborted) {
     if (latestHandled < latestPersisted) {
+      logger.info("new events waiting to be handled");
       const outputs = await handleEventBatch(
         config.stores,
         config.onError,
@@ -114,9 +120,21 @@ export default async function* begin(journey: JourneyInstance, signal: AbortSign
       latestHandled = latestPersisted;
       logger.info("processed events up to #%d", latestHandled);
       yield outputs;
+      console.log(prettyBytes(memoryUsage().current));
     }
 
-    await Bun.sleep(10);
+    const { promise, resolve } = Promise.withResolvers();
+    const ctrl = new AbortController();
+
+    // check for new events at most every 10 seconds
+    Bun.sleep(10_000).then(() => {
+      ctrl.abort();
+      resolve();
+    });
+
+    newEventNotifier.addEventListener("latest", resolve, { once: true, signal: ctrl.signal });
+
+    await promise;
   }
 }
 
