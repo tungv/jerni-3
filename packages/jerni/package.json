@@ -31,7 +31,6 @@
     "./lib/errors/UnrecoverableError": "./src/UnrecoverableError.ts",
     "./lib/skip": "./src/lib/skip.ts",
     "./lib/begin": "./src/begin.ts",
-    "./lib/clearData": "./src/clearData.ts",
     "./test/testWrapper": "./src/lib/testWrapper.ts"
   }
 }
