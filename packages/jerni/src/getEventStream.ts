@@ -1,4 +1,5 @@
 import prettyBytes from "pretty-bytes";
+import { DBG, ERR, INF } from "./cli-utils/log-headers";
 import { BATCH_SIZE, IDLE_TIME, MAX_CHUNK_COUNT, MAX_CHUNK_SIZE, MAX_IDLE_TIME } from "./constants";
 import messageListFromString from "./getMessage";
 import formatUrl from "./lib/formatUrl";
@@ -36,7 +37,7 @@ export default async function getEventStreamFromUrl(
 
         try {
           logger.info(
-            `connecting to ${safeUrlString} from ${currentFrom} | max idle time: ${idleTime}ms | batch size: ${batchSize}`,
+            `${INF} [DOWNLOADING_EVENT] connecting to ${safeUrlString} from ${currentFrom} | max idle time: ${idleTime}ms | batch size: ${batchSize}`,
           );
           const eventStream = retrieveJourneyCommittedEvents(url, currentFrom, idleTime, batchSize, db, signal);
 
@@ -44,12 +45,12 @@ export default async function getEventStreamFromUrl(
             if (msg.type === "connected") {
               errorCount = 0;
               const connectionTime = msg.connected_at - connectionStart;
-              logger.log(`connected after ${connectionTime}ms`);
+              logger.log(`${DBG} [DOWNLOADING_EVENT] connected after ${connectionTime}ms`);
               continue;
             }
 
             if (msg.type === "idle") {
-              logger.log(`idle for ${msg.idle_period}ms`);
+              logger.info(`${INF} [DOWNLOADING_EVENT] idle for ${msg.idle_period}ms`);
               // double the idle time, but not more than 15 minutes
               idleTime = Math.min(idleTime * 2, MAX_IDLE_TIME);
               break;
@@ -57,19 +58,19 @@ export default async function getEventStreamFromUrl(
 
             if (msg.type === "too_large") {
               if (batchSize === 1) {
-                logger.error("data is too large, but already at minimum batch size");
+                logger.error(`${ERR} [DOWNLOADING_EVENT] data is too large, but already at minimum batch size`);
                 process.exit(1);
               }
 
-              logger.log("data is too large");
+              logger.info(`${INF} [DOWNLOADING_EVENT] data is too large`);
               if (msg.count > MAX_CHUNK_COUNT) {
-                logger.log("pending chunk count %s", msg.count);
+                logger.debug(`${DBG} [DOWNLOADING_EVENT] pending chunk count ${msg.count}`);
               } else {
-                logger.log("pendingSize %s", prettyBytes(msg.size));
+                logger.debug(`${DBG} [DOWNLOADING_EVENT] pending chunk size ${prettyBytes(msg.size)}`);
               }
 
               batchSize = Math.max(1, Math.floor(batchSize / 2));
-              logger.log(`data is too large, reduce batch size to ${batchSize}`);
+              logger.info(`${INF} [DOWNLOADING_EVENT] reduce batch size to ${batchSize}`);
               wasStoppedByLargeData = true;
               break;
             }
@@ -81,7 +82,7 @@ export default async function getEventStreamFromUrl(
 
             // if things go back to normal, reset the batch size
             if (wasStoppedByLargeData) {
-              logger.info(`data is back to normal, reset batch size to ${BATCH_SIZE}`);
+              logger.info(`${INF} [DOWNLOADING_EVENT] reset batch size to ${BATCH_SIZE}`);
               wasStoppedByLargeData = false;
               batchSize = BATCH_SIZE;
               break;
@@ -91,21 +92,23 @@ export default async function getEventStreamFromUrl(
           // has returned due to inactivity
           retryTime = 10;
           if (wasStoppedByLargeData) {
-            logger.log("reconnect due to data overflow");
+            logger.info(`${INF} [DOWNLOADING_EVENT] reconnect due to data overflow`);
           } else {
-            logger.log("reconnect due to inactivity");
+            logger.info(`${INF} [DOWNLOADING_EVENT] reconnect due to inactivity`);
           }
         } catch (ex) {
           // check if the error is due to abort signal
           // immediately terminate the stream if signal is aborted
           if (signal.aborted) {
-            logger.info("terminating ReadableStream due to AbortSignal");
+            logger.info(`${INF} [DOWNLOADING_EVENT] terminating ReadableStream due to AbortSignal`);
             break;
           }
 
           errorCount++;
           retryTime = RETRY_TIMES[errorCount] ?? RETRY_TIMES.at(-1);
-          logger.error("reconnect due to error", ex);
+          logger.error(`${ERR} [DOWNLOADING_EVENT] error occurred ${errorCount} times.`);
+          logger.debug({ downloading_event_error: ex });
+          logger.error(`${ERR} [DOWNLOADING_EVENT] retry in ${retryTime}s`);
         }
 
         await Bun.sleep(retryTime);
