@@ -112,6 +112,7 @@ export default async function* begin(journey: JourneyInstance, signal: AbortSign
         signal,
       );
       latestHandled = latestPersisted;
+      logger.info("processed events up to #%d", latestHandled);
       yield outputs;
     }
 
@@ -130,112 +131,115 @@ async function handleEventBatch(
   _signal: AbortSignal,
 ) {
   const events = db.getBlock(idArray[0], idArray[1]);
-  const firstId = events[0].id;
-  const lastId = events.at(-1)?.id;
 
-  if (!lastId) {
+  if (!events.length) {
     logger.info("No events to handle");
     return [];
   }
 
   const output = await Promise.all(
     stores.map(async (store) => {
-      const output = await singleStoreHandleEvents(store, events);
+      const output = await singleStoreHandleEvents(store, events, 0, events.length, logger, onError);
 
       return output;
     }),
   );
 
   return output;
+}
 
-  async function singleStoreHandleEvents(
-    store: Store,
-    events: JourneyCommittedEvent[],
-    indent = 0,
-    total = events.length,
-  ) {
-    const conclusion = "└";
-    const intermediateStep = "├";
-    const indentStr = "│ ".repeat(indent);
-    const maxLog = Math.log2(events.length) | 0;
-    const tab = "..".repeat(3 + Math.max(0, maxLog));
-    const I = `${indentStr}${intermediateStep}`;
-    const C = `${indentStr}${conclusion}`;
-    const T = "└─".repeat(indent); // termination line
+async function singleStoreHandleEvents(
+  store: Store,
+  events: JourneyCommittedEvent[],
+  indent: number,
+  total: number,
+  logger: Logger,
+  onError: JourneyConfig["onError"],
+) {
+  const firstId = events[0].id;
+  const lastId = events.at(-1)?.id;
 
-    if (indent === 0) {
-      const msg =
-        lastId === firstId
-          ? `${I} ${store.name} is handling event #${firstId}`
-          : `${I} ${store.name} is handling events [#${firstId} - #${lastId}]`;
-      logger.info(msg);
+  const conclusion = "└";
+  const intermediateStep = "├";
+  const indentStr = "│ ".repeat(indent);
+  const maxLog = Math.log2(events.length) | 0;
+  const tab = "..".repeat(3 + Math.max(0, maxLog));
+  const I = `${indentStr}${intermediateStep}`;
+  const C = `${indentStr}${conclusion}`;
+  const T = "└─".repeat(indent); // termination line
+
+  if (indent === 0) {
+    const msg =
+      lastId === firstId
+        ? `${I} ${store.name} is handling event #${firstId}`
+        : `${I} ${store.name} is handling events [#${firstId} - #${lastId}]`;
+    logger.info(msg);
+  }
+
+  try {
+    const output = await store.handleEvents(events);
+
+    return output;
+  } catch (ex) {
+    // if there is only one event, we don't need to bisect
+    if (events.length === 1) {
+      logger.info(`${I} 🔍 Identified offending event:  #${events[0].id} - ${events[0].type}`);
+      const resolution = onError(wrapError(ex), events[0]);
+
+      if (resolution === skip) {
+        logger.log(`${I} ▶️ Resolution is SKIP .......... MOVE ON!`);
+        return [];
+      }
+      logger.log(`${T} 💀 Resolution is not SKIP       STOP WORKER!`);
+      throw new UnrecoverableError(events[0]);
     }
 
+    logger.log(`${I} 🔴 Encountered error ....${tab} between #${firstId} and #${lastId}`);
+
+    // bisect events
+    const mid = Math.floor(events.length / 2);
+    const midId = events[mid].id;
+    const maxStep = Math.ceil(Math.log2(total));
+    const bisectDescription = `step ${indent + 1} of ${maxStep}`;
+    logger.info(`${I} Bisecting: ${bisectDescription}`);
+    const left = events.slice(0, mid);
+    const right = events.slice(mid);
+
+    // retry left
     try {
-      const output = await store.handleEvents(events);
-
-      return output;
-    } catch (ex) {
-      // if there is only one event, we don't need to bisect
-      if (events.length === 1) {
-        logger.info(`${I} 🔍 Identified offending event:  #${events[0].id} - ${events[0].type}`);
-        const resolution = onError(wrapError(ex), events[0]);
-
-        if (resolution === skip) {
-          logger.log(`${I} ▶️ Resolution is SKIP .......... MOVE ON!`);
-          return [];
-        }
-        logger.log(`${T} 💀 Resolution is not SKIP       STOP WORKER!`);
-        throw new UnrecoverableError(events[0]);
+      if (left.length === 1) {
+        logger.info(`${I} Retry LEFT ..............${tab} #${firstId} - ${events[0].type}`);
+      } else {
+        logger.info(`${I} Retry LEFT ..............${tab} [#${firstId} - #${midId - 1}]`);
       }
-
-      logger.log(`${I} 🔴 Encountered error ....${tab} between #${firstId} and #${lastId}`);
-
-      // bisect events
-      const mid = Math.floor(events.length / 2);
-      const midId = events[mid].id;
-      const maxStep = Math.ceil(Math.log2(total));
-      const bisectDescription = `step ${indent + 1} of ${maxStep}`;
-      logger.info(`${I} Bisecting: ${bisectDescription}`);
-      const left = events.slice(0, mid);
-      const right = events.slice(mid);
-
-      // retry left
-      try {
-        if (left.length === 1) {
-          logger.info(`${I} Retry LEFT ..............${tab} #${firstId} - ${events[0].type}`);
-        } else {
-          logger.info(`${I} Retry LEFT ..............${tab} [#${firstId} - #${midId - 1}]`);
-        }
-        const start = Date.now();
-        await singleStoreHandleEvents(store, left, indent + 1, total);
-        const end = Date.now();
-        logger.log(`${I} 🟢    LEFT SUCCESS (took ${end - start}ms)`);
-      } catch (retryEx) {
-        // is it recoverable?
-        if (retryEx instanceof UnrecoverableError) {
-          logger.debug(`${C} left is unrecoverable`);
-          throw retryEx;
-        }
+      const start = Date.now();
+      await singleStoreHandleEvents(store, left, indent + 1, total, logger, onError);
+      const end = Date.now();
+      logger.log(`${I} 🟢    LEFT SUCCESS (took ${end - start}ms)`);
+    } catch (retryEx) {
+      // is it recoverable?
+      if (retryEx instanceof UnrecoverableError) {
+        logger.debug(`${C} left is unrecoverable`);
+        throw retryEx;
       }
+    }
 
-      // if left succeeds, retry right
-      try {
-        if (right.length === 1) {
-          logger.info(`${I} Retry RIGHT .............${tab} 1 event on from #${midId}`);
-        } else {
-          logger.info(`${I} Retry RIGHT .............${tab} [#${midId} - #${lastId}]`);
-        }
-        const start = Date.now();
-        await singleStoreHandleEvents(store, right, indent + 1, total);
-        const end = Date.now();
-        logger.log(`${I} 🟢 RIGHT SUCCESS (took ${end - start}ms)`);
-      } catch (retryEx) {
-        // is it recoverable?
-        if (retryEx instanceof UnrecoverableError) {
-          logger.debug(`${C} right is unrecoverable`);
-          throw retryEx;
-        }
+    // if left succeeds, retry right
+    try {
+      if (right.length === 1) {
+        logger.info(`${I} Retry RIGHT .............${tab} 1 event on from #${midId}`);
+      } else {
+        logger.info(`${I} Retry RIGHT .............${tab} [#${midId} - #${lastId}]`);
+      }
+      const start = Date.now();
+      await singleStoreHandleEvents(store, right, indent + 1, total, logger, onError);
+      const end = Date.now();
+      logger.log(`${I} 🟢 RIGHT SUCCESS (took ${end - start}ms)`);
+    } catch (retryEx) {
+      // is it recoverable?
+      if (retryEx instanceof UnrecoverableError) {
+        logger.debug(`${C} right is unrecoverable`);
+        throw retryEx;
       }
     }
   }
