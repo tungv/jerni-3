@@ -1,3 +1,4 @@
+import { mkdir } from "node:fs/promises";
 import UnrecoverableError from "./UnrecoverableError";
 import { DBG, INF } from "./cli-utils/log-headers";
 import getEventStreamFromUrl from "./getEventStream";
@@ -13,19 +14,19 @@ import type { JourneyInstance } from "./types/journey";
 const defaultLogger = console;
 
 interface RunConfig {
-  filePath: string;
+  dbFolder: string;
 }
 
 export default async function* begin(journey: JourneyInstance, signal: AbortSignal, runConfig?: RunConfig) {
+  const runId = Math.random().toString(36).slice(2);
   const config = journey.getConfig();
   const { logger = defaultLogger } = config;
 
   const { url } = normalizeUrl(config);
 
-  const fullRunConfig = {
-    filePath: ":memory:",
-    ...runConfig,
-  };
+  const folder = runConfig?.dbFolder ?? "/tmp/jerni-cli/runs";
+  await mkdir(folder, { recursive: true });
+  const sqlFilePath = `${folder}/events-${runId}.sqlite`;
 
   // we need to resolve all the event types needed
   const includedTypes = new Set<string>();
@@ -84,8 +85,8 @@ export default async function* begin(journey: JourneyInstance, signal: AbortSign
     logger.debug("%s catching up... (%d events left)", DBG, serverLatest - clientLatest);
   }
 
-  // const eventEmitter = new EventEmitter();
-  const db = makeDb(fullRunConfig.filePath);
+  logger.info("persisting unhandled events in", sqlFilePath);
+  const db = makeDb(sqlFilePath);
 
   let latestPersisted = clientLatest;
   let latestHandled = clientLatest;
