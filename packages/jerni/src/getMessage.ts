@@ -31,9 +31,9 @@ export default function messageListFromString(input: string) {
           retry,
         });
       }
-      id = "";
-      data = "";
-      event = "";
+      id = void 0;
+      data = void 0;
+      event = void 0;
       retry = void 0;
       pendingIndex = pIndex;
     }
@@ -69,6 +69,7 @@ export default function messageListFromString(input: string) {
     leftoverData: input.substring(pendingIndex),
   };
 }
+
 function parseLine(input: string) {
   if (input.startsWith("data:")) {
     return { data: input.substring(5).trim() };
