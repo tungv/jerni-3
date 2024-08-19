@@ -50,7 +50,7 @@ export interface Store {
   // biome-ignore lint/suspicious/noExplicitAny: Jerni can take any model and store, there is no way to enforce the type here. However, the type of mongodb store is enforced in the store-mongodb package
   getDriver(model: any): Promise<AsyncDisposable>;
   // biome-ignore lint/suspicious/noExplicitAny: the return type is dependent on the implementation of the store
-  handleEvents: (events: JourneyCommittedEvent[]) => Promise<any>;
+  handleEvents: (events: JourneyCommittedEvent[], signal?: AbortSignal) => Promise<any>;
   getLastSeenId: () => Promise<number>;
   toString(): string;
 
