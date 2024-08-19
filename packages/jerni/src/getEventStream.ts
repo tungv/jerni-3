@@ -1,6 +1,13 @@
 import prettyBytes from "pretty-bytes";
+import prettyMilliseconds from "pretty-ms";
 import { DBG, ERR, INF } from "./cli-utils/log-headers";
-import { BATCH_SIZE, IDLE_TIME, MAX_CHUNK_COUNT, MAX_CHUNK_SIZE, MAX_IDLE_TIME } from "./constants";
+import {
+  INITIAL_IDLE_TIME,
+  INITIAL_PULSE_COUNT,
+  MAX_IDLE_TIME,
+  MAX_STREAMING_BUFFER_COUNT,
+  MAX_STREAMING_BUFFER_SIZE,
+} from "./constants";
 import messageListFromString from "./getMessage";
 import formatUrl from "./lib/formatUrl";
 import type { EventDatabase } from "./sqlite";
@@ -26,8 +33,8 @@ export default async function getEventStreamFromUrl(
   let currentFrom = initialFrom;
   let retryTime = 10;
   let errorCount = 0;
-  let idleTime = IDLE_TIME;
-  let batchSize = BATCH_SIZE;
+  let idleTime = INITIAL_IDLE_TIME;
+  let batchSize = INITIAL_PULSE_COUNT;
   let wasStoppedByLargeData = false;
 
   return new ReadableStream<number>({
@@ -45,12 +52,12 @@ export default async function getEventStreamFromUrl(
             if (msg.type === "connected") {
               errorCount = 0;
               const connectionTime = msg.connected_at - connectionStart;
-              logger.log(`${DBG} [DOWNLOADING_EVENT] connected after ${connectionTime}ms`);
+              logger.log(`${DBG} [DOWNLOADING_EVENT] connected after ${prettyMilliseconds(connectionTime)}`);
               continue;
             }
 
             if (msg.type === "idle") {
-              logger.info(`${INF} [DOWNLOADING_EVENT] idle for ${msg.idle_period}ms`);
+              logger.info(`${INF} [DOWNLOADING_EVENT] idle for ${prettyMilliseconds(msg.idle_period)}`);
               // double the idle time, but not more than 15 minutes
               idleTime = Math.min(idleTime * 2, MAX_IDLE_TIME);
               break;
@@ -63,7 +70,7 @@ export default async function getEventStreamFromUrl(
               }
 
               logger.info(`${INF} [DOWNLOADING_EVENT] data is too large`);
-              if (msg.count > MAX_CHUNK_COUNT) {
+              if (msg.count > MAX_STREAMING_BUFFER_COUNT) {
                 logger.debug(`${DBG} [DOWNLOADING_EVENT] pending chunk count ${msg.count}`);
               } else {
                 logger.debug(`${DBG} [DOWNLOADING_EVENT] pending chunk size ${prettyBytes(msg.size)}`);
@@ -77,14 +84,14 @@ export default async function getEventStreamFromUrl(
 
             // enqueue and reset
             controller.enqueue(msg.lastId);
-            idleTime = IDLE_TIME;
+            idleTime = INITIAL_IDLE_TIME;
             currentFrom = String(msg.lastId);
 
             // if things go back to normal, reset the batch size
             if (wasStoppedByLargeData) {
-              logger.info(`${INF} [DOWNLOADING_EVENT] reset batch size to ${BATCH_SIZE}`);
+              logger.info(`${INF} [DOWNLOADING_EVENT] reset batch size to ${INITIAL_PULSE_COUNT}`);
               wasStoppedByLargeData = false;
-              batchSize = BATCH_SIZE;
+              batchSize = INITIAL_PULSE_COUNT;
               break;
             }
           }
@@ -193,6 +200,14 @@ async function* retrieveJourneyCommittedEvents(
 
       if (pendingSize > 0) {
         incomingChunkCountBeforeAFullMessage++;
+
+        if (incomingChunkCountBeforeAFullMessage > 10 && pendingSize > 128) {
+          const size = prettyBytes(pendingSize);
+          const max = prettyBytes(MAX_STREAMING_BUFFER_SIZE);
+          const progress = Math.min(1, pendingSize / MAX_STREAMING_BUFFER_SIZE);
+          const bar = "#".repeat(progress * 80).padEnd(80, "_");
+          console.log(`[DOWNLOADING] buffer: [${bar}] (${size} / ${max})`);
+        }
       }
 
       const messages = r.messages.flatMap((message) => {
@@ -217,7 +232,8 @@ async function* retrieveJourneyCommittedEvents(
       }
 
       // data is too large
-      const isTooLarge = pendingSize > MAX_CHUNK_SIZE || incomingChunkCountBeforeAFullMessage > MAX_CHUNK_COUNT;
+      const isTooLarge =
+        pendingSize > MAX_STREAMING_BUFFER_SIZE || incomingChunkCountBeforeAFullMessage > MAX_STREAMING_BUFFER_COUNT;
       if (isTooLarge) {
         yield {
           type: "too_large",
