@@ -5,7 +5,6 @@ import prettyMilliseconds from "pretty-ms";
 import UnrecoverableError from "./UnrecoverableError";
 import { DBG, ERR, INF } from "./cli-utils/log-headers";
 import getEventStreamFromUrl from "./getEventStream";
-import customFetch from "./helpers/fetch";
 import normalizeUrl from "./lib/normalize-url";
 import skip from "./lib/skip";
 import makeDb from "./sqlite";
@@ -64,7 +63,7 @@ export default async function* begin(journey: JourneyInstance, signal: AbortSign
   const getLatestUrl = new URL("events/latest", url);
 
   logger.log("%s sync'ing with server...", INF);
-  const response = await customFetch(getLatestUrl.toString(), {
+  const response = await fetch(getLatestUrl.toString(), {
     headers: {
       "content-type": "application/json",
     },
