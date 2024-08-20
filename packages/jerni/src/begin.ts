@@ -121,7 +121,7 @@ export default async function* begin(journey: JourneyInstance, signal: AbortSign
   gcAndSweep();
   logger.info("ready to go", prettyBytes(memoryUsage().current));
 
-  while (!signal.aborted) {
+  mainLoop: while (!signal.aborted) {
     while (latestHandled < latestPersisted) {
       logger.info(
         `${INF} [HANDLING_EVENT] handling events from #${latestHandled} to #${latestPersisted}, but at most ${maxEvents}`,
@@ -168,7 +168,7 @@ export default async function* begin(journey: JourneyInstance, signal: AbortSign
 
           logger.info(`${INF} [HANDLING_EVENT] timeout while handling events`);
           logger.info(`${INF} [HANDLING_EVENT] retrying with maxEvents = ${maxEvents}`);
-          break;
+          continue mainLoop;
         }
         console.error(`${ERR} [HANDLING_EVENT] something went wrong while handling events`, ex);
       }
