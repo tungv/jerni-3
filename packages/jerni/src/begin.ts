@@ -201,6 +201,13 @@ async function handleEventBatch(
   logger: Logger,
   signal: AbortSignal,
 ) {
+  if (events.length === 0) {
+    return {
+      output: [],
+      lastId: 0,
+    };
+  }
+
   // biome-ignore lint/style/noNonNullAssertion: we just check events.length
   const lastId = events.at(-1)!.id;
 
