@@ -224,13 +224,13 @@ export default async function makeMongoDBStore(config: MongoDBStoreConfig): Prom
           return runWithModel(model, event);
         } catch (error) {
           if (error instanceof Signal) {
-            logger.debug(
-              "event id=%d, type=%s reads. Stop and processing previous event (from %d to before %d)",
-              event.id,
-              event.type,
-              events[0].id,
-              events[index].id,
-            );
+            // logger.debug(
+            //   "event id=%d, type=%s reads. Stop and processing previous event (from %d to before %d)",
+            //   event.id,
+            //   event.type,
+            //   events[0].id,
+            //   events[index].id,
+            // );
 
             interruptedIndex = index;
 
