@@ -8,7 +8,7 @@
   ],
   "dependencies": {
     "hash-sum": "^2.0.0",
-    "mongodb": "^4.11.0",
+    "mongodb": "^6.8.0",
     "mongodb-client-encryption": "^6.0.0"
   },
   "devDependencies": {
