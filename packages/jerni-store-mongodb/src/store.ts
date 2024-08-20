@@ -5,7 +5,7 @@ import getCollectionName from "./getCollectionName";
 import type MongoDBModel from "./model";
 import getBulkOperations from "./optimistic/getBulkOperations";
 import { Signal, clearModelSlots, runWithModel } from "./read";
-import type { Changes, JourneyCommittedEvent, MongoDBStore, MongoDBStoreConfig } from "./types";
+import type { Changes, JourneyCommittedEvent, MongoDBStore, MongoDBStoreConfig, MongoOps } from "./types";
 
 interface SnapshotDocument {
   __v: number;
@@ -258,14 +258,23 @@ export default async function makeMongoDBStore(config: MongoDBStoreConfig): Prom
 
     let eventIndex = 0;
 
+    // output is an array of changes per event.
+    // however for efficiency, we need to handle event per model
+    type VersionedChange = {
+      change: MongoOps<Document>;
+      __op: number;
+      __v: number;
+    };
+
+    const changesPerModel: VersionedChange[][] = [];
+
     for (const allChangesForAnEvent of outputs) {
       let modelIndex = 0;
       for (const changesForAModel of allChangesForAnEvent) {
         let __op = 0;
-        const model = models[modelIndex];
-        const changesForThisModel = changes[modelIndex];
-        modelIndex++;
+
         if (changesForAModel === undefined || changesForAModel.length === 0) {
+          modelIndex++;
           continue;
         }
 
@@ -276,22 +285,46 @@ export default async function makeMongoDBStore(config: MongoDBStoreConfig): Prom
             __v: events[eventIndex].id,
           };
         });
-        const collection = db.collection(getCollectionName(model));
 
-        const bulkWriteOperations = getBulkOperations(changesWithOp);
-
-        const res = await collection.bulkWrite(bulkWriteOperations, { ordered: true });
-
-        // check if the operation is interrupted
-        if (abortSignal.aborted) {
-          return;
+        // add changes to changesPerModel
+        if (!changesPerModel[modelIndex]) {
+          changesPerModel[modelIndex] = [];
         }
-
-        changesForThisModel.added += res.upsertedCount;
-        changesForThisModel.updated += res.modifiedCount;
-        changesForThisModel.deleted += res.deletedCount;
+        changesPerModel[modelIndex].push(...changesWithOp);
+        modelIndex++;
       }
       eventIndex++;
+    }
+
+    let modelIndex = 0;
+    for (const changesForAModel of changesPerModel) {
+      if (changesForAModel === undefined || changesForAModel.length === 0) {
+        modelIndex++;
+        continue;
+      }
+
+      const model = models[modelIndex];
+      const outputForThisModel = changes[modelIndex];
+      modelIndex++;
+      const collection = db.collection(getCollectionName(model));
+
+      const bulkWriteOperations = getBulkOperations(changesForAModel);
+
+      const res = await collection.bulkWrite(bulkWriteOperations, { ordered: true });
+      // const res = {
+      //   upsertedCount: 0,
+      //   modifiedCount: 0,
+      //   deletedCount: 0,
+      // };
+
+      // check if the operation is interrupted
+      if (abortSignal.aborted) {
+        return;
+      }
+
+      outputForThisModel.added += res.upsertedCount;
+      outputForThisModel.updated += res.modifiedCount;
+      outputForThisModel.deleted += res.deletedCount;
     }
 
     // if the first event is interrupted, we do NOT need to update the snapshot collection
