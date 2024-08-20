@@ -9,7 +9,7 @@ function readConfig<T>(key: string, defaultValue: string, transformFn: (value: s
 export const INITIAL_PULSE_COUNT = readConfig("JERNI_CLI_INITIAL_PULSE_COUNT", "256", Number);
 
 // idle time settings
-export const INITIAL_IDLE_TIME = readConfig("JERNI_CLI_INITIAL_IDLE_TIME", "30s", Number);
+export const INITIAL_IDLE_TIME = readConfig("JERNI_CLI_INITIAL_IDLE_TIME", "30s", ms);
 export const MAX_IDLE_TIME = readConfig("JERNI_CLI_MAX_IDLE_TIME", "15m", ms);
 
 // fetch response buffer
