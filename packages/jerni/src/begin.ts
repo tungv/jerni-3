@@ -94,13 +94,16 @@ export default async function* begin(journey: JourneyInstance, signal: AbortSign
   let latestHandled = clientLatest;
 
   const newEventNotifier = new EventTarget();
+  const ping = debounce(300, function ping() {
+    newEventNotifier.dispatchEvent(new Event("latest"));
+  });
 
   (async () => {
     const eventStream = await getEventStreamFromUrl(clientLatest.toString(), subscriptionUrl, db, signal, logger);
     for await (const latestId of eventStream) {
       if (latestId > latestPersisted) {
         latestPersisted = latestId;
-        newEventNotifier.dispatchEvent(new Event("latest"));
+        ping();
       }
     }
   })();
@@ -109,7 +112,10 @@ export default async function* begin(journey: JourneyInstance, signal: AbortSign
   let maxEvents = 256;
   let tooMuch = false;
   let lastProcessingTime = Date.now();
-  const timeBudget = 10_000;
+
+  logger.info("cooling down", prettyBytes(memoryUsage().current));
+  gcAndSweep();
+  logger.info("ready to go", prettyBytes(memoryUsage().current));
 
   while (!signal.aborted) {
     while (latestHandled < latestPersisted) {
@@ -119,6 +125,12 @@ export default async function* begin(journey: JourneyInstance, signal: AbortSign
         `${INF} [HANDLING_EVENT] handling events from #${latestHandled} to #${latestPersisted}, but at most ${maxEvents}`,
       );
       const events = db.getBlock(latestHandled, latestPersisted, maxEvents);
+
+      if (events.length === 0) {
+        latestHandled = latestPersisted;
+        logger.info(`${INF} [HANDLING_EVENT] no new events to handle`);
+        continue;
+      }
 
       logger.info(`${INF} [HANDLING_EVENT] there are ${events.length} new events ready to be handled`);
       logger.debug(`${DBG} [HANDLING_EVENT] attempting to process new events in ${prettyMilliseconds(timeBudget)}`);
@@ -168,6 +180,8 @@ export default async function* begin(journey: JourneyInstance, signal: AbortSign
     const { promise, resolve } = Promise.withResolvers();
     const ctrl = new AbortController();
 
+    logger.debug(`${DBG} [HANDLING_EVENT] force garbage collection while waiting for new events…`);
+    gcAndSweep();
     // check for new events at most every 60 seconds
     Bun.sleep(60_000).then(() => {
       ctrl.abort();
@@ -177,6 +191,9 @@ export default async function* begin(journey: JourneyInstance, signal: AbortSign
     newEventNotifier.addEventListener("latest", resolve, { once: true, signal: ctrl.signal });
 
     await promise;
+    logger.debug(
+      `${DBG} [HANDLING_EVENT] waiting for new events… after ${prettyMilliseconds(Date.now() - lastProcessingTime)}`,
+    );
   }
 }
 
@@ -219,7 +236,7 @@ async function singleStoreHandleEvents(
 
   const conclusion = "└";
   const intermediateStep = "├";
-  const indentStr = "[HANDLING_EVENT] │ ".repeat(indent);
+  const indentStr = `[HANDLING_EVENT]${" │ ".repeat(indent)}`;
   const maxLog = Math.log2(events.length) | 0;
   const tab = "..".repeat(3 + Math.max(0, maxLog));
   const I = `${indentStr}${intermediateStep}`;
