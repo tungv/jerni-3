@@ -235,6 +235,9 @@ async function singleStoreHandleEvents(
   onError: JourneyConfig["onError"],
   signal: AbortSignal,
 ) {
+  if (signal.aborted) {
+    return {};
+  }
   const firstId = events[0].id;
   const lastId = events.at(-1)?.id;
 
@@ -299,8 +302,9 @@ async function singleStoreHandleEvents(
       // is it recoverable?
       if (retryEx instanceof UnrecoverableError) {
         logger.info(`${INF} ${C} left is unrecoverable`);
-        throw retryEx;
+        process.exit(1);
       }
+      throw retryEx;
     }
 
     // if left succeeds, retry right
