@@ -1,6 +1,5 @@
 import { nanoid } from "nanoid";
 import { readPackageUpSync } from "read-package-up";
-import customFetch from "../helpers/fetch";
 import type { Logger } from "../types/Logger";
 import type {
   CommittingEventDefinitions,
@@ -48,7 +47,7 @@ export default async function commitToServer<T extends keyof CommittingEventDefi
     event_local_id: localId,
   });
 
-  const res = await customFetch(commitUrl.toString(), {
+  const res = await fetch(commitUrl, {
     method: "POST",
     headers: {
       "content-type": "application/json",
