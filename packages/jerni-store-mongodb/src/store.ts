@@ -20,6 +20,8 @@ export default async function makeMongoDBStore(config: MongoDBStoreConfig): Prom
   let connCount = 0;
   let conn: MongoClient | null = null;
 
+  let lastSuccessfulEventId = 0;
+
   async function runDb<T>(cb: (client: MongoClient, db: Db) => Promise<T> | T) {
     connCount++;
     // logger.debug("connCount", connCount);
@@ -212,6 +214,11 @@ export default async function makeMongoDBStore(config: MongoDBStoreConfig): Prom
         return [];
       }
 
+      // skip events that have been processed
+      if (event.id <= lastSuccessfulEventId) {
+        return [];
+      }
+
       const out = models.map((model) => {
         try {
           return runWithModel(model, event);
@@ -302,6 +309,8 @@ export default async function makeMongoDBStore(config: MongoDBStoreConfig): Prom
           },
         },
       );
+
+      lastSuccessfulEventId = lastSeenId;
     }
 
     // continue with remaining events
@@ -366,6 +375,7 @@ export default async function makeMongoDBStore(config: MongoDBStoreConfig): Prom
           },
         },
       );
+      lastSuccessfulEventId = 0;
     });
   }
 
