@@ -5,6 +5,7 @@ import prettyBytes from "pretty-bytes";
 import prettyMilliseconds from "pretty-ms";
 import UnrecoverableError from "./UnrecoverableError";
 import { DBG, ERR, INF } from "./cli-utils/log-headers";
+import { HANDLING_EVENT_TIMEOUT } from "./constants";
 import getEventStreamFromUrl from "./getEventStream";
 import normalizeUrl from "./lib/normalize-url";
 import skip from "./lib/skip";
@@ -114,17 +115,20 @@ export default async function* begin(journey: JourneyInstance, signal: AbortSign
   let tooMuch = false;
   let lastProcessingTime = Date.now();
 
+  const timeBudget = HANDLING_EVENT_TIMEOUT;
+
   logger.info("cooling down", prettyBytes(memoryUsage().current));
   gcAndSweep();
   logger.info("ready to go", prettyBytes(memoryUsage().current));
 
   while (!signal.aborted) {
     while (latestHandled < latestPersisted) {
-      const timeout = AbortSignal.timeout(timeBudget);
-
       logger.info(
         `${INF} [HANDLING_EVENT] handling events from #${latestHandled} to #${latestPersisted}, but at most ${maxEvents}`,
       );
+
+      const timeout = AbortSignal.timeout(timeBudget);
+
       const events = db.getBlock(latestHandled, latestPersisted, maxEvents);
 
       if (events.length === 0) {
@@ -152,8 +156,6 @@ export default async function* begin(journey: JourneyInstance, signal: AbortSign
 
         yield output;
 
-        logger.debug(`current memory usage: ${prettyBytes(memoryUsage().current)} (AFTER EVENT PROCESSING)`);
-
         // if all events are handled, we can increase the maxEvents
         if (tooMuch) {
           maxEvents = 256;
@@ -171,12 +173,6 @@ export default async function* begin(journey: JourneyInstance, signal: AbortSign
         console.error(`${ERR} [HANDLING_EVENT] something went wrong while handling events`, ex);
       }
     }
-
-    logger.debug(
-      `${DBG} [HANDLING_EVENT] waiting for new events… after ${prettyMilliseconds(Date.now() - lastProcessingTime, {
-        colonNotation: true,
-      })}`,
-    );
 
     const { promise, resolve } = Promise.withResolvers();
     const ctrl = new AbortController();
