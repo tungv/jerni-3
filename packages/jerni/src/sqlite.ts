@@ -56,7 +56,8 @@ CREATE TABLE IF NOT EXISTS events (
       const db = sqlite.open(filePath);
       try {
         const trx = db.transaction(() => {
-          const insertStmt = db.prepare("INSERT INTO events (id, message) VALUES ($id, $message)");
+          // insert or update
+          const insertStmt = db.prepare("INSERT OR REPLACE INTO events (id, message) VALUES ($id, $message)");
           for (const event of events) {
             insertStmt.run({
               $id: event.id,
