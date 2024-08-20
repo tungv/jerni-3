@@ -200,13 +200,12 @@ async function* retrieveJourneyCommittedEvents(
 
       if (pendingSize > 0) {
         incomingChunkCountBeforeAFullMessage++;
-
-        if (incomingChunkCountBeforeAFullMessage > 10 && pendingSize > 128) {
+        if (incomingChunkCountBeforeAFullMessage > 10 && pendingSize > 1024) {
           const size = prettyBytes(pendingSize);
           const max = prettyBytes(MAX_STREAMING_BUFFER_SIZE);
           const progress = Math.min(1, pendingSize / MAX_STREAMING_BUFFER_SIZE);
           const bar = "#".repeat(progress * 80).padEnd(80, "_");
-          console.log(`[DOWNLOADING] buffer: [${bar}] (${size} / ${max})`);
+          console.log(`[DOWNLOADING] from: #${lastSeenId}/size=${batchSize} buffer: [${bar}] (${size} / ${max})`);
         }
       }
 
