@@ -17,16 +17,37 @@ const testLogger = makeTestLogger();
 
 export default async function makeMongoDBStore(config: MongoDBStoreConfig): Promise<MongoDBStore> {
   const { url, dbName } = config;
+  let connCount = 0;
+  let conn: MongoClient | null = null;
 
   async function runDb<T>(cb: (client: MongoClient, db: Db) => Promise<T> | T) {
-    const client = new MongoClient(url);
-    await client.connect();
-    const db = client.db(dbName);
+    connCount++;
+    // logger.debug("connCount", connCount);
+
+    if (!conn) {
+      // first connection
+      // logger.debug("connecting to mongodb");
+      conn = new MongoClient(url);
+      conn.connect();
+    }
+
+    const db = conn.db(dbName);
 
     try {
-      return await cb(client, db);
+      return await cb(conn, db);
     } finally {
-      await client.close();
+      connCount--;
+
+      if (connCount === 0) {
+        // logger.debug("schedule to close mongodb connection");
+        setTimeout(1000).then(async () => {
+          if (connCount === 0 && conn) {
+            // logger.debug("closing mongodb connection");
+            await conn.close();
+            conn = null;
+          }
+        });
+      }
     }
   }
 
