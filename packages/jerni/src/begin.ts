@@ -151,8 +151,10 @@ export default async function* begin(journey: JourneyInstance, signal: AbortSign
         () => {
           const timeElapsed = Date.now() - lastProcessingTime;
           const percentage = (timeElapsed / timeBudget) * 100;
-          const bar = "█".repeat(Math.floor(percentage / 11));
-          const space = "_".repeat(11 - bar.length);
+          const lengthToRender = Math.min(Math.floor(percentage / 11), 11);
+
+          const bar = "█".repeat(lengthToRender);
+          const space = "_".repeat(11 - lengthToRender);
 
           logger.info(
             `${INF} [HANDLING_EVENT] ${batchLabel}: [${bar}${space}] ${percentage.toFixed(1)}% of ${timeBudgetString}`,
