@@ -219,6 +219,8 @@ export default async function makeMongoDBStore(config: MongoDBStoreConfig): Prom
         return [];
       }
 
+      // return [];
+
       const out = models.map((model) => {
         try {
           return runWithModel(model, event);

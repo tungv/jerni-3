@@ -17,7 +17,7 @@ export class Signal<DocumentType extends Document> {
     const collectionName = getCollectionName(this.model);
     const collection = db.collection<DocumentType>(collectionName);
 
-    const res = await collection.aggregate(this.pipeline).toArray();
+    const res = this.pipeline.length === 0 ? [] : await collection.aggregate(this.pipeline).toArray();
 
     // write to the slot
     let slots = modelSlotsMap.get(this.model);
@@ -133,4 +133,8 @@ function readPipelineSameCollection<DocumentType extends Document>(
   }
 
   return res;
+}
+
+export function large() {
+  return readPipeline([]);
 }
