@@ -100,7 +100,7 @@ export default async function* begin(journey: JourneyInstance, signal: AbortSign
   };
 
   (async () => {
-    const eventStream = await getEventStreamFromUrl(clientLatest.toString(), subscriptionUrl, db, signal, logger);
+    const eventStream = await getEventStreamFromUrl(clientLatest, subscriptionUrl, db, signal, logger);
     for await (const latestId of eventStream) {
       if (latestId > latestPersisted) {
         latestPersisted = latestId;
