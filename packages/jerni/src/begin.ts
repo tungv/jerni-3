@@ -130,6 +130,7 @@ export default async function* begin(journey: JourneyInstance, signal: AbortSign
       const timeout = AbortSignal.timeout(timeBudget);
 
       const events = db.getBlock(latestHandled, latestPersisted, maxEvents);
+      const eventsLength = events.length;
 
       if (events.length === 0) {
         latestHandled = latestPersisted;
@@ -137,8 +138,29 @@ export default async function* begin(journey: JourneyInstance, signal: AbortSign
         continue;
       }
 
-      logger.info(`${INF} [HANDLING_EVENT] there are ${events.length} new events ready to be handled`);
-      logger.debug(`${DBG} [HANDLING_EVENT] attempting to process new events in ${prettyMilliseconds(timeBudget)}`);
+      const firstId = events[0].id;
+      // biome-ignore lint/style/noNonNullAssertion: length is checked
+      const lastId = events.at(-1)!.id;
+
+      logger.info(`${INF} [HANDLING_EVENT] there are ${eventsLength} new events ready to be handled`);
+      const batchLabel = `batch [#${firstId} - #${lastId}] (${eventsLength} events)`;
+      const timeBudgetString = prettyMilliseconds(timeBudget);
+
+      logger.info(`${INF} [HANDLING_EVENT] ${batchLabel}: [___________] 0.0% of ${timeBudgetString}`);
+
+      const progressBarId = setInterval(
+        () => {
+          const timeElapsed = Date.now() - lastProcessingTime;
+          const percentage = (timeElapsed / timeBudget) * 100;
+          const bar = "█".repeat(Math.floor(percentage / 11));
+          const space = "_".repeat(11 - bar.length);
+
+          logger.info(
+            `${INF} [HANDLING_EVENT] ${batchLabel}: [${bar}${space}] ${percentage.toFixed(1)}% of ${timeBudgetString}`,
+          );
+        },
+        Math.max(1000, timeBudget / 100),
+      );
 
       try {
         // handle events must stop after 10 seconds
@@ -146,12 +168,12 @@ export default async function* begin(journey: JourneyInstance, signal: AbortSign
         const { output, lastId } = await handleEventBatch(config.stores, config.onError, events, logger, timeout);
         latestHandled = lastId;
         const total = Date.now() - start;
+
         logger.info(
-          `${INF} [HANDLING_EVENT] processed events up to #${latestHandled} in ${total}ms (pace: ${(
-            total / events.length
+          `${INF} [HANDLING_EVENT] ${batchLabel}: [ COMPLETED ]  100% of in ${total}ms | (pace: ${(
+            total / eventsLength
           ).toFixed(3)}ms/event)`,
         );
-
         lastProcessingTime = Date.now();
 
         yield output;
@@ -164,14 +186,16 @@ export default async function* begin(journey: JourneyInstance, signal: AbortSign
       } catch (ex) {
         if (timeout.aborted) {
           tooMuch = true;
-          maxEvents = Math.max(1, Math.floor(events.length / 2));
+          maxEvents = Math.max(1, Math.floor(eventsLength / 2));
 
-          logger.info(`${INF} [HANDLING_EVENT] timeout while handling events`);
+          logger.info(`${INF} [HANDLING_EVENT] ${batchLabel}: [ TIMED OUT ]  100% of ${timeBudgetString}`);
           logger.info(`${INF} [HANDLING_EVENT] retrying with maxEvents = ${maxEvents}`);
           continue mainLoop;
         }
         console.error(`${ERR} [HANDLING_EVENT] something went wrong while handling events`, ex);
         process.exit(1);
+      } finally {
+        clearInterval(progressBarId);
       }
     }
 
