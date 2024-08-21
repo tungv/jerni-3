@@ -332,6 +332,7 @@ export default async function makeMongoDBStore(config: MongoDBStoreConfig): Prom
 
     let modelIndex = 0;
     for (const changesForAModel of changesPerModel) {
+      const thisModelIndex = modelIndex;
       if (changesForAModel === undefined || changesForAModel.length === 0) {
         modelIndex++;
         continue;
@@ -355,10 +356,18 @@ export default async function makeMongoDBStore(config: MongoDBStoreConfig): Prom
       //   deletedCount: 0,
       // };
 
+      // regardless of the cancellation, we need to update the last seen id for each model
+      // with this, we may skip some large events from replaying in following batches
+      // because it's however persisted
+      skipByModel[thisModelIndex] = Math.max(skipByModel[thisModelIndex], events[events.length - 1].id);
+
       // check if the operation is interrupted
       if (abortSignal.aborted) {
         logger.debug(
           `this batch of ${total} events is cancelled. ${completed} events are fully processed. Last fully processed event is #${skipByModel[0]}`,
+        );
+        logger.debug(
+          `however we still optimistically skip the transformed output of events up to #${skipByModel[thisModelIndex]} in the following batches`,
         );
         return;
       }

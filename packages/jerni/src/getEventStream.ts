@@ -207,7 +207,7 @@ async function* retrieveJourneyCommittedEvents(
           const size = prettyBytes(pendingSize);
           const max = prettyBytes(MAX_STREAMING_BUFFER_SIZE);
           const progress = Math.min(1, pendingSize / MAX_STREAMING_BUFFER_SIZE);
-          const bar = "#".repeat(progress * 80).padEnd(80, "_");
+          const bar = "=".repeat(progress * 20).padEnd(20, " ");
           console.log(`[DOWNLOADING] from: #${lastSeenId}/size=${batchSize} buffer: [${bar}] (${size} / ${max})`);
         }
       }

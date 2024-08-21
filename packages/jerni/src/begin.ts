@@ -142,7 +142,7 @@ export default async function* begin(journey: JourneyInstance, signal: AbortSign
       const lastId = events.at(-1)!.id;
 
       logger.info(`${INF} [HANDLING_EVENT] there are ${eventsLength} new events ready to be handled`);
-      const batchLabel = `batch [#${firstId} - #${lastId}] (${eventsLength} events) remaining times`;
+      const batchLabel = `batch [#${firstId} - #${lastId}] (${eventsLength} events) remaining time`;
       const timeBudgetString = prettyMilliseconds(timeBudget);
 
       logger.info(`${INF} [HANDLING_EVENT] ${batchLabel}: [████████████████████] 100.0% of ${timeBudgetString}`);
