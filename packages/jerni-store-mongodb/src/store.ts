@@ -179,8 +179,34 @@ export default async function makeMongoDBStore(config: MongoDBStoreConfig): Prom
     }));
 
     const recursiveSignal = signal ?? AbortSignal.timeout(60_000);
+    const skipByModel = models.map(() => lastSuccessfulEventId);
 
-    await runDb((_, db) => handleEventsRecursive(db, events, changes, recursiveSignal));
+    await runDb(async (_, db) => {
+      for (let modelIndex = 0; modelIndex < models.length; modelIndex++) {
+        const model = models[modelIndex];
+        const coll = db.collection<{ __v: number }>(getCollectionName(model));
+        // find the max event id that has been processed for each model
+        const doc = await coll.findOne(
+          {
+            __v: { $gt: lastSuccessfulEventId },
+          },
+          {
+            projection: {
+              __v: 1,
+            },
+            sort: {
+              __v: -1,
+            },
+          },
+        );
+
+        if (doc) {
+          skipByModel[modelIndex] = Math.max(skipByModel[modelIndex], Math.max(lastSuccessfulEventId, doc.__v - 1));
+        }
+      }
+
+      await handleEventsRecursive(db, events, 0, events.length, skipByModel, changes, recursiveSignal);
+    });
 
     return Object.fromEntries(
       models.flatMap((model, modelIndex) => {
@@ -199,6 +225,9 @@ export default async function makeMongoDBStore(config: MongoDBStoreConfig): Prom
   async function handleEventsRecursive(
     db: Db,
     events: JourneyCommittedEvent[],
+    completed: number,
+    total: number,
+    skipByModel: number[],
     changes: Changes[],
     abortSignal: AbortSignal,
   ) {
@@ -208,31 +237,6 @@ export default async function makeMongoDBStore(config: MongoDBStoreConfig): Prom
 
     let interruptedIndex = -1;
     const signals: Signal<Document>[] = [];
-
-    const skipByModel = models.map(() => lastSuccessfulEventId);
-
-    for (let modelIndex = 0; modelIndex < models.length; modelIndex++) {
-      const model = models[modelIndex];
-      const coll = db.collection<{ __v: number }>(getCollectionName(model));
-      // find the max event id that has been processed for each model
-      const doc = await coll.findOne(
-        {
-          __v: { $gt: lastSuccessfulEventId },
-        },
-        {
-          projection: {
-            __v: 1,
-          },
-          sort: {
-            __v: -1,
-          },
-        },
-      );
-
-      if (doc) {
-        skipByModel[modelIndex] = Math.max(skipByModel[modelIndex], Math.max(lastSuccessfulEventId, doc.__v - 1));
-      }
-    }
 
     const outputs = events.map((event, index) => {
       if (interruptedIndex !== -1) {
@@ -353,6 +357,9 @@ export default async function makeMongoDBStore(config: MongoDBStoreConfig): Prom
 
       // check if the operation is interrupted
       if (abortSignal.aborted) {
+        logger.debug(
+          `this batch of ${total} events is cancelled. ${completed} events are fully processed. Last fully processed event is #${skipByModel[0]}`,
+        );
         return;
       }
 
@@ -383,6 +390,13 @@ export default async function makeMongoDBStore(config: MongoDBStoreConfig): Prom
     // continue with remaining events
     if (interruptedIndex !== -1) {
       const remainingEvents = events.slice(interruptedIndex);
+      // logger.log(`continue from #${remainingEvents[0].id}`);
+
+      for (let i = 0; i < skipByModel.length; i++) {
+        skipByModel[i] = remainingEvents[0].id - 1;
+      }
+
+      const lastSuccessfulEventId = events.at(interruptedIndex)?.id;
 
       // execute signals
       for (const signal of signals) {
@@ -394,10 +408,22 @@ export default async function makeMongoDBStore(config: MongoDBStoreConfig): Prom
 
       // if the signal is thrown by the last event, no need to continue
       if (remainingEvents.length === 0) {
+        logger.info(`processed: ${getProgressBar(total)} #${lastSuccessfulEventId}`);
         return;
       }
 
-      await handleEventsRecursive(db, remainingEvents, changes, abortSignal);
+      logger.info(`processed: ${getProgressBar(total, completed + interruptedIndex)} #${lastSuccessfulEventId}`);
+      await handleEventsRecursive(
+        db,
+        remainingEvents,
+        completed + interruptedIndex,
+        total,
+        skipByModel,
+        changes,
+        abortSignal,
+      );
+    } else {
+      logger.info(`processed: ${getProgressBar(total)} #${events.at(-1)?.id}`);
     }
   }
 
@@ -451,4 +477,12 @@ export default async function makeMongoDBStore(config: MongoDBStoreConfig): Prom
     // close connections
     // await client.close();
   }
+}
+
+function getProgressBar(total: number, completed = total, length = 20) {
+  const ratio = completed / total;
+  const totalStrLength = Math.ceil(Math.log10(total));
+  const progress = Math.floor(ratio * length);
+  const bar = Array.from({ length }, (_, i) => (i < progress ? "=" : " ")).join("");
+  return `[${bar}] ${String(completed).padStart(totalStrLength, " ")}/${total}`;
 }
