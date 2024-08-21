@@ -209,6 +209,31 @@ export default async function makeMongoDBStore(config: MongoDBStoreConfig): Prom
     let interruptedIndex = -1;
     const signals: Signal<Document>[] = [];
 
+    const skipByModel = models.map(() => lastSuccessfulEventId);
+
+    for (let modelIndex = 0; modelIndex < models.length; modelIndex++) {
+      const model = models[modelIndex];
+      const coll = db.collection<{ __v: number }>(getCollectionName(model));
+      // find the max event id that has been processed for each model
+      const doc = await coll.findOne(
+        {
+          __v: { $gt: lastSuccessfulEventId },
+        },
+        {
+          projection: {
+            __v: 1,
+          },
+          sort: {
+            __v: -1,
+          },
+        },
+      );
+
+      if (doc) {
+        skipByModel[modelIndex] = Math.max(skipByModel[modelIndex], Math.max(lastSuccessfulEventId, doc.__v - 1));
+      }
+    }
+
     const outputs = events.map((event, index) => {
       if (interruptedIndex !== -1) {
         return [];
@@ -222,6 +247,9 @@ export default async function makeMongoDBStore(config: MongoDBStoreConfig): Prom
       // return [];
 
       const out = models.map((model) => {
+        if (event.id <= skipByModel[models.indexOf(model)]) {
+          return [];
+        }
         try {
           return runWithModel(model, event);
         } catch (error) {
@@ -312,7 +340,11 @@ export default async function makeMongoDBStore(config: MongoDBStoreConfig): Prom
 
       const bulkWriteOperations = getBulkOperations(changesForAModel);
 
-      const res = await collection.bulkWrite(bulkWriteOperations, { ordered: true });
+      if (abortSignal.aborted) {
+        return;
+      }
+
+      const res = await collection.bulkWrite(bulkWriteOperations, { ordered: true, writeConcern: { w: "majority" } });
       // const res = {
       //   upsertedCount: 0,
       //   modifiedCount: 0,
