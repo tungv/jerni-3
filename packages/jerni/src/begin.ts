@@ -145,19 +145,27 @@ export default async function* begin(journey: JourneyInstance, signal: AbortSign
       const batchLabel = `batch [#${firstId} - #${lastId}] (${eventsLength} events)`;
       const timeBudgetString = prettyMilliseconds(timeBudget);
 
-      logger.info(`${INF} [HANDLING_EVENT] ${batchLabel}: [____________________] 0.0% of ${timeBudgetString}`);
+      logger.info(`${INF} [HANDLING_EVENT] ${batchLabel}: [____________________]   0.0% of ${timeBudgetString}`);
 
       const progressBarId = setInterval(
         () => {
           const timeElapsed = Date.now() - lastProcessingTime;
           const percentage = (timeElapsed / timeBudget) * 100;
+
+          if (percentage < 25) {
+            // don't show progress bar if it's less than 25%
+            return;
+          }
+
           const lengthToRender = Math.min(Math.floor(percentage * 0.2), 20);
 
           const bar = "█".repeat(lengthToRender);
           const space = "_".repeat(20 - lengthToRender);
 
           logger.info(
-            `${INF} [HANDLING_EVENT] ${batchLabel}: [${bar}${space}] ${percentage.toFixed(1)}% of ${timeBudgetString}`,
+            `${INF} [HANDLING_EVENT] ${batchLabel}: [${bar}${space}] ${percentage
+              .toFixed(1)
+              .padStart(6, " ")}% of ${timeBudgetString}`,
           );
         },
         Math.max(5000, timeBudget / 100),
