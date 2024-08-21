@@ -178,7 +178,7 @@ export default async function* begin(journey: JourneyInstance, signal: AbortSign
     const { promise, resolve } = Promise.withResolvers();
     const ctrl = new AbortController();
 
-    logger.debug(`${DBG} [HANDLING_EVENT] force garbage collection while waiting for new events…`);
+    // logger.debug(`${DBG} [HANDLING_EVENT] force garbage collection while waiting for new events…`);
     gcAndSweep();
     // check for new events at most every 60 seconds
     Bun.sleep(60_000).then(() => {
@@ -189,9 +189,9 @@ export default async function* begin(journey: JourneyInstance, signal: AbortSign
     newEventNotifier.addEventListener("latest", resolve, { once: true, signal: ctrl.signal });
 
     await promise;
-    logger.debug(
-      `${DBG} [HANDLING_EVENT] waiting for new events… after ${prettyMilliseconds(Date.now() - lastProcessingTime)}`,
-    );
+    // logger.debug(
+    //   `${DBG} [HANDLING_EVENT] waiting for new events… after ${prettyMilliseconds(Date.now() - lastProcessingTime)}`,
+    // );
   }
 }
 
@@ -236,9 +236,6 @@ async function singleStoreHandleEvents(
   onError: JourneyConfig["onError"],
   signal: AbortSignal,
 ) {
-  if (signal.aborted) {
-    return {};
-  }
   const firstId = events[0].id;
   const lastId = events.at(-1)?.id;
 
