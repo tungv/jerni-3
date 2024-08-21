@@ -132,7 +132,7 @@ export default async function* begin(journey: JourneyInstance, signal: AbortSign
       const events = db.getBlock(latestHandled, latestPersisted, maxEvents);
       const eventsLength = events.length;
 
-      if (events.length === 0) {
+      if (eventsLength === 0) {
         latestHandled = latestPersisted;
         logger.info(`${INF} [HANDLING_EVENT] no new events to handle`);
         continue;
@@ -159,7 +159,7 @@ export default async function* begin(journey: JourneyInstance, signal: AbortSign
             `${INF} [HANDLING_EVENT] ${batchLabel}: [${bar}${space}] ${percentage.toFixed(1)}% of ${timeBudgetString}`,
           );
         },
-        Math.max(1000, timeBudget / 100),
+        Math.max(5000, timeBudget / 100),
       );
 
       try {
@@ -170,7 +170,7 @@ export default async function* begin(journey: JourneyInstance, signal: AbortSign
         const total = Date.now() - start;
 
         logger.info(
-          `${INF} [HANDLING_EVENT] ${batchLabel}: [ COMPLETED ]  100% of in ${total}ms | (pace: ${(
+          `${INF} [HANDLING_EVENT] ${batchLabel}: [ COMPLETED ]  100% of in ${prettyMilliseconds(total)} | (pace: ${(
             total / eventsLength
           ).toFixed(3)}ms/event)`,
         );
@@ -279,8 +279,8 @@ async function singleStoreHandleEvents(
   if (indent === 0) {
     const msg =
       lastId === firstId
-        ? `${DBG} ${indentStr} ${store.name} is handling event #${firstId}`
-        : `${DBG} ${indentStr} ${store.name} is handling events [#${firstId} - #${lastId}]`;
+        ? `${DBG} ${indentStr}   ${store.name} is handling event #${firstId}`
+        : `${DBG} ${indentStr}   ${store.name} is handling events [#${firstId} - #${lastId}]`;
     logger.info(msg);
   }
 
