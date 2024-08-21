@@ -260,6 +260,10 @@ async function singleStoreHandleEvents(
   onError: JourneyConfig["onError"],
   signal: AbortSignal,
 ) {
+  if (signal.aborted) {
+    throw new Error("Aborted");
+  }
+
   const firstId = events[0].id;
   const lastId = events.at(-1)?.id;
 
