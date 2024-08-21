@@ -23,7 +23,7 @@ declare global {
 const RETRY_TIMES = [10, 20, 30, 60, 120, 300, 600, 1200, 1800, 3600];
 
 export default async function getEventStreamFromUrl(
-  initialFrom: string,
+  initialFrom: number,
   url: URL,
   db: EventDatabase,
   signal: AbortSignal,
@@ -83,9 +83,12 @@ export default async function getEventStreamFromUrl(
             }
 
             // enqueue and reset
-            controller.enqueue(msg.lastId);
+            const nextId = msg.lastId;
+            if (nextId > currentFrom) {
+              currentFrom = nextId;
+              controller.enqueue(nextId);
+            }
             idleTime = INITIAL_IDLE_TIME;
-            currentFrom = String(msg.lastId);
 
             // if things go back to normal, reset the batch size
             if (wasStoppedByLargeData) {
@@ -147,7 +150,7 @@ type EventStreamReturnType =
 
 async function* retrieveJourneyCommittedEvents(
   url: URL,
-  lastSeenId: string,
+  lastSeenId: number,
   idleTime: number,
   batchSize: number,
   db: EventDatabase,
@@ -159,7 +162,7 @@ async function* retrieveJourneyCommittedEvents(
       headers: {
         authorization: `Basic ${btoa(`${url.username}:${url.password}`)}`,
         "burst-count": String(batchSize),
-        "last-event-id": lastSeenId,
+        "last-event-id": String(lastSeenId),
       },
       signal,
     });
