@@ -142,28 +142,28 @@ export default async function* begin(journey: JourneyInstance, signal: AbortSign
       const lastId = events.at(-1)!.id;
 
       logger.info(`${INF} [HANDLING_EVENT] there are ${eventsLength} new events ready to be handled`);
-      const batchLabel = `batch [#${firstId} - #${lastId}] (${eventsLength} events)`;
+      const batchLabel = `batch [#${firstId} - #${lastId}] (${eventsLength} events) remaining times`;
       const timeBudgetString = prettyMilliseconds(timeBudget);
 
-      logger.info(`${INF} [HANDLING_EVENT] ${batchLabel}: [____________________]   0.0% of ${timeBudgetString}`);
+      logger.info(`${INF} [HANDLING_EVENT] ${batchLabel}: [████████████████████] 100.0% of ${timeBudgetString}`);
 
       const progressBarId = setInterval(
         () => {
           const timeElapsed = Date.now() - lastProcessingTime;
-          const percentage = (timeElapsed / timeBudget) * 100;
+          const remainingPct = Math.max(0, 100 - (timeElapsed / timeBudget) * 100);
 
-          if (percentage < 25) {
-            // don't show progress bar if it's less than 25%
+          if (remainingPct >= 75) {
+            // only show progress bar if there is more than 75% remaining
             return;
           }
 
-          const lengthToRender = Math.min(Math.floor(percentage * 0.2), 20);
+          const lengthToRender = Math.min(Math.floor(remainingPct * 0.2), 20);
 
           const bar = "█".repeat(lengthToRender);
-          const space = "_".repeat(20 - lengthToRender);
+          const space = " ".repeat(20 - lengthToRender);
 
           logger.info(
-            `${INF} [HANDLING_EVENT] ${batchLabel}: [${bar}${space}] ${percentage
+            `${INF} [HANDLING_EVENT] ${batchLabel}: [${space}${bar}] ${remainingPct
               .toFixed(1)
               .padStart(6, " ")}% of ${timeBudgetString}`,
           );
@@ -203,7 +203,7 @@ export default async function* begin(journey: JourneyInstance, signal: AbortSign
           lastProcessingTime = Date.now();
           maxEvents = Math.max(1, Math.floor(eventsLength / 2));
 
-          logger.info(`${INF} [HANDLING_EVENT] ${batchLabel}: [     TIMED OUT      ]  100% of ${timeBudgetString}`);
+          logger.info(`${INF} [HANDLING_EVENT] ${batchLabel}: [     TIMED OUT      ]  100.0% of ${timeBudgetString}`);
           logger.info(`${INF} [HANDLING_EVENT] retrying with maxEvents = ${maxEvents}`);
           continue mainLoop;
         }
