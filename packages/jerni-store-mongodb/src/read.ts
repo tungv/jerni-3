@@ -135,6 +135,13 @@ function readPipelineSameCollection<DocumentType extends Document>(
   return res;
 }
 
-export function large() {
-  return readPipeline([]);
+/**
+ * call this function within a projection to mark the output as large
+ * large output will wait for all the previous projections to finish before it's executed
+ *
+ * calling this function multiple times will only mark the output as large once and it's not recommended.
+ * there is no way to unmark the output as large once it's marked
+ */
+export function large(): void {
+  readPipeline([]);
 }
