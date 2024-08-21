@@ -171,6 +171,7 @@ export default async function* begin(journey: JourneyInstance, signal: AbortSign
           continue mainLoop;
         }
         console.error(`${ERR} [HANDLING_EVENT] something went wrong while handling events`, ex);
+        process.exit(1);
       }
     }
 
@@ -302,9 +303,8 @@ async function singleStoreHandleEvents(
       // is it recoverable?
       if (retryEx instanceof UnrecoverableError) {
         logger.info(`${INF} ${C} left is unrecoverable`);
-        process.exit(1);
+        throw retryEx;
       }
-      throw retryEx;
     }
 
     // if left succeeds, retry right
