@@ -27,7 +27,7 @@ export default async function* begin(journey: JourneyInstance, signal: AbortSign
 
   const { url } = normalizeUrl(config);
 
-  const folder = runConfig?.dbFolder ?? "/tmp/jerni-cli/runs";
+  const folder = runConfig?.dbFolder ?? "./.jerni/runs";
   await mkdir(folder, { recursive: true });
   const sqlFilePath = `${folder}/events-${runId}.sqlite`;
 
