@@ -330,52 +330,40 @@ export default async function makeMongoDBStore(config: MongoDBStoreConfig): Prom
       eventIndex++;
     }
 
-    let modelIndex = 0;
-    for (const changesForAModel of changesPerModel) {
-      const thisModelIndex = modelIndex;
-      if (changesForAModel === undefined || changesForAModel.length === 0) {
-        modelIndex++;
-        continue;
-      }
+    await Promise.all(
+      changesPerModel.map(async (changesForAModel, modelIndex) => {
+        const model = models[modelIndex];
+        const outputForThisModel = changes[modelIndex];
+        if (changesForAModel === undefined || changesForAModel.length === 0) {
+          return;
+        }
 
-      const model = models[modelIndex];
-      const outputForThisModel = changes[modelIndex];
-      modelIndex++;
-      const collection = db.collection(getCollectionName(model));
+        const collection = db.collection(getCollectionName(model));
+        const bulkWriteOperations = getBulkOperations(changesForAModel);
 
-      const bulkWriteOperations = getBulkOperations(changesForAModel);
+        if (abortSignal.aborted) {
+          return;
+        }
 
-      if (abortSignal.aborted) {
-        return;
-      }
+        const res = await collection.bulkWrite(bulkWriteOperations, { ordered: true, writeConcern: { w: "majority" } });
 
-      const res = await collection.bulkWrite(bulkWriteOperations, { ordered: true, writeConcern: { w: "majority" } });
-      // const res = {
-      //   upsertedCount: 0,
-      //   modifiedCount: 0,
-      //   deletedCount: 0,
-      // };
+        skipByModel[modelIndex] = Math.max(skipByModel[modelIndex], events[events.length - 1].id);
 
-      // regardless of the cancellation, we need to update the last seen id for each model
-      // with this, we may skip some large events from replaying in following batches
-      // because it's however persisted
-      skipByModel[thisModelIndex] = Math.max(skipByModel[thisModelIndex], events[events.length - 1].id);
+        if (abortSignal.aborted) {
+          logger.debug(
+            `This batch of ${total} events is cancelled. ${completed} events are fully processed. Last fully processed event is #${skipByModel[0]}`,
+          );
+          logger.debug(
+            `However, with collection=${collection.collectionName} we still optimistically skip the transformed output of events up to #${skipByModel[modelIndex]} in the following batches`,
+          );
+          return;
+        }
 
-      // check if the operation is interrupted
-      if (abortSignal.aborted) {
-        logger.debug(
-          `this batch of ${total} events is cancelled. ${completed} events are fully processed. Last fully processed event is #${skipByModel[0]}`,
-        );
-        logger.debug(
-          `however we still optimistically skip the transformed output of events up to #${skipByModel[thisModelIndex]} in the following batches`,
-        );
-        return;
-      }
-
-      outputForThisModel.added += res.upsertedCount;
-      outputForThisModel.updated += res.modifiedCount;
-      outputForThisModel.deleted += res.deletedCount;
-    }
+        outputForThisModel.added += res.upsertedCount;
+        outputForThisModel.updated += res.modifiedCount;
+        outputForThisModel.deleted += res.deletedCount;
+      }),
+    );
 
     // if the first event is interrupted, we do NOT need to update the snapshot collection
     if (interruptedIndex !== 0 && !abortSignal.aborted) {
