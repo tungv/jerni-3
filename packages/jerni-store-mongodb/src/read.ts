@@ -48,10 +48,13 @@ export function runWithModel<DocumentType extends Document>(
 ) {
   currentModel = model;
 
-  const res = model.transform(event);
-  currentModel = null;
+  try {
+    const res = model.transform(event);
 
-  return res || [];
+    return res || [];
+  } finally {
+    currentModel = null;
+  }
 }
 
 export function clearModelSlots() {
