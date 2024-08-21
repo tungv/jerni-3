@@ -145,16 +145,16 @@ export default async function* begin(journey: JourneyInstance, signal: AbortSign
       const batchLabel = `batch [#${firstId} - #${lastId}] (${eventsLength} events)`;
       const timeBudgetString = prettyMilliseconds(timeBudget);
 
-      logger.info(`${INF} [HANDLING_EVENT] ${batchLabel}: [___________] 0.0% of ${timeBudgetString}`);
+      logger.info(`${INF} [HANDLING_EVENT] ${batchLabel}: [____________________] 0.0% of ${timeBudgetString}`);
 
       const progressBarId = setInterval(
         () => {
           const timeElapsed = Date.now() - lastProcessingTime;
           const percentage = (timeElapsed / timeBudget) * 100;
-          const lengthToRender = Math.min(Math.floor(percentage / 11), 11);
+          const lengthToRender = Math.min(Math.floor(percentage * 0.2), 20);
 
           const bar = "█".repeat(lengthToRender);
-          const space = "_".repeat(11 - lengthToRender);
+          const space = "_".repeat(20 - lengthToRender);
 
           logger.info(
             `${INF} [HANDLING_EVENT] ${batchLabel}: [${bar}${space}] ${percentage.toFixed(1)}% of ${timeBudgetString}`,
@@ -169,27 +169,33 @@ export default async function* begin(journey: JourneyInstance, signal: AbortSign
         const { output, lastId } = await handleEventBatch(config.stores, config.onError, events, logger, timeout);
         latestHandled = lastId;
         const total = Date.now() - start;
+        const budgetPercentage = (total / timeBudget) * 100;
 
         logger.info(
-          `${INF} [HANDLING_EVENT] ${batchLabel}: [ COMPLETED ]  100% of in ${prettyMilliseconds(total)} | (pace: ${(
-            total / eventsLength
-          ).toFixed(3)}ms/event)`,
+          `${INF} [HANDLING_EVENT] ${batchLabel}: [     COMPLETED      ] ${budgetPercentage.toFixed(
+            1,
+          )}% of ${timeBudgetString} (${prettyMilliseconds(total)} | pace: ${(total / eventsLength).toFixed(
+            3,
+          )}ms/event)`,
         );
         lastProcessingTime = Date.now();
 
         yield output;
 
-        // if all events are handled, we can increase the maxEvents
         if (tooMuch) {
-          maxEvents = 256;
+          // run another batch with the same maxEvents
           tooMuch = false;
+        } else {
+          // if all events are handled, we can increase the maxEvents
+          maxEvents = Math.min(maxEvents * 2, 256);
         }
       } catch (ex) {
         if (timeout.aborted) {
           tooMuch = true;
+          lastProcessingTime = Date.now();
           maxEvents = Math.max(1, Math.floor(eventsLength / 2));
 
-          logger.info(`${INF} [HANDLING_EVENT] ${batchLabel}: [ TIMED OUT ]  100% of ${timeBudgetString}`);
+          logger.info(`${INF} [HANDLING_EVENT] ${batchLabel}: [     TIMED OUT      ]  100% of ${timeBudgetString}`);
           logger.info(`${INF} [HANDLING_EVENT] retrying with maxEvents = ${maxEvents}`);
           continue mainLoop;
         }
