@@ -20,6 +20,8 @@ export default async function commitToServer<T extends keyof CommittingEventDefi
 ): Promise<TypedJourneyCommittedEvent<T>> {
   logger.debug("committing...");
   const commitUrl = new URL("commit", url);
+  commitUrl.username = "";
+  commitUrl.password = "";
 
   const localId = nanoid();
   const event = {
@@ -52,6 +54,7 @@ export default async function commitToServer<T extends keyof CommittingEventDefi
     headers: {
       "content-type": "application/json",
       "x-request-id": localId,
+      authorization: `Basic ${btoa(`${url.username}:${url.password}`)}`,
     },
     body: JSON.stringify(event),
   });
