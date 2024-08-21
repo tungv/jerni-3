@@ -10,7 +10,7 @@ interface Job {
   stop: () => Promise<void>;
 }
 
-export default async function initWorker(filePath: string | undefined, port: number, sqlitePath: string) {
+export default async function initWorker(filePath: string | undefined, port: number, sqliteFolderPath: string) {
   // validate file path
 
   const validFilePath = await assertFilePath(filePath);
@@ -51,7 +51,7 @@ export default async function initWorker(filePath: string | undefined, port: num
 
         startHealthCheckServer(port, ctrl.signal);
 
-        for await (const _outputs of begin(journey, ctrl.signal, { filePath: sqlitePath })) {
+        for await (const _outputs of begin(journey, ctrl.signal, { dbFolder: sqliteFolderPath })) {
           // console.log("outputs", outputs);
         }
       } catch (error) {
