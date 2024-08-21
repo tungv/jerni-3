@@ -17,4 +17,4 @@ export const MAX_STREAMING_BUFFER_SIZE = readConfig("JERNI_CLI_MAX_STREAMING_BUF
 export const MAX_STREAMING_BUFFER_COUNT = readConfig("JERNI_CLI_MAX_STREAMING_BUFFER_COUNT", "2000", Number);
 
 // event processing settings
-export const HANDLING_EVENT_TIMEOUT = readConfig("JERNI_CLI_HANDLING_EVENT_TIMEOUT", "10s", ms);
+export const HANDLING_EVENT_TIMEOUT = readConfig("JERNI_CLI_HANDLING_EVENT_TIMEOUT", "15m", ms);
