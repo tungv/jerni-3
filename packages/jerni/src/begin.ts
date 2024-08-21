@@ -96,9 +96,9 @@ export default async function* begin(journey: JourneyInstance, signal: AbortSign
   let latestHandled = clientLatest;
 
   const newEventNotifier = new EventTarget();
-  const ping = debounce(300, function ping() {
+  const ping = function ping() {
     newEventNotifier.dispatchEvent(new Event("latest"));
-  });
+  };
 
   (async () => {
     const eventStream = await getEventStreamFromUrl(clientLatest.toString(), subscriptionUrl, db, signal, logger);
