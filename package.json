@@ -14,5 +14,12 @@
   "type": "module",
   "workspaces": [
     "packages/*"
-  ]
+  ],
+  "dependencies": {
+    "acorn": "^8.12.1",
+    "enhanced-resolve": "4.5.0",
+    "es-module-lexer": "^1.5.4",
+    "tsconfig-paths-webpack-plugin": "^4.1.0",
+    "type-fest": "^4.25.0"
+  }
 }
