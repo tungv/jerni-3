@@ -179,3 +179,5 @@ dist
 jerni-models
 mycli
 **.bun-build
+
+build/*
