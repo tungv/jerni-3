@@ -1,3 +1,7 @@
+# Prerequisite
+
+- Check `.github/workflows/on_release_jerni_pr_merged.yml` for the bun version used in this project.
+
 # jerni
 
 To install dependencies:
