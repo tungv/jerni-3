@@ -5,6 +5,7 @@ import fs from "node:fs";
 import { debounce } from "lodash";
 import { INF } from "../cli-utils/log-headers";
 import guardErrors from "../guardErrors";
+import getFilesToWatch from "./getFilesToWatch";
 import initEventsServerDev from "./initEventsServerDev";
 import initJerniDev from "./initJerniDev";
 import readFile from "./readFile";
@@ -47,7 +48,25 @@ await guardErrors(
     startEventsServer();
 
     // listen for file changes and restart journey
-    fs.watch(
+    const filesToWatch = await getFilesToWatch(initFileName);
+    // todo: close watcher
+    const depsWatchers = filesToWatch.map((file) => {
+      fs.watch(
+        file,
+        debounce(async () => {
+          console.log("%s file changed, restarting jerni dev...", INF);
+
+          await stopEventsServer();
+          await stopJourney();
+
+          startEventsServer();
+          startJourney({ cleanStart: true });
+        }, 300),
+      );
+    });
+
+    // todo: close watcher
+    const dataFileWatcher = fs.watch(
       dbFilePath,
       debounce(async () => {
         console.log("%s file changed, restarting jerni dev...", INF);
