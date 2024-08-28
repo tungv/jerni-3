@@ -9,6 +9,11 @@ export default async function initEventsServerDev(inputFileName: string, port: n
 
   return {
     start: async () => {
+      if (server) {
+        // do nothing if server is already started
+        return;
+      }
+
       const { events } = readFile(inputFileName);
 
       server = Bun.serve({
