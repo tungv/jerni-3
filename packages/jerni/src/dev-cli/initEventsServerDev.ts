@@ -6,6 +6,14 @@ import readFile from "./readFile";
 
 export default async function initEventsServerDev(inputFileName: string, port: number) {
   let server: Server;
+  const [getEvents, setEvents] = (() => {
+    let { events } = readFile(inputFileName);
+    const getEvents = () => events;
+    const setEvents = (newEvents: JourneyCommittedEvent[]) => {
+      events = newEvents;
+    };
+    return [getEvents, setEvents];
+  })();
 
   return {
     start: async () => {
@@ -14,12 +22,11 @@ export default async function initEventsServerDev(inputFileName: string, port: n
         return;
       }
 
-      const { events } = readFile(inputFileName);
-
       server = Bun.serve({
         port,
         async fetch(req) {
           const url = new URL(req.url);
+          const events = getEvents();
 
           if (req.method === "GET" && url.pathname === "/events/latest") {
             if (events.length === 0) {
@@ -60,6 +67,8 @@ export default async function initEventsServerDev(inputFileName: string, port: n
             const event = (await req.json()) as JourneyCommittedEvent | JourneyCommittedEvent[];
 
             const newEvents = Array.isArray(event) ? event : [event];
+
+            setEvents(newEvents);
 
             const latestId = appendEventsToFile(inputFileName, newEvents);
 
