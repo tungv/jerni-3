@@ -174,7 +174,14 @@ export default async function* begin(journey: JourneyInstance, signal: AbortSign
       try {
         // handle events must stop after 10 seconds
         const start = Date.now();
-        const { output, lastId } = await handleEventBatch(config.stores, config.onError, events, logger, timeout);
+        const { output, lastId } = await handleEventBatch(
+          config.stores,
+          config.onError,
+          config.onReport,
+          events,
+          logger,
+          timeout,
+        );
         latestHandled = lastId;
         const total = Date.now() - start;
         const budgetPercentage = (total / timeBudget) * 100;
@@ -237,6 +244,7 @@ export default async function* begin(journey: JourneyInstance, signal: AbortSign
 async function handleEventBatch(
   stores: JourneyConfig["stores"],
   onError: JourneyConfig["onError"],
+  onReport: JourneyConfig["onReport"],
   events: JourneyCommittedEvent[],
   logger: Logger,
   signal: AbortSignal,
@@ -256,6 +264,12 @@ async function handleEventBatch(
     Promise.all(
       stores.map(async (store) => {
         const output = await singleStoreHandleEvents(store, events, 0, events.length, logger, onError, signal);
+
+        onReport?.("store_output", {
+          store: store,
+
+          output,
+        });
 
         return output;
       }),
