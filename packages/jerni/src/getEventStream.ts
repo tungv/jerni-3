@@ -158,13 +158,13 @@ async function* retrieveJourneyCommittedEvents(
 ): AsyncGenerator<EventStreamReturnType, void, unknown> {
   signal.throwIfAborted();
   try {
+    // passing signal to fetch will throw uncatchable error, instead, add the signal to body.pipeThrough
     const resp = await fetch(url.toString(), {
       headers: {
         authorization: `Basic ${btoa(`${url.username}:${url.password}`)}`,
         "burst-count": String(batchSize),
         "last-event-id": String(lastSeenId),
       },
-      signal,
     });
 
     if (!resp.ok) {
@@ -180,7 +180,7 @@ async function* retrieveJourneyCommittedEvents(
       connected_at: Date.now(),
     };
 
-    const stream = resp.body.pipeThrough(new TextDecoderStream());
+    const stream = resp.body.pipeThrough(new TextDecoderStream(), { signal });
 
     const pending = [] as string[];
 
