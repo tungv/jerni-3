@@ -34,10 +34,10 @@ test("start subscription from last saved event id", async () => {
 
   const ctrl1 = new AbortController();
 
-  const worker1 = await initJourney(eventServerUrl, []);
+  const worker1 = initJourney(eventServerUrl, []);
 
   // subscribe to events
-  for await (const _events of begin(worker1.journey, ctrl1.signal)) {
+  for await (const _output of begin(worker1.journey, ctrl1.signal)) {
     ctrl1.abort();
   }
 
@@ -54,7 +54,7 @@ test("start subscription from last saved event id", async () => {
   const ctrl2 = new AbortController();
 
   let processedId = 0;
-  const worker2 = await initJourney(eventServerUrl, [
+  const worker2 = initJourney(eventServerUrl, [
     {
       name: "test",
       clean: async () => {},
@@ -83,7 +83,7 @@ test("start subscription from last saved event id", async () => {
   ]);
 
   // subscribe to events
-  for await (const output of begin(worker2.journey, ctrl2.signal)) {
+  for await (const _output of begin(worker2.journey, ctrl2.signal)) {
     if (processedId === 2) {
       ctrl2.abort();
     }

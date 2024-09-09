@@ -2,7 +2,7 @@ import { mock } from "bun:test";
 import createJourney from "src/createJourney";
 import type { JourneyConfig } from "../../types/config";
 
-export async function initJourney(eventServerUrl: string, stores: JourneyConfig["stores"]) {
+export function initJourney(eventServerUrl: string, stores: JourneyConfig["stores"]) {
   const logger = makeTestLogger();
 
   const onReport = mock((type: string, payload: unknown) => {});
