@@ -214,8 +214,7 @@ export default async function* begin(journey: JourneyInstance, signal: AbortSign
           logger.info(`${INF} [HANDLING_EVENT] retrying with maxEvents = ${maxEvents}`);
           continue mainLoop;
         }
-        console.error(`${ERR} [HANDLING_EVENT] something went wrong while handling events`, ex);
-        process.exit(1);
+        break mainLoop;
       } finally {
         clearInterval(progressBarId);
       }
