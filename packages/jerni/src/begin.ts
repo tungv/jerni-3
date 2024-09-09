@@ -231,7 +231,15 @@ export default async function* begin(journey: JourneyInstance, signal: AbortSign
       resolve();
     });
 
+    // also check if the signal is aborted
+    signal.addEventListener("abort", resolve, { once: true, signal: ctrl.signal });
+
     newEventNotifier.addEventListener("latest", resolve, { once: true, signal: ctrl.signal });
+
+    // check if the signal is aborted before waiting
+    if (signal.aborted) {
+      break;
+    }
 
     await promise;
     // logger.debug(
