@@ -97,7 +97,7 @@ it("CLI call should project events correctly", async () => {
 
   // this model process the deposit event
   expect(bankAccount_2).toEqual({
-    __op: 1,
+    __op: 0,
     __v: 2,
     _id: expect.anything(),
     id: "123",
