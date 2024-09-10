@@ -63,7 +63,7 @@ export interface MongoDBStore {
     >,
   ) => void;
 
-  getDriver<T extends Document>(model: MongoDBModel<T>): Promise<AsyncDisposable>;
+  getDriver<T extends Document>(model: MongoDBModel<T>): Promise<Collection<T> & AsyncDisposable>;
   handleEvents: (
     events: JourneyCommittedEvent[],
     signal?: AbortSignal,

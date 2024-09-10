@@ -54,6 +54,8 @@ export default async function initWorker(filePath: string | undefined, port: num
         for await (const _outputs of begin(journey, ctrl.signal, { dbFolder: sqliteFolderPath })) {
           // console.log("outputs", outputs);
         }
+
+        ctrl.abort();
       } catch (error) {
         console.error("%s cannot initialize journey object", ERR);
 

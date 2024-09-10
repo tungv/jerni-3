@@ -7,6 +7,7 @@ import begin from "../begin";
 import { ERR, INF } from "../cli-utils/log-headers";
 import { printErrorObject } from "../printErrorObject";
 import type { JourneyInstance } from "../types/journey";
+import clearData from "./clearData";
 
 interface StartJerniDevOptions {
   cleanStart?: boolean;
@@ -50,7 +51,7 @@ export default async function initJerniDev(filePath: string | undefined) {
           console.log("%s clean start jerni, clearing database…", INF);
 
           // clear database
-          // await clearData(journey);
+          await clearData(journey);
         }
 
         console.log("%s jerni dev start %s", INF, bold(validFilePath));

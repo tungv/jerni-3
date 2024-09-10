@@ -112,7 +112,7 @@ export default function createJourney(config: JourneyConfig): JourneyInstance {
       }
     },
     // biome-ignore lint/suspicious/noExplicitAny: because this is a placeholder, the client that uses jerni would override this type
-    async getReader(model: any): Promise<AsyncDisposable> {
+    async getReader(model: any): Promise<any> {
       registerOnce();
       const store = modelToStoreMap.get(model);
 

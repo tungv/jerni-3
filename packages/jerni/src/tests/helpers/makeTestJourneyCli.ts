@@ -17,7 +17,7 @@ function getEventsServerUrl() {
 }
 
 export default async function initializeJourney(eventsServer = getEventsServerUrl()) {
-  const { journey } = await initJourney(eventsServer, []);
+  const { journey } = initJourney(eventsServer, []);
 
   return journey;
 }

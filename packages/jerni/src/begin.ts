@@ -174,7 +174,14 @@ export default async function* begin(journey: JourneyInstance, signal: AbortSign
       try {
         // handle events must stop after 10 seconds
         const start = Date.now();
-        const { output, lastId } = await handleEventBatch(config.stores, config.onError, events, logger, timeout);
+        const { output, lastId } = await handleEventBatch(
+          config.stores,
+          config.onError,
+          config.onReport,
+          events,
+          logger,
+          timeout,
+        );
         latestHandled = lastId;
         const total = Date.now() - start;
         const budgetPercentage = (total / timeBudget) * 100;
@@ -207,8 +214,9 @@ export default async function* begin(journey: JourneyInstance, signal: AbortSign
           logger.info(`${INF} [HANDLING_EVENT] retrying with maxEvents = ${maxEvents}`);
           continue mainLoop;
         }
-        console.error(`${ERR} [HANDLING_EVENT] something went wrong while handling events`, ex);
-        process.exit(1);
+
+        logger.error(`${ERR} [HANDLING_EVENT] something went wrong while handling events`, ex);
+        break mainLoop;
       } finally {
         clearInterval(progressBarId);
       }
@@ -225,7 +233,15 @@ export default async function* begin(journey: JourneyInstance, signal: AbortSign
       resolve();
     });
 
+    // also check if the signal is aborted
+    signal.addEventListener("abort", resolve, { once: true, signal: ctrl.signal });
+
     newEventNotifier.addEventListener("latest", resolve, { once: true, signal: ctrl.signal });
+
+    // check if the signal is aborted before waiting
+    if (signal.aborted) {
+      break;
+    }
 
     await promise;
     // logger.debug(
@@ -237,6 +253,7 @@ export default async function* begin(journey: JourneyInstance, signal: AbortSign
 async function handleEventBatch(
   stores: JourneyConfig["stores"],
   onError: JourneyConfig["onError"],
+  onReport: JourneyConfig["onReport"],
   events: JourneyCommittedEvent[],
   logger: Logger,
   signal: AbortSignal,
@@ -256,6 +273,12 @@ async function handleEventBatch(
     Promise.all(
       stores.map(async (store) => {
         const output = await singleStoreHandleEvents(store, events, 0, events.length, logger, onError, signal);
+
+        onReport?.("store_output", {
+          store: store,
+
+          output,
+        });
 
         return output;
       }),
