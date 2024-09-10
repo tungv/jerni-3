@@ -1,4 +1,4 @@
-import type { AnyBulkWriteOperation, Document, UpdateFilter, UpdateOneModel } from "mongodb";
+import type { AnyBulkWriteOperation, Document, UpdateOneModel } from "mongodb";
 import type {
   DeleteManyOp,
   DeleteOneOp,
@@ -11,15 +11,8 @@ import type {
 
 interface ChangeWithOp<Change> {
   change: Change;
-  __op: number;
   __v: number;
 }
-
-type OptimisticDocument = {
-  __v: number;
-  __op: number;
-  [key: string]: unknown;
-};
 
 interface Newer {
   $or: [{ __v: { $gt: number } }, { __v: number; __op: { $gte: number } }];

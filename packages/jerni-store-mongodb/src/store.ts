@@ -1,11 +1,11 @@
 import { setTimeout } from "node:timers/promises";
-import { type Collection, type Db, type Document, MongoClient } from "mongodb";
+import { type AnyBulkWriteOperation, type Collection, type Db, type Document, MongoClient } from "mongodb";
 import makeTestLogger from "../tests/helpers/makeTestLogger";
 import getCollectionName from "./getCollectionName";
 import type MongoDBModel from "./model";
 import getBulkOperations from "./optimistic/getBulkOperations";
 import { Signal, clearModelSlots, runWithModel } from "./read";
-import type { Changes, JourneyCommittedEvent, MongoDBStore, MongoDBStoreConfig, MongoOps } from "./types";
+import type { Changes, JourneyCommittedEvent, MongoDBStore, MongoDBStoreConfig } from "./types";
 
 interface SnapshotDocument {
   __v: number;
@@ -294,19 +294,12 @@ export default async function makeMongoDBStore(config: MongoDBStoreConfig): Prom
 
     // output is an array of changes per event.
     // however for efficiency, we need to handle event per model
-    type VersionedChange = {
-      change: MongoOps<Document>;
-      __op: number;
-      __v: number;
-    };
-
-    const changesPerModel: VersionedChange[][] = [];
+    // so we need to group changes per model
+    const bulkWritesPerModel: AnyBulkWriteOperation<Document>[][] = [];
 
     for (const allChangesForAnEvent of outputs) {
       let modelIndex = 0;
       for (const changesForAModel of allChangesForAnEvent) {
-        let __op = 0;
-
         if (changesForAModel === undefined || changesForAModel.length === 0) {
           modelIndex++;
           continue;
@@ -315,37 +308,37 @@ export default async function makeMongoDBStore(config: MongoDBStoreConfig): Prom
         const changesWithOp = changesForAModel.map((change) => {
           return {
             change,
-            __op: __op++,
             __v: events[eventIndex].id,
           };
         });
 
-        // add changes to changesPerModel
-        if (!changesPerModel[modelIndex]) {
-          changesPerModel[modelIndex] = [];
+        const operations = getBulkOperations(changesWithOp);
+
+        // add operations to the bulkWritesPerModel
+        if (!bulkWritesPerModel[modelIndex]) {
+          bulkWritesPerModel[modelIndex] = [];
         }
-        changesPerModel[modelIndex].push(...changesWithOp);
+        bulkWritesPerModel[modelIndex].push(...operations);
         modelIndex++;
       }
       eventIndex++;
     }
 
     await Promise.all(
-      changesPerModel.map(async (changesForAModel, modelIndex) => {
+      bulkWritesPerModel.map(async (bulkWritesForAModel, modelIndex) => {
         const model = models[modelIndex];
         const outputForThisModel = changes[modelIndex];
-        if (changesForAModel === undefined || changesForAModel.length === 0) {
+        if (bulkWritesForAModel === undefined || bulkWritesForAModel.length === 0) {
           return;
         }
 
         const collection = db.collection(getCollectionName(model));
-        const bulkWriteOperations = getBulkOperations(changesForAModel);
 
         if (abortSignal.aborted) {
           return;
         }
 
-        const res = await collection.bulkWrite(bulkWriteOperations, { ordered: true, writeConcern: { w: "majority" } });
+        const res = await collection.bulkWrite(bulkWritesForAModel, { ordered: true, writeConcern: { w: "majority" } });
 
         skipByModel[modelIndex] = Math.max(skipByModel[modelIndex], events[events.length - 1].id);
 
