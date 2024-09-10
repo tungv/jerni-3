@@ -194,6 +194,9 @@ async function* retrieveJourneyCommittedEvents(
       const utf8Size = utf8.length;
       pendingSize += utf8Size;
 
+      // yield to event loop
+      await Bun.sleep(0);
+
       pending.push(utf8);
 
       const r = messageListFromString(pending.join(""));
