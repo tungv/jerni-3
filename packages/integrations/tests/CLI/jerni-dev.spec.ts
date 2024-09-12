@@ -1,3 +1,4 @@
+import sqlite from "bun:sqlite";
 import { afterEach, describe, expect, test } from "bun:test";
 import { exec } from "node:child_process";
 import fs from "node:fs";
@@ -283,6 +284,108 @@ describe("Jerni Dev Integration", () => {
       name: "test",
       balance: 0,
     });
+
+    childProcess.kill();
+  });
+
+  test("should write the changes to both the binary and the text file", async () => {
+    const port = Math.floor(Math.random() * 10000) + 10000;
+    const dbFileName = `./test-events-db-${nanoid()}.yml`;
+    const sqliteFileName = `./test-events-db-${nanoid()}.sqlite`;
+    const mongodbName = `jerni_integration_test_${nanoid()}`;
+
+    const devCliPath = path.resolve(__dirname, "../../../jerni/src/dev-cli/index.ts");
+    const initFileName = path.resolve(__dirname, "./makeTestJourneyCli.ts");
+    const dbFilePath = path.resolve(__dirname, dbFileName);
+    const sqliteFilePath = path.resolve(__dirname, sqliteFileName);
+
+    const childProcess = exec(
+      `PORT=${port}\
+        MONGODB_DBNAME=${mongodbName}\
+        bun run ${devCliPath} ${initFileName} ${dbFilePath} ${sqliteFilePath}`,
+      (error, stdout, stderr) => {
+        // console.log(`stdout: ${stdout}`);
+        // console.error(`stderr: ${stderr}`);
+      },
+    );
+
+    // await for the server to start
+    await setTimeout(1000);
+
+    process.env.EVENTS_SERVER = `http://localhost:${port}`;
+    const mongoConfig = {
+      url: "mongodb://localhost:27017",
+      dbName: mongodbName,
+    };
+    const journey = await initializeJourney(mongoConfig);
+
+    // commit event
+    const event1 = await journey.append<"NEW_ACCOUNT_REGISTERED">({
+      type: "NEW_ACCOUNT_REGISTERED",
+      payload: {
+        id: "123",
+        name: "test",
+      },
+    });
+
+    await journey.waitFor(event1);
+
+    const BankAccounts = await journey.getReader(BankAccountModel);
+
+    const bankAccount = await BankAccounts.findOne({
+      id: "123",
+    });
+
+    expect(bankAccount).toEqual({
+      __op: 0,
+      __v: 1,
+      _id: expect.anything(),
+      id: "123",
+      name: "test",
+      balance: 0,
+    });
+
+    const fileContent = fs.readFileSync(dbFilePath, "utf8");
+    const yamlContent = yaml.parse(fileContent);
+    expect(yamlContent).toEqual({
+      checksum: expect.any(String),
+      events: [
+        {
+          type: "NEW_ACCOUNT_REGISTERED",
+          payload: {
+            id: "123",
+            name: "test",
+          },
+          meta: expect.any(Object),
+        },
+      ],
+    });
+
+    const sqliteDb = sqlite.open(sqliteFilePath);
+    const rows = sqliteDb.query("SELECT * FROM events").all() as Array<{
+      id: number;
+      type: string;
+      payload: string;
+      meta: string;
+    }>;
+
+    const parsedRows = rows.map((row) => ({
+      ...row,
+      payload: JSON.parse(row.payload),
+      meta: JSON.parse(row.meta),
+    }));
+
+    expect(parsedRows).toEqual([
+      {
+        id: 1,
+        type: "NEW_ACCOUNT_REGISTERED",
+        payload: {
+          id: "123",
+          name: "test",
+        },
+        meta: expect.any(Object),
+      },
+    ]);
 
     childProcess.kill();
   });
