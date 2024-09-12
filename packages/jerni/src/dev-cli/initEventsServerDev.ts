@@ -6,6 +6,7 @@ import ensureFileExists from "./ensureFileExists";
 import ensureSqliteTable from "./ensureSqliteTable";
 
 interface SavedEvent {
+  id: number;
   type: string;
   payload: string;
   meta: string;
@@ -15,7 +16,12 @@ function getEventsFromSqlite(filePath: string) {
 
   const events = db.prepare<SavedEvent, null>("SELECT * FROM events").all(null);
 
-  return events;
+  return events.map((event) => ({
+    id: event.id,
+    type: event.type as keyof LocalEvents,
+    payload: JSON.parse(event.payload),
+    meta: JSON.parse(event.meta),
+  }));
 }
 
 export default async function initEventsServerDev(textFileName: string, sqliteFileName: string, port: number) {
@@ -27,21 +33,14 @@ export default async function initEventsServerDev(textFileName: string, sqliteFi
 
       ensureSqliteTable(sqliteFileName);
 
-      const eventsInDb = getEventsFromSqlite(sqliteFileName);
-
-      const events: JourneyCommittedEvent[] = eventsInDb.map((event, index) => ({
-        id: index + 1,
-        type: event.type as keyof LocalEvents,
-        payload: JSON.parse(event.payload),
-        meta: JSON.parse(event.meta),
-      }));
-
       server = Bun.serve({
         port,
         async fetch(req) {
           const url = new URL(req.url);
 
           if (req.method === "GET" && url.pathname === "/events/latest") {
+            const events = getEventsFromSqlite(sqliteFileName);
+
             if (events.length === 0) {
               return Response.json({
                 id: 0,
@@ -73,6 +72,8 @@ export default async function initEventsServerDev(textFileName: string, sqliteFi
           }
 
           if (req.method === "GET" && url.pathname === "/subscribe") {
+            const events = getEventsFromSqlite(sqliteFileName);
+
             return streamingResponse(req, events);
           }
 
