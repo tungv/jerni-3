@@ -85,10 +85,12 @@ await guardErrors(
       const input = data.toString().trim();
 
       if (input === "r") {
-        console.log("%s clean starting jerni dev...", INF);
+        console.log("%s forced restart command received, clean starting jerni dev...", INF);
 
         await stopEventsServer();
         await stopJourney();
+
+        syncWithBinary(dbFilePath, sqliteFilePath);
 
         startEventsServer();
         startJourney({

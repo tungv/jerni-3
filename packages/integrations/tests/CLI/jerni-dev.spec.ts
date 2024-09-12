@@ -171,15 +171,17 @@ describe("Jerni Dev Integration", () => {
     const port = Math.floor(Math.random() * 10000) + 10000;
     const dbFileName = `./test-events-db-${nanoid()}.yml`;
     const mongodbName = `jerni_integration_test_${nanoid()}`;
+    const sqliteFileName = `./test-events-db-${nanoid()}.sqlite`;
 
     const devCliPath = path.resolve(__dirname, "../../../jerni/src/dev-cli/index.ts");
     const initFileName = path.resolve(__dirname, "./makeTestJourneyCli.ts");
     const dbFilePath = path.resolve(__dirname, dbFileName);
+    const sqliteFilePath = path.resolve(__dirname, sqliteFileName);
 
     const childProcess = exec(
       `PORT=${port}\
         MONGODB_DBNAME=${mongodbName}\
-        bun run ${devCliPath} ${initFileName} ${dbFilePath}`,
+        bun run ${devCliPath} ${initFileName} ${dbFilePath} ${sqliteFilePath}`,
       (error, stdout, stderr) => {
         // console.log(`stdout: ${stdout}`);
         // console.error(`stderr: ${stderr}`);
