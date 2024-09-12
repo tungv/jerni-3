@@ -57,7 +57,6 @@ await guardErrors(
       debounce(async () => {
         console.log("%s file changed, restarting jerni dev...", INF);
 
-        await stopEventsServer();
         await stopJourney();
 
         const { fileChecksum, realChecksum } = readFile(dbFilePath);
@@ -67,7 +66,6 @@ await guardErrors(
 
           syncWithBinary(dbFilePath, sqliteFilePath);
 
-          startEventsServer();
           startJourney({
             cleanStart: true,
           });
@@ -75,7 +73,6 @@ await guardErrors(
           return;
         }
 
-        startEventsServer();
         startJourney();
       }, 300),
     );
@@ -87,12 +84,10 @@ await guardErrors(
       if (input === "r") {
         console.log("%s forced restart command received, clean starting jerni dev...", INF);
 
-        await stopEventsServer();
         await stopJourney();
 
         syncWithBinary(dbFilePath, sqliteFilePath);
 
-        startEventsServer();
         startJourney({
           cleanStart: true,
         });
