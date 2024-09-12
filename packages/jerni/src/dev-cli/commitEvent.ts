@@ -1,10 +1,12 @@
 import sqlite from "bun:sqlite";
 import type { JourneyCommittedEvent } from "../types/events";
-import appendEventsToFile from "./appendEventsToFile";
+import appendEventsToFileAsync from "./appendEventsToFile";
 
 export default function commitEvent(sqliteFilePath: string, textFilePath: string, events: JourneyCommittedEvent[]) {
-  writeEventToSqlite(sqliteFilePath, events);
-  const lastId = appendEventsToFile(textFilePath, events);
+  const lastId = writeEventToSqlite(sqliteFilePath, events);
+
+  // append events to text file in the background
+  appendEventsToFileAsync(textFilePath, events);
 
   return lastId;
 }
@@ -22,6 +24,10 @@ function writeEventToSqlite(filePath: string, events: JourneyCommittedEvent[]) {
         $meta: JSON.stringify(event.meta),
       });
     }
+
+    const last = db.prepare("SELECT id FROM events ORDER BY id DESC LIMIT 1").get() as { id: number };
+
+    return last.id;
   } finally {
     db.close();
   }
