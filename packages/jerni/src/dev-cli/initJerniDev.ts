@@ -1,5 +1,4 @@
 import { inspect } from "node:util";
-import { isUndefined, omitBy } from "lodash/fp";
 import { bold, green, red } from "picocolors";
 import InvalidInputError from "../InvalidInputError";
 import { assertFilePath } from "../assertFilePath";
@@ -68,38 +67,7 @@ export default async function initJerniDev(filePath: string | undefined) {
         );
 
         for await (const outputs of begin(journey, ctrl.signal)) {
-          // remove all fields that are 0
-          // outputs has the following shape
-          // [
-          //   {
-          //    collection_name: {
-          //      added: 1,
-          //      updated: 0,
-          //      deleted: 0,
-          //    },
-          // ]
-
-          for (const storeOutput of outputs) {
-            const collectionNames = Object.keys(storeOutput);
-            for (const collectionName of collectionNames) {
-              const collectionOutput = storeOutput[collectionName];
-
-              // remove all fields that are 0, delete the field cause biome to warn about low performance
-              if (collectionOutput.added === 0) {
-                collectionOutput.added = undefined;
-              }
-              if (collectionOutput.updated === 0) {
-                collectionOutput.updated = undefined;
-              }
-              if (collectionOutput.deleted === 0) {
-                collectionOutput.deleted = undefined;
-              }
-
-              // remove all fields that are undefined
-              storeOutput[collectionName] = omitBy(isUndefined)(collectionOutput);
-            }
-          }
-
+          // Any store can be used here, we don't have the exact output contract
           console.log(
             "%s output: %O",
             INF,
