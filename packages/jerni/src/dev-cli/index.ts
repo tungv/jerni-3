@@ -18,7 +18,7 @@ await guardErrors(
   async () => {
     const port = process.env.PORT ? Number.parseInt(process.env.PORT, 10) : 5000;
 
-    const dbFilePath = textDbFile ? textDbFile : "./events.yaml";
+    const textFilePath = textDbFile ? textDbFile : "./events.yaml";
     const sqliteFilePath = sqliteDbFile ? sqliteDbFile : "./events.sqlite";
 
     process.env.EVENTS_SERVER = `http://localhost:${port}`;
@@ -26,7 +26,7 @@ await guardErrors(
     const { start: startJourney, stop: stopJourney } = await initJerniDev(initFileName);
 
     const { start: startEventsServer, stop: stopEventsServer } = await initEventsServerDev(
-      dbFilePath,
+      textFilePath,
       sqliteFilePath,
       port,
     );
@@ -53,18 +53,18 @@ await guardErrors(
 
     // listen for file changes and restart journey
     fs.watch(
-      dbFilePath,
+      textFilePath,
       debounce(async () => {
         console.log("%s file changed, restarting jerni dev...", INF);
 
         await stopJourney();
 
-        const { fileChecksum, realChecksum } = readFile(dbFilePath);
+        const { fileChecksum, realChecksum } = readFile(textFilePath);
 
         if (fileChecksum !== realChecksum) {
           console.log("%s checksum mismatch, clean starting jerni dev…", INF);
 
-          syncWithBinary(dbFilePath, sqliteFilePath);
+          syncWithBinary(textFilePath, sqliteFilePath);
 
           startJourney({
             cleanStart: true,
@@ -86,7 +86,7 @@ await guardErrors(
 
         await stopJourney();
 
-        syncWithBinary(dbFilePath, sqliteFilePath);
+        syncWithBinary(textFilePath, sqliteFilePath);
 
         startJourney({
           cleanStart: true,
