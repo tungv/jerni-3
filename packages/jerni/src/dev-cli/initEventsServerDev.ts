@@ -1,15 +1,38 @@
+import sqlite from "bun:sqlite";
 import type { Server } from "bun";
+import type { JourneyCommittedEvent, LocalEvents } from "../types/events";
+import commitEvent from "./commitEvent";
+import ensureFileExists from "./ensureFileExists";
+import ensureSqliteTable from "./ensureSqliteTable";
 
-import type { JourneyCommittedEvent } from "../types/events";
-import appendEventsToFile from "./appendEventsToFile";
-import readFile from "./readFile";
+interface SavedEvent {
+  type: string;
+  payload: string;
+  meta: string;
+}
+function getEventsFromSqlite(filePath: string) {
+  const db = sqlite.open(filePath);
 
-export default async function initEventsServerDev(inputFileName: string, port: number) {
+  const events = db.prepare<SavedEvent, null>("SELECT * FROM events").all(null);
+
+  return events;
+}
+
+export default async function initEventsServerDev(textFileName: string, sqliteFileName: string, port: number) {
   let server: Server;
 
   return {
     start: async () => {
-      const { events } = readFile(inputFileName);
+      ensureSqliteTable(sqliteFileName);
+
+      const eventsInDb = getEventsFromSqlite(sqliteFileName);
+
+      const events: JourneyCommittedEvent[] = eventsInDb.map((event, index) => ({
+        id: index + 1,
+        type: event.type as keyof LocalEvents,
+        payload: JSON.parse(event.payload),
+        meta: JSON.parse(event.meta),
+      }));
 
       server = Bun.serve({
         port,
