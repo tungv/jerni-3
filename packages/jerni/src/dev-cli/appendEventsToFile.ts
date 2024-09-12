@@ -1,11 +1,12 @@
-import fs from "node:fs";
+import fs from "node:fs/promises";
 import hash_sum from "hash-sum";
 import yaml from "yaml";
 import type { JourneyCommittedEvent } from "../types/events";
 import type { SavedData } from "./readFile";
 
-export default function appendEventsToFile(filePath: string, events: JourneyCommittedEvent[]) {
-  const fileContent = fs.readFileSync(filePath, "utf8");
+export default async function appendEventsToFileAsync(filePath: string, events: JourneyCommittedEvent[]) {
+  const fileContent = await fs.readFile(filePath, { encoding: "utf8" });
+
   const parsedContent = yaml.parse(fileContent) as SavedData;
 
   parsedContent.events.push(...events);
@@ -15,7 +16,7 @@ export default function appendEventsToFile(filePath: string, events: JourneyComm
 
   const stringifiedContent = yaml.stringify(parsedContent);
 
-  fs.writeFileSync(filePath, stringifiedContent);
+  await fs.writeFile(filePath, stringifiedContent);
 
   return parsedContent.events.length;
 }
