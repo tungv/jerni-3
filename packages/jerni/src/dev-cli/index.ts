@@ -12,19 +12,24 @@ import rewriteChecksum from "./rewriteChecksum";
 
 console.log("%s jerni dev is starting...", INF);
 
-const [_bun, _script, initFileName, dbFileName] = process.argv;
+const [_bun, _script, initFileName, textDbFile, sqliteDbFile] = process.argv;
 
 await guardErrors(
   async () => {
     const port = process.env.PORT ? Number.parseInt(process.env.PORT, 10) : 5000;
 
-    const dbFilePath = dbFileName ? dbFileName : "./events.yaml";
+    const dbFilePath = textDbFile ? textDbFile : "./events.yaml";
+    const sqliteFilePath = sqliteDbFile ? sqliteDbFile : "./events.sqlite";
 
     process.env.EVENTS_SERVER = `http://localhost:${port}`;
 
     const { start: startJourney, stop: stopJourney } = await initJerniDev(initFileName);
 
-    const { start: startEventsServer, stop: stopEventsServer } = await initEventsServerDev(dbFilePath, port);
+    const { start: startEventsServer, stop: stopEventsServer } = await initEventsServerDev(
+      dbFilePath,
+      sqliteFilePath,
+      port,
+    );
 
     // call server.stop when process is killed
     process.on("SIGINT", () => {
