@@ -10,20 +10,6 @@ export type SavedData = {
 };
 
 export default function readFile(filePath: string) {
-  // check if file exists
-  if (!fs.existsSync(filePath)) {
-    // if not, create a new file
-    // the first line is checksum: $hash of the content
-
-    const content = {
-      checksum: "",
-      events: [],
-    };
-
-    const stringifiedContent = yaml.stringify(content);
-    fs.writeFileSync(filePath, stringifiedContent);
-  }
-
   const fileContent = fs.readFileSync(filePath, "utf8");
   const parsedContent = yaml.parse(fileContent) as SavedData;
 
