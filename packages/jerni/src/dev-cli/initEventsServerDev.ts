@@ -23,6 +23,8 @@ export default async function initEventsServerDev(textFileName: string, sqliteFi
 
   return {
     start: async () => {
+      ensureFileExists(textFileName);
+
       ensureSqliteTable(sqliteFileName);
 
       const eventsInDb = getEventsFromSqlite(sqliteFileName);
@@ -79,7 +81,8 @@ export default async function initEventsServerDev(textFileName: string, sqliteFi
 
             const newEvents = Array.isArray(event) ? event : [event];
 
-            const latestId = appendEventsToFile(inputFileName, newEvents);
+            // const latestId = appendEventsToFile(textFileName, newEvents);
+            const latestId = commitEvent(sqliteFileName, textFileName, newEvents);
 
             const latest = newEvents.at(-1);
 
