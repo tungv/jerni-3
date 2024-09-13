@@ -17,7 +17,7 @@ import type { JourneyInstance } from "./types/journey";
 const defaultLogger = console;
 
 interface RunConfig {
-  dbFolder: string;
+  dbFolder?: string;
 }
 
 export default async function* begin(journey: JourneyInstance, signal: AbortSignal, runConfig?: RunConfig) {

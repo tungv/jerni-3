@@ -219,12 +219,6 @@ describe("Jerni Dev Integration", () => {
 
     await setTimeout(1000);
 
-    // write r and press enter to child process
-    if (!childProcess.stdin) {
-      throw new Error("child process has no stdin");
-    }
-    childProcess.stdin.write("r\n");
-
     process.env.EVENTS_SERVER = `http://localhost:${port}`;
     const mongoConfig = {
       url: "mongodb://localhost:27017",
@@ -249,7 +243,6 @@ describe("Jerni Dev Integration", () => {
     });
 
     await journey.waitFor(event2);
-    // await setTimeout(1000);
 
     // check balance to be 100
     const BankAccounts = await journey.getReader(BankAccountModel_2);

@@ -28,7 +28,7 @@ export default async function initJerniDev(filePath: string | undefined) {
     );
   }
 
-  let ctrl: AbortController;
+  let ctrl: AbortController | undefined;
   let started = false;
 
   return {
@@ -87,6 +87,8 @@ export default async function initJerniDev(filePath: string | undefined) {
       }
 
       ctrl.abort();
+
+      ctrl = undefined;
     },
   };
 }

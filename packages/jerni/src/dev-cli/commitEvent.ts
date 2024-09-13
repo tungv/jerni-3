@@ -21,7 +21,7 @@ function writeEventToSqlite(filePath: string, events: JourneyCommittedEvent[]) {
       query.run({
         $type: event.type,
         $payload: JSON.stringify(event.payload),
-        $meta: JSON.stringify(event.meta),
+        $meta: JSON.stringify(event.meta ?? {}),
       });
     }
 
