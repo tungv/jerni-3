@@ -40,8 +40,13 @@ await guardErrors(
 
     // onError, stop journey and server
     process.on("unhandledRejection", (error) => {
-      console.error("%s unhandledRejection", INF);
-      console.error(error);
+      // if abort error, ignore
+      if (error instanceof Error && error.name === "AbortError") {
+        return;
+      }
+
+      console.log("%s unhandledRejection", INF);
+      console.log(error);
 
       stopJourney();
       stopEventsServer();
