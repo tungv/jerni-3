@@ -60,25 +60,20 @@ await guardErrors(
     fs.watch(
       textFilePath,
       debounce(async () => {
-        console.log("%s file changed, restarting jerni dev...", INF);
-
-        await stopJourney();
-
         const { fileChecksum, realChecksum } = readFile(textFilePath);
 
-        if (fileChecksum !== realChecksum) {
+        if (fileChecksum === realChecksum) {
+          return;
+        }
+
           console.log("%s checksum mismatch, clean starting jerni dev…", INF);
+        await stopJourney();
 
           syncWithBinary(textFilePath, sqliteFilePath);
 
           startJourney({
             cleanStart: true,
           });
-
-          return;
-        }
-
-        startJourney();
       }, 300),
     );
 
