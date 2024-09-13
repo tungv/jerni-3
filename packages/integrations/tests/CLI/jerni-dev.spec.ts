@@ -71,6 +71,33 @@ describe("Jerni Dev Integration", () => {
       balance: 0,
     });
 
+    const event2 = await journey.append<"NEW_ACCOUNT_REGISTERED">({
+      type: "NEW_ACCOUNT_REGISTERED",
+      payload: {
+        id: "1234",
+        name: "test",
+      },
+    });
+
+    await setTimeout(1000);
+
+    childProcess.kill();
+
+    await journey.waitFor(event2);
+
+    const bankAccount2 = await BankAccounts.findOne({
+      id: "1234",
+    });
+
+    expect(bankAccount2).toEqual({
+      __op: 0,
+      __v: 2,
+      _id: expect.anything(),
+      id: "1234",
+      name: "test",
+      balance: 0,
+    });
+
     childProcess.kill();
   });
 
