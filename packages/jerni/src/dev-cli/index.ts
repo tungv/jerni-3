@@ -12,11 +12,13 @@ import { syncWithBinary } from "./syncWithBinary";
 
 console.log("%s jerni dev is starting...", INF);
 
+// TODO: use `minimist` or `sade` here to handle arguments better
 const [_bun, _script, initFileName, textDbFile, sqliteDbFile] = process.argv;
 
 await guardErrors(
   async () => {
-    const port = process.env.PORT ? Number.parseInt(process.env.PORT, 10) : 5000;
+    // TODO: move reading port to args instead of env, or just randomize it
+    const port = process.env.PORT ? Number.parseInt(process.env.PORT, 10) : 5001;
 
     const textFilePath = textDbFile ? textDbFile : "./events.yaml";
     const sqliteFilePath = sqliteDbFile ? sqliteDbFile : "./events.sqlite";
@@ -66,14 +68,14 @@ await guardErrors(
           return;
         }
 
-          console.log("%s checksum mismatch, clean starting jerni dev…", INF);
+        console.log("%s checksum mismatch, clean starting jerni dev…", INF);
         await stopJourney();
 
-          syncWithBinary(textFilePath, sqliteFilePath);
+        syncWithBinary(textFilePath, sqliteFilePath);
 
-          startJourney({
-            cleanStart: true,
-          });
+        startJourney({
+          cleanStart: true,
+        });
       }, 300),
     );
 
