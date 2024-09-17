@@ -3,7 +3,10 @@ import ensureFileExists from "./ensureFileExists";
 import readFile from "./readFile";
 import rewriteChecksum from "./rewriteChecksum";
 
-export function syncWithBinary(textFilePath: string, sqliteFilePath: string) {
+/**
+ * This function changes the content of the binary file.
+ */
+export default function syncWithBinary(textFilePath: string, sqliteFilePath: string) {
   ensureFileExists(textFilePath);
   ensureFileExists(sqliteFilePath);
 

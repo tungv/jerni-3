@@ -8,7 +8,7 @@ import guardErrors from "../guardErrors";
 import initEventsServerDev from "./initEventsServerDev";
 import initJerniDev from "./initJerniDev";
 import readFile from "./readFile";
-import { syncWithBinary } from "./syncWithBinary";
+import syncWithBinary from "./syncWithBinary";
 
 console.log("%s jerni dev is starting...", INF);
 
