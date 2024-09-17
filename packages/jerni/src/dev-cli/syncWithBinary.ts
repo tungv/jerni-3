@@ -4,6 +4,7 @@ import readFile from "./readFile";
 import rewriteChecksum from "./rewriteChecksum";
 
 /**
+ * TODO: change function name
  * This function changes the content of the binary file.
  */
 export default function syncWithBinary(textFilePath: string, sqliteFilePath: string) {
