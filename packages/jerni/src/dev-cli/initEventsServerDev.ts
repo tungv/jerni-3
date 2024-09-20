@@ -1,9 +1,10 @@
 import sqlite from "bun:sqlite";
 import type { Server } from "bun";
-import type { JourneyCommittedEvent, LocalEvents } from "../types/events";
+import type { LocalEvents, ToBeCommittedJourneyEvent } from "../types/events";
 import commitEvent from "./commitEvent";
-import ensureFileExists from "./ensureFileExists";
+import ensureMarkDownFileExists from "./ensureMarkDownFileExists";
 import ensureSqliteTable from "./ensureSqliteTable";
+import syncReadableEventsToBinaryFile from "./syncWithBinary";
 
 interface SavedEvent {
   id: number;
@@ -44,9 +45,12 @@ function getLastEvent(filePath: string) {
 export default async function initEventsServerDev(textFileName: string, sqliteFileName: string, port: number) {
   let server: Server;
 
-  ensureFileExists(textFileName);
+  ensureMarkDownFileExists(textFileName);
 
   ensureSqliteTable(sqliteFileName);
+
+  // make sure the all the events in markdown file are reflected in the sqlite file (just in case the user has edited the markdown file while the server was not running)
+  await syncReadableEventsToBinaryFile(textFileName, sqliteFileName);
 
   return {
     start: async () => {
@@ -82,7 +86,7 @@ export default async function initEventsServerDev(textFileName: string, sqliteFi
           }
 
           if (req.method === "POST" && url.pathname === "/commit") {
-            const event = (await req.json()) as JourneyCommittedEvent | JourneyCommittedEvent[];
+            const event = (await req.json()) as ToBeCommittedJourneyEvent | ToBeCommittedJourneyEvent[];
 
             const newEvents = Array.isArray(event) ? event : [event];
 

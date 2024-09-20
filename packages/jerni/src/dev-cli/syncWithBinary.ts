@@ -1,19 +1,11 @@
 import sqlite from "bun:sqlite";
-import ensureFileExists from "./ensureFileExists";
-import readFile from "./readFile";
+import readEventsFromMarkDown from "./readEventsFromMarkDown";
 import rewriteChecksum from "./rewriteChecksum";
 
-/**
- * TODO: change function name
- * This function changes the content of the binary file.
- */
-export default function syncWithBinary(textFilePath: string, sqliteFilePath: string) {
-  ensureFileExists(textFilePath);
-  ensureFileExists(sqliteFilePath);
+export default async function syncReadableEventsToBinaryFile(textFilePath: string, sqliteFilePath: string) {
+  await rewriteChecksum(textFilePath);
 
-  rewriteChecksum(textFilePath);
-
-  const { events } = readFile(textFilePath);
+  const { events } = await readEventsFromMarkDown(textFilePath);
 
   // delete all events in sqlite
   // and write all events from text file to sqlite

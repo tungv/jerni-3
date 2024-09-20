@@ -1,17 +1,17 @@
 import sqlite from "bun:sqlite";
-import type { JourneyCommittedEvent } from "../types/events";
-import appendEventsToFileAsync from "./appendEventsToFile";
+import type { ToBeCommittedJourneyEvent } from "../types/events";
+import appendEventsToMarkdown from "./appendEventsToMarkdown";
 
-export default function commitEvent(sqliteFilePath: string, textFilePath: string, events: JourneyCommittedEvent[]) {
+export default function commitEvent(sqliteFilePath: string, textFilePath: string, events: ToBeCommittedJourneyEvent[]) {
   const lastId = writeEventToSqlite(sqliteFilePath, events);
 
   // append events to text file in the background
-  appendEventsToFileAsync(textFilePath, events);
+  appendEventsToMarkdown(textFilePath, events);
 
   return lastId;
 }
 
-function writeEventToSqlite(filePath: string, events: JourneyCommittedEvent[]) {
+function writeEventToSqlite(filePath: string, events: ToBeCommittedJourneyEvent[]) {
   const db = sqlite.open(filePath);
 
   try {
