@@ -5,6 +5,12 @@ import fs from "node:fs";
 import path from "node:path";
 import { setTimeout } from "node:timers/promises";
 import hash_sum from "hash-sum";
+import JSON5 from "json5";
+import type { Code, Yaml } from "mdast";
+import { fromMarkdown } from "mdast-util-from-markdown";
+import { frontmatterFromMarkdown, frontmatterToMarkdown } from "mdast-util-frontmatter";
+import { toMarkdown } from "mdast-util-to-markdown";
+import { frontmatter } from "micromark-extension-frontmatter";
 import { nanoid } from "nanoid";
 import yaml from "yaml";
 import cleanUpTestDatabase from "../cleanUpTestDatabase";
@@ -17,7 +23,7 @@ describe("Jerni Dev Integration", () => {
   test("a newly committed event should be persisted", async () => {
     // random a port
     const port = Math.floor(Math.random() * 10000) + 10000;
-    const dbFileName = `./test-events-db-${nanoid()}.yml`;
+    const dbFileName = `./test-events-db-${nanoid()}.md`;
     const mongodbName = `jerni_integration_test_${nanoid()}`;
     const sqliteFileName = `./test-events-db-${nanoid()}.sqlite`;
 
@@ -104,7 +110,7 @@ describe("Jerni Dev Integration", () => {
   test("if checksum does not match, jerni should clean start", async () => {
     // random a port
     const port = Math.floor(Math.random() * 10000) + 10000;
-    const dbFileName = `./test-events-db-${nanoid()}.yml`;
+    const dbFileName = `./test-events-db-${nanoid()}.md`;
     const mongodbName = `jerni_integration_test_${nanoid()}`;
     const sqliteFileName = `./test-events-db-${nanoid()}.sqlite`;
 
@@ -169,11 +175,23 @@ describe("Jerni Dev Integration", () => {
     // remove the last event from the db file, so the checksum will not match
     const fileContent = fs.readFileSync(dbFilePath, "utf8");
 
-    const parsedContent = yaml.parse(fileContent);
-    parsedContent.events.pop();
-    const stringifiedContent = yaml.stringify(parsedContent);
+    const ast = fromMarkdown(fileContent, {
+      extensions: [frontmatter(["yaml"])],
+      mdastExtensions: [frontmatterFromMarkdown(["yaml"])],
+    });
 
-    fs.writeFileSync(dbFilePath, stringifiedContent);
+    // pop the last Code Node from the ast
+    const lastCodeNodeIndex = ast.children.findLastIndex((node) => node.type === "code");
+    if (lastCodeNodeIndex === -1) {
+      throw new Error("no last code node");
+    }
+    ast.children.splice(lastCodeNodeIndex, 1);
+
+    const newFileContent = toMarkdown(ast, {
+      extensions: [frontmatterToMarkdown(["yaml"])],
+    });
+
+    fs.writeFileSync(dbFilePath, newFileContent);
 
     // wait for the file to be read, and restart jerni dev
     await setTimeout(1000);
@@ -198,7 +216,7 @@ describe("Jerni Dev Integration", () => {
   test("should clean start jerni dev when r\n is entered", async () => {
     // random a port
     const port = Math.floor(Math.random() * 10000) + 10000;
-    const dbFileName = `./test-events-db-${nanoid()}.yml`;
+    const dbFileName = `./test-events-db-${nanoid()}.md`;
     const mongodbName = `jerni_integration_test_${nanoid()}`;
     const sqliteFileName = `./test-events-db-${nanoid()}.sqlite`;
 
@@ -263,13 +281,42 @@ describe("Jerni Dev Integration", () => {
     // remove the last event and rewrite to the db file, so that the checksum will match, no new events, so the data should not be clean
     const fileContent = fs.readFileSync(dbFilePath, "utf8");
 
-    const parsedContent = yaml.parse(fileContent);
-    parsedContent.events.pop();
-    const newChecksum = hash_sum(parsedContent.events);
-    parsedContent.checksum = newChecksum;
-    const stringifiedContent = yaml.stringify(parsedContent);
+    const ast = fromMarkdown(fileContent, {
+      extensions: [frontmatter(["yaml"])],
+      mdastExtensions: [frontmatterFromMarkdown(["yaml"])],
+    });
 
-    fs.writeFileSync(dbFilePath, stringifiedContent);
+    // pop the last Code Node from the ast
+    const lastCodeNodeIndex = ast.children.findLastIndex((node) => node.type === "code");
+    if (lastCodeNodeIndex === -1) {
+      throw new Error("no last code node");
+    }
+    ast.children.splice(lastCodeNodeIndex, 1);
+
+    const eventNodes = ast.children.filter((node): node is Code => node.type === "code");
+
+    const events = eventNodes.map((node, idx) => {
+      console.log("node.value: ", node.value);
+
+      return {
+        ...JSON5.parse(node.value),
+        id: idx + 1,
+      };
+    });
+
+    const checksumNode = ast.children.find((node): node is Yaml => node.type === "yaml");
+    if (!checksumNode) {
+      throw new Error("no checksum");
+    }
+
+    const newChecksum = hash_sum(events);
+    checksumNode.value = yaml.stringify({ checksum: newChecksum });
+
+    const newFileContent = toMarkdown(ast, {
+      extensions: [frontmatterToMarkdown(["yaml"])],
+    });
+
+    fs.writeFileSync(dbFilePath, newFileContent);
 
     // wait for the file to be read, and restart jerni dev
     await setTimeout(1000);
@@ -315,7 +362,7 @@ describe("Jerni Dev Integration", () => {
 
   test("should write the changes to both the binary and the text file", async () => {
     const port = Math.floor(Math.random() * 10000) + 10000;
-    const dbFileName = `./test-events-db-${nanoid()}.yml`;
+    const dbFileName = `./test-events-db-${nanoid()}.md`;
     const sqliteFileName = `./test-events-db-${nanoid()}.sqlite`;
     const mongodbName = `jerni_integration_test_${nanoid()}`;
 
@@ -371,20 +418,39 @@ describe("Jerni Dev Integration", () => {
     });
 
     const fileContent = fs.readFileSync(dbFilePath, "utf8");
-    const yamlContent = yaml.parse(fileContent);
-    expect(yamlContent).toEqual({
-      checksum: expect.any(String),
-      events: [
-        {
-          type: "NEW_ACCOUNT_REGISTERED",
-          payload: {
-            id: "123",
-            name: "test",
-          },
-          meta: expect.any(Object),
-        },
-      ],
+    const ast = fromMarkdown(fileContent, {
+      extensions: [frontmatter(["yaml"])],
+      mdastExtensions: [frontmatterFromMarkdown(["yaml"])],
     });
+
+    const checksumNode = ast.children.find((node): node is Yaml => node.type === "yaml");
+    if (!checksumNode) {
+      throw new Error("no checksum");
+    }
+
+    const checksum = yaml.parse(checksumNode.value).checksum;
+
+    const events = ast.children.filter((node): node is Code => node.type === "code");
+
+    expect(events).toHaveLength(1);
+    const event = JSON5.parse(events[0].value);
+    expect(event).toEqual({
+      type: "NEW_ACCOUNT_REGISTERED",
+      payload: {
+        id: "123",
+        name: "test",
+      },
+      meta: expect.any(Object),
+    });
+
+    const calculatedChecksum = hash_sum(
+      events.map((event, idx) => ({
+        ...JSON5.parse(event.value),
+        id: idx + 1,
+      })),
+    );
+
+    expect(calculatedChecksum).toEqual(checksum);
 
     const sqliteDb = sqlite.open(sqliteFilePath);
     const rows = sqliteDb.query("SELECT * FROM events").all() as Array<{
