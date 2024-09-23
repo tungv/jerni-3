@@ -34,8 +34,11 @@ export default async function appendEventsToMarkdown(filePath: string, events: T
 
   const checksum = hash_sum(allEvents);
 
-  // override the checksum in the frontmatter
-  const frontmatterNode = ast.children.find((node) => node.type === "yaml") as Yaml;
+  // override the checksum in the frontmatter, it is the first node in the ast
+  const frontmatterNode = ast.children[0];
+  if (frontmatterNode.type !== "yaml") {
+    throw new Error("frontmatter node not found");
+  }
   const parsedFrontmatter = yaml.parse(frontmatterNode.value);
   parsedFrontmatter.checksum = checksum;
   frontmatterNode.value = yaml.stringify(parsedFrontmatter);
