@@ -119,7 +119,7 @@ function addEventToAst(ast, event) {
     {
       type: "code",
       lang: "jsonc",
-      meta: "?type=event",
+      meta: "?type=events",
       value: `${JSON.stringify(event, null, 2)}`,
     },
   );
