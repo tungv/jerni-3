@@ -296,8 +296,6 @@ describe("Jerni Dev Integration", () => {
     const eventNodes = ast.children.filter((node): node is Code => node.type === "code");
 
     const events = eventNodes.map((node, idx) => {
-      console.log("node.value: ", node.value);
-
       return {
         ...JSON5.parse(node.value),
         id: idx + 1,
