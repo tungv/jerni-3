@@ -23,6 +23,7 @@ export default function getEventsFromAst(ast: RootContent[]) {
   const rawEvents = ast.filter(isEvent);
 
   return rawEvents.map((event, idx) => {
+    // use JSON5 here incase there are trailing commas in the payload
     const parsed = JSON5.parse(event.value);
 
     return {

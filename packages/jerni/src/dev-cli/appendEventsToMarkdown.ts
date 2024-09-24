@@ -71,6 +71,7 @@ function addEventToAst(ast: Root, event: ToBeCommittedJourneyEvent) {
 
     // Add a newline after the opening tag and summary for proper rendering
     // Reference: https://gist.github.com/scmx/eca72d44afee0113ceb0349dd54a84a2?permalink_comment_id=4095967
+    // toMarkdown handled the new line automatically, so we don't need to add a new line here
     value: `<details><summary>${event.type}</summary>`,
   });
 
