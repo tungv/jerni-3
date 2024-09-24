@@ -27,9 +27,13 @@ for (const line of jerniDb.split("\n")) {
     continue;
   }
 
-  if (!line.trim() || !line.trim().startsWith("{")) {
+  // continue if the line is empty
+  if (!line.trim()) {
+    continue;
+  }
+
+  if (!line.trim().startsWith("{")) {
     if (line.startsWith("###")) {
-      console.log("heading 3");
       ast.children.push({
         type: "heading",
         depth: 3,
@@ -41,7 +45,6 @@ for (const line of jerniDb.split("\n")) {
         ],
       });
     } else if (line.startsWith("##")) {
-      console.log("heading 2");
       ast.children.push({
         type: "heading",
         depth: 2,
@@ -53,7 +56,6 @@ for (const line of jerniDb.split("\n")) {
         ],
       });
     } else if (line.startsWith("#")) {
-      console.log("heading 1");
       ast.children.push({
         type: "heading",
         depth: 1,
@@ -65,13 +67,16 @@ for (const line of jerniDb.split("\n")) {
         ],
       });
     } else {
-      console.log("text");
+      ast.children.push({
+        type: "paragraph",
+        children: [
+          {
+            type: "text",
+            value: line,
+          },
+        ],
+      });
     }
-
-    ast.children.push({
-      type: "text",
-      value: "\n",
-    });
 
     continue;
   }
@@ -105,32 +110,18 @@ function addEventToAst(ast, event) {
   // put the events in a details tag
   ast.children.push({
     type: "html",
-
-    // Add a newline after the opening tag and summary for proper rendering
-    // Reference: https://gist.github.com/scmx/eca72d44afee0113ceb0349dd54a84a2?permalink_comment_id=4095967
-    value: `\n<details><summary>${event.type}</summary>\n`,
+    value: `<details><summary>${event.type}</summary>`,
   });
 
-  ast.children.push(
-    {
-      type: "text",
-      value: "\n",
-    },
-    {
-      type: "code",
-      lang: "jsonc",
-      meta: "?type=events",
-      value: `${JSON.stringify(event, null, 2)}`,
-    },
-  );
+  ast.children.push({
+    type: "code",
+    lang: "jsonc",
+    meta: "?type=events",
+    value: `${JSON.stringify(event, null, 2)}`,
+  });
 
   ast.children.push({
     type: "html",
-    value: "\n\n</details>",
-  });
-
-  ast.children.push({
-    type: "text",
-    value: "\n\n",
+    value: "</details>",
   });
 }

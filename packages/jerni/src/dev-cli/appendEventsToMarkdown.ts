@@ -71,29 +71,18 @@ function addEventToAst(ast: Root, event: ToBeCommittedJourneyEvent) {
 
     // Add a newline after the opening tag and summary for proper rendering
     // Reference: https://gist.github.com/scmx/eca72d44afee0113ceb0349dd54a84a2?permalink_comment_id=4095967
-    value: `\n<details><summary>${event.type}</summary>\n`,
+    value: `<details><summary>${event.type}</summary>`,
   });
 
-  ast.children.push(
-    {
-      type: "text",
-      value: "\n",
-    },
-    {
-      type: "code",
-      lang: "jsonc",
-      meta: "?type=events",
-      value: `${JSON.stringify(event, null, 2)}`,
-    },
-  );
+  ast.children.push({
+    type: "code",
+    lang: "jsonc",
+    meta: "?type=events",
+    value: `${JSON.stringify(event, null, 2)}`,
+  });
 
   ast.children.push({
     type: "html",
-    value: "\n\n</details>",
-  });
-
-  ast.children.push({
-    type: "text",
-    value: "\n\n",
+    value: "</details>",
   });
 }
