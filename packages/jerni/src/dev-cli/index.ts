@@ -8,7 +8,7 @@ import guardErrors from "../guardErrors";
 import initEventsServerDev from "./initEventsServerDev";
 import initJerniDev from "./initJerniDev";
 import readEventsFromMarkDown from "./readEventsFromMarkDown";
-import syncReadableEventsToBinaryFile from "./syncWithBinary";
+import syncReadableEventsToBinaryFile from "./syncReadableEventsToBinaryFile";
 
 console.log("%s jerni dev is starting...", INF);
 
@@ -52,6 +52,7 @@ await guardErrors(
 
       stopJourney();
       stopEventsServer();
+      process.exit(1);
     });
 
     startJourney();

@@ -4,7 +4,7 @@ import type { LocalEvents, ToBeCommittedJourneyEvent } from "../types/events";
 import commitEvent from "./commitEvent";
 import ensureMarkDownFileExists from "./ensureMarkDownFileExists";
 import ensureSqliteTable from "./ensureSqliteTable";
-import syncReadableEventsToBinaryFile from "./syncWithBinary";
+import syncReadableEventsToBinaryFile from "./syncReadableEventsToBinaryFile";
 
 interface SavedEvent {
   id: number;
