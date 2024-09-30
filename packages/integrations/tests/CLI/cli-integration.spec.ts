@@ -75,8 +75,8 @@ it("CLI call should project events correctly", async () => {
   await journey.waitFor(event2);
 
   // read
-  const BankAccounts = await journey.getReader(BankAccountModel);
-  const BankAccounts_2 = await journey.getReader(BankAccountModel_2);
+  await using BankAccounts = await journey.getReader(BankAccountModel);
+  await using BankAccounts_2 = await journey.getReader(BankAccountModel_2);
 
   const bankAccount = await BankAccounts.findOne({
     id: "123",

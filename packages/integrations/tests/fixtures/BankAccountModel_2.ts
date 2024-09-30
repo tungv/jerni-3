@@ -29,9 +29,9 @@ declare module "@jerni/jerni-3/types" {
 
   export interface GetReaderFn {
     // biome-ignore lint/style/useShorthandFunctionType: need to be interface to override signature
-    <DocumentType extends Document>(model: MongoDBModel<DocumentType>): Promise<
-      Collection<OptimisticDocumentType<WithId<DocumentType>>>
-    >;
+    <DocumentType extends Document>(
+      model: MongoDBModel<DocumentType>,
+    ): Promise<Collection<OptimisticDocumentType<WithId<DocumentType>>> & AsyncDisposable>;
   }
 }
 
