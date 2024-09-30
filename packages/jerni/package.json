@@ -1,6 +1,6 @@
 {
   "name": "@jerni/jerni-3",
-  "version": "v0.9.14",
+  "version": "v0.9.15",
   "type": "module",
   "main": "src/index.ts",
   "bin": {
