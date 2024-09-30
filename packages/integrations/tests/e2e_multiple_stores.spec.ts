@@ -101,7 +101,9 @@ describe("e2e_multiple_stores", () => {
       }),
     );
 
-    ctrl.abort();
+    // if call abort here, the test will fail when running with other tests
+    // it is caused by the abort error is thrown, and not handled properly by bun as of version 1.1.29
+    // ctrl.abort();
 
     await app.journey.dispose();
     await worker.journey.dispose();

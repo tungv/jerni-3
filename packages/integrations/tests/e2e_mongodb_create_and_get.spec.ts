@@ -102,7 +102,9 @@ describe("e2e_mongodb_create_and_get", () => {
       balance: 0,
     });
 
-    ctrl.abort();
+    // if call abort here, the test will fail when running with other tests
+    // it is caused by the abort error is thrown, and not handled properly by bun as of version 1.1.29
+    // ctrl.abort();
 
     await app.journey.dispose();
     await worker.journey.dispose();
