@@ -7,8 +7,8 @@ import { INF } from "../cli-utils/log-headers";
 import guardErrors from "../guardErrors";
 import initEventsServerDev from "./initEventsServerDev";
 import initJerniDev from "./initJerniDev";
-import readFile from "./readFile";
-import syncWithBinary from "./syncWithBinary";
+import readEventsFromMarkDown from "./readEventsFromMarkDown";
+import syncReadableEventsToBinaryFile from "./syncReadableEventsToBinaryFile";
 
 console.log("%s jerni dev is starting...", INF);
 
@@ -52,6 +52,7 @@ await guardErrors(
 
       stopJourney();
       stopEventsServer();
+      process.exit(1);
     });
 
     startJourney();
@@ -62,7 +63,7 @@ await guardErrors(
     fs.watch(
       textFilePath,
       debounce(async () => {
-        const { fileChecksum, realChecksum } = readFile(textFilePath);
+        const { fileChecksum, realChecksum } = await readEventsFromMarkDown(textFilePath);
 
         if (fileChecksum === realChecksum) {
           return;
@@ -71,7 +72,7 @@ await guardErrors(
         console.log("%s checksum mismatch, clean starting jerni dev…", INF);
         await stopJourney();
 
-        syncWithBinary(textFilePath, sqliteFilePath);
+        await syncReadableEventsToBinaryFile(textFilePath, sqliteFilePath);
 
         startJourney({
           cleanStart: true,
@@ -88,7 +89,7 @@ await guardErrors(
 
         await stopJourney();
 
-        syncWithBinary(textFilePath, sqliteFilePath);
+        await syncReadableEventsToBinaryFile(textFilePath, sqliteFilePath);
 
         startJourney({
           cleanStart: true,
