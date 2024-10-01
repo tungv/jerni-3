@@ -7,24 +7,31 @@ import { INF } from "../cli-utils/log-headers";
 import guardErrors from "../guardErrors";
 import initEventsServerDev from "./initEventsServerDev";
 import initJerniDev from "./initJerniDev";
-import readFile from "./readFile";
-import rewriteChecksum from "./rewriteChecksum";
+import readEventsFromMarkDown from "./readEventsFromMarkDown";
+import syncReadableEventsToBinaryFile from "./syncReadableEventsToBinaryFile";
 
 console.log("%s jerni dev is starting...", INF);
 
-const [_bun, _script, initFileName, dbFileName] = process.argv;
+// TODO: use `minimist` or `sade` here to handle arguments better
+const [_bun, _script, initFileName, textDbFile, sqliteDbFile] = process.argv;
 
 await guardErrors(
   async () => {
-    const port = process.env.PORT ? Number.parseInt(process.env.PORT, 10) : 5000;
+    // TODO: move reading port to args instead of env, or just randomize it
+    const port = process.env.PORT ? Number.parseInt(process.env.PORT, 10) : 5001;
 
-    const dbFilePath = dbFileName ? dbFileName : "./events.yaml";
+    const textFilePath = textDbFile ? textDbFile : "./events.yaml";
+    const sqliteFilePath = sqliteDbFile ? sqliteDbFile : "./events.sqlite";
 
     process.env.EVENTS_SERVER = `http://localhost:${port}`;
 
     const { start: startJourney, stop: stopJourney } = await initJerniDev(initFileName);
 
-    const { start: startEventsServer, stop: stopEventsServer } = await initEventsServerDev(dbFilePath, port);
+    const { start: startEventsServer, stop: stopEventsServer } = await initEventsServerDev(
+      textFilePath,
+      sqliteFilePath,
+      port,
+    );
 
     // call server.stop when process is killed
     process.on("SIGINT", () => {
@@ -35,11 +42,17 @@ await guardErrors(
 
     // onError, stop journey and server
     process.on("unhandledRejection", (error) => {
-      console.error("%s unhandledRejection", INF);
-      console.error(error);
+      // if abort error, ignore
+      if (error instanceof Error && error.name === "AbortError") {
+        return;
+      }
+
+      console.log("%s unhandledRejection", INF);
+      console.log(error);
 
       stopJourney();
       stopEventsServer();
+      process.exit(1);
     });
 
     startJourney();
@@ -48,30 +61,22 @@ await guardErrors(
 
     // listen for file changes and restart journey
     fs.watch(
-      dbFilePath,
+      textFilePath,
       debounce(async () => {
-        console.log("%s file changed, restarting jerni dev...", INF);
+        const { fileChecksum, realChecksum } = await readEventsFromMarkDown(textFilePath);
 
-        await stopEventsServer();
-        await stopJourney();
-
-        const { fileChecksum, realChecksum } = readFile(dbFilePath);
-
-        if (fileChecksum !== realChecksum) {
-          console.log("%s checksum mismatch, clean starting jerni dev…", INF);
-
-          rewriteChecksum(dbFilePath);
-
-          startEventsServer();
-          startJourney({
-            cleanStart: true,
-          });
-
+        if (fileChecksum === realChecksum) {
           return;
         }
 
-        startEventsServer();
-        startJourney();
+        console.log("%s checksum mismatch, clean starting jerni dev…", INF);
+        await stopJourney();
+
+        await syncReadableEventsToBinaryFile(textFilePath, sqliteFilePath);
+
+        startJourney({
+          cleanStart: true,
+        });
       }, 300),
     );
 
@@ -80,12 +85,12 @@ await guardErrors(
       const input = data.toString().trim();
 
       if (input === "r") {
-        console.log("%s clean starting jerni dev...", INF);
+        console.log("%s forced restart command received, clean starting jerni dev...", INF);
 
-        await stopEventsServer();
         await stopJourney();
 
-        startEventsServer();
+        await syncReadableEventsToBinaryFile(textFilePath, sqliteFilePath);
+
         startJourney({
           cleanStart: true,
         });

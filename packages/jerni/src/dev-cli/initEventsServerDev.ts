@@ -1,34 +1,68 @@
+import sqlite from "bun:sqlite";
 import type { Server } from "bun";
+import type { LocalEvents, ToBeCommittedJourneyEvent } from "../types/events";
+import commitEvent from "./commitEvent";
+import ensureMarkDownFileExists from "./ensureMarkDownFileExists";
+import ensureSqliteTable from "./ensureSqliteTable";
+import syncReadableEventsToBinaryFile from "./syncReadableEventsToBinaryFile";
 
-import type { JourneyCommittedEvent } from "../types/events";
-import appendEventsToFile from "./appendEventsToFile";
-import readFile from "./readFile";
+interface SavedEvent {
+  id: number;
+  type: string;
+  payload: string;
+  meta: string;
+}
+function getEventsFromSqlite(filePath: string, lastId: number) {
+  const db = sqlite.open(filePath);
 
-export default async function initEventsServerDev(inputFileName: string, port: number) {
+  const events = db
+    .prepare<
+      SavedEvent,
+      {
+        $lastId: number;
+      }
+    >("SELECT * FROM events WHERE id > $lastId ORDER BY id ASC")
+    .all({
+      $lastId: lastId,
+    });
+
+  return events.map((event) => ({
+    id: event.id,
+    type: event.type as keyof LocalEvents,
+    payload: JSON.parse(event.payload),
+    meta: JSON.parse(event.meta),
+  }));
+}
+
+function getLastEvent(filePath: string) {
+  const db = sqlite.open(filePath);
+
+  const last = db.prepare("SELECT * FROM events ORDER BY id DESC LIMIT 1").get() as SavedEvent;
+
+  return last;
+}
+
+export default async function initEventsServerDev(textFileName: string, sqliteFileName: string, port: number) {
   let server: Server;
+
+  ensureMarkDownFileExists(textFileName);
+
+  ensureSqliteTable(sqliteFileName);
+
+  // make sure the all the events in markdown file are reflected in the sqlite file (just in case the user has edited the markdown file while the server was not running)
+  await syncReadableEventsToBinaryFile(textFileName, sqliteFileName);
 
   return {
     start: async () => {
-      const { events } = readFile(inputFileName);
-
       server = Bun.serve({
         port,
         async fetch(req) {
           const url = new URL(req.url);
 
           if (req.method === "GET" && url.pathname === "/events/latest") {
-            if (events.length === 0) {
-              return Response.json({
-                id: 0,
-                type: "@@INIT",
-                payload: {},
-                meta: {},
-              });
-            }
+            const lastEvent = getLastEvent(sqliteFileName);
 
-            const latest = events[events.length - 1];
-
-            if (!latest) {
+            if (!lastEvent) {
               return Response.json({
                 id: 0,
                 type: "@@INIT",
@@ -38,25 +72,26 @@ export default async function initEventsServerDev(inputFileName: string, port: n
             }
 
             const latestEvent = {
-              id: events.length,
-              type: latest.type,
-              payload: latest.payload,
-              meta: latest.meta || {},
+              id: lastEvent.id,
+              type: lastEvent.type,
+              payload: JSON.parse(lastEvent.payload),
+              meta: lastEvent.meta ? JSON.parse(lastEvent.meta) : {},
             };
 
             return Response.json(latestEvent);
           }
 
           if (req.method === "GET" && url.pathname === "/subscribe") {
-            return streamingResponse(req, events);
+            return streamingResponse(req, sqliteFileName);
           }
 
           if (req.method === "POST" && url.pathname === "/commit") {
-            const event = (await req.json()) as JourneyCommittedEvent | JourneyCommittedEvent[];
+            const event = (await req.json()) as ToBeCommittedJourneyEvent | ToBeCommittedJourneyEvent[];
 
             const newEvents = Array.isArray(event) ? event : [event];
 
-            const latestId = appendEventsToFile(inputFileName, newEvents);
+            // const latestId = appendEventsToFile(textFileName, newEvents);
+            const latestId = commitEvent(sqliteFileName, textFileName, newEvents);
 
             const latest = newEvents.at(-1);
 
@@ -82,17 +117,10 @@ export default async function initEventsServerDev(inputFileName: string, port: n
   };
 }
 
-async function streamingResponse(req: Request, events: JourneyCommittedEvent[]) {
+async function streamingResponse(req: Request, sqliteFileName: string) {
   const signal = req.signal;
 
-  function injectId(event: JourneyCommittedEvent, index: number) {
-    return {
-      ...event,
-      id: index + 1,
-    };
-  }
-
-  const effectiveEvents = events.map(injectId);
+  const url = new URL(req.url);
 
   // write headers
   const headers = {
@@ -101,18 +129,19 @@ async function streamingResponse(req: Request, events: JourneyCommittedEvent[]) 
     Connection: "keep-alive",
   };
 
+  const lastEventId = url.searchParams.get("lastEventId");
+
   return new Response(
     new ReadableStream({
       type: "direct",
       async pull(controller) {
-        let lastReturnedIndex = 0;
+        let lastReturnedIndex = lastEventId ? Number.parseInt(lastEventId, 10) : 0;
 
         // write metadata
         controller.write(":ok\n\n");
 
         do {
-          // get a batch of events to send
-          const rows = effectiveEvents.slice(lastReturnedIndex, lastReturnedIndex + 10);
+          const rows = getEventsFromSqlite(sqliteFileName, lastReturnedIndex);
 
           // update lastReturned to mark the first event for the next batch
           lastReturnedIndex += rows.length;
