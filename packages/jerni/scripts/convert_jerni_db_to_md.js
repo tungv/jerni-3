@@ -8,13 +8,13 @@ import yaml from "yaml";
 
 const newFilePath = process.argv[2] || "./events.md";
 
-const jerniDbPath = "./jerni.db";
+const jerniDbPath = process.argv[3] || "./jerni.db";
 
 const jerniDb = fs.readFileSync(jerniDbPath, "utf8");
 
 // go line by line, keep the lines that does not start with "{"
 // for the lines that start with "{", parse the line as a JSON object
-// then write the JSON object in a jsonc code block with meta "?type=events"
+// then write the JSON object in a jsonc code block with meta "type=event"
 
 const ast = fromMarkdown("");
 
@@ -81,14 +81,29 @@ for (const line of jerniDb.split("\n")) {
     continue;
   }
 
-  const event = JSON5.parse(line);
+  try {
+    const event = JSON5.parse(line);
 
-  addEventToAst(ast, event);
+    addEventToAst(ast, event);
 
-  events.push({
-    id: eventIdx++,
-    ...event,
-  });
+    events.push({
+      id: eventIdx++,
+      ...event,
+    });
+  } catch (error) {
+    // if there are error parsing the line, treat it as a text, and let user decide what to do
+    console.log(`Error parsing event at line ${eventIdx}: ${error}`);
+
+    ast.children.push({
+      type: "paragraph",
+      children: [
+        {
+          type: "text",
+          value: line,
+        },
+      ],
+    });
+  }
 }
 
 const frontmatter = {
@@ -116,7 +131,7 @@ function addEventToAst(ast, event) {
   ast.children.push({
     type: "code",
     lang: "jsonc",
-    meta: "?type=events",
+    meta: "type=event",
     value: `${JSON.stringify(event, null, 2)}`,
   });
 

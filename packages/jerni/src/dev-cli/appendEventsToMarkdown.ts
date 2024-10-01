@@ -18,7 +18,7 @@ export default async function appendEventsToMarkdown(filePath: string, events: T
     mdastExtensions: [frontmatterFromMarkdown(["yaml"])],
   });
 
-  // append the events to the markdown, event node are jsonc with meta ?type=events
+  // append the events to the markdown, event node are jsonc with meta type=event
   for (const event of events) {
     addEventToAst(ast, event);
   }
@@ -46,12 +46,12 @@ export default async function appendEventsToMarkdown(filePath: string, events: T
 /**
  * Adds a journey event to the given markdown AST (Abstract Syntax Tree).
  * The event is added within a <details> HTML tag, with the event type as the summary.
- * The event details are added as a JSONC code block with a meta tag ?type=events.
+ * The event details are added as a JSONC code block with a meta tag type=event.
  *
  * @example
  * <details><summary>NEW_ACCOUNT_REGISTERED</summary>
  *
- * ```jsonc ?type=events
+ * ```jsonc type=event
  * {
  *   "type": "NEW_ACCOUNT_REGISTERED",
  *   "payload": {
@@ -78,7 +78,7 @@ function addEventToAst(ast: Root, event: ToBeCommittedJourneyEvent) {
   ast.children.push({
     type: "code",
     lang: "jsonc",
-    meta: "?type=events",
+    meta: "type=event",
     value: `${JSON.stringify(event, null, 2)}`,
   });
 

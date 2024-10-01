@@ -16,7 +16,7 @@ export default async function readEventsFromMarkDown(filePath: string) {
 
   // if first child is not yaml, throw error
   if (ast.children.length === 0 || ast.children[0].type !== "yaml") {
-    throw new Error("invalid file format");
+    throw new Error("missing frontmatter");
   }
 
   const fileChecksum = yaml.parse(ast.children[0].value).checksum;
