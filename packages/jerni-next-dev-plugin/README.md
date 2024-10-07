@@ -8,12 +8,16 @@ A Webpack plugin for Next.js projects to enable Jerni development mode.
 
 ## Usage
 
+> [!CAUTION]
+> POTENTIALLY ERASES PRODUCTION DATABASE.
+> Do not use this plugin while connecting to an in-use database. It will erase the database in clean start.
+
 1. Create a `next.config.mjs` file in your project root (if you don't already have one).
 
 2. Import the `withJerniNextDev` function from `jerni-next-dev-plugin` and wrap your Next.js config with it:
 
 ```js
-// next.config.js
+// next.config.mjs
 import withJerniNextDev from "jerni-next-dev-plugin";
 const nextConfig = {
   // Your existing Next.js config...
