@@ -2,6 +2,8 @@
 
 A Webpack plugin for Next.js projects to enable Jerni development mode.
 
+This plugin swaps [jerni-3](https://github.com/tungv/jerni-3) in dev mode with a bundled version for faster development.
+
 ## Installation
 
 // TODO
