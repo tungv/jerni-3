@@ -1,13 +1,13 @@
 {
   "name": "jerni-next-dev-plugin",
-  "version": "0.0.65-beta.0",
+  "version": "0.9.15-beta.1",
   "type": "module",
   "exports": {
     ".": "./src/jerni-next-plugin/withJerniNextDev.mjs",
-    "./jerni-next-dev": "./src/jerni-next-dev/build/jerni-next-dev/index.js"
+    "./jerni-next-dev": "./build/jerni-next-dev/index.js"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build-jerni-next-dev": "bunx tsc"
   },
   "devDependencies": {
     "@types/node": "^22.5.4",
