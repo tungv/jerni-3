@@ -1,0 +1,24 @@
+{
+  "name": "jerni-next-dev-plugin",
+  "version": "0.0.65-beta.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/jerni-next-plugin/withJerniNextDev.mjs",
+    "./jerni-next-dev": "./src/jerni-next-dev/build/jerni-next-dev/index.js"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.5.4",
+    "typescript": "^5.6.2"
+  },
+  "dependencies": {
+    "better-sqlite3": "^8.4.0",
+    "js-yaml": "^4.1.0"
+  },
+  "peerDependencies": {
+    "@jerni/jerni-3": "npm:@jsr/jerni__jerni-3@^0.9.14",
+    "next": "^14.2.5"
+  }
+}
