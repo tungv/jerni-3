@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "better-sqlite3": "^8.4.0",
+    "hash-sum": "^2.0.0",
     "js-yaml": "^4.1.0"
   },
   "peerDependencies": {
