@@ -1,13 +1,11 @@
 import fs from "node:fs";
 import Database from "better-sqlite3";
-import yaml from "js-yaml";
 import debounce from "../lib/debounce.mjs";
+import readEventsFromMarkdown from "@jerni/jerni-3/dev-cli/readEventsFromMarkdown";
 
-export default debounce(function scheduleCleanStartJerni(absoluteEventsFilePath, sqliteAbsoluteFilePath) {
-  // read events.yaml
-  const eventsYaml = fs.readFileSync(absoluteEventsFilePath, "utf8");
-
-  const { events, checksum } = parseEventsYaml(eventsYaml);
+export default debounce(async function scheduleCleanStartJerni(absoluteEventsFilePath, sqliteAbsoluteFilePath) {
+  // read events from markdown file
+  const { events } = await readEventsFromMarkdown(absoluteEventsFilePath);
 
   try {
     cleanSqliteDatabase(sqliteAbsoluteFilePath);
@@ -33,26 +31,6 @@ function bold(text) {
 
 function red(text) {
   return `\x1b[31m${text}\x1b[0m`;
-}
-
-function parseEventsYaml(eventsYaml) {
-  const parsedYaml = yaml.load(eventsYaml);
-
-  if (!parsedYaml || typeof parsedYaml !== "object") {
-    throw new Error("Invalid YAML structure");
-  }
-
-  const { checksum, events } = parsedYaml;
-
-  if (typeof checksum !== "string") {
-    throw new Error("Checksum is missing or invalid");
-  }
-
-  if (!Array.isArray(events)) {
-    throw new Error("Events array is missing or invalid");
-  }
-
-  return { events, checksum };
 }
 
 function cleanSqliteDatabase(sqliteFilePath) {

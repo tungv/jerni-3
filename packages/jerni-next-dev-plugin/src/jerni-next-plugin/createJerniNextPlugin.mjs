@@ -15,7 +15,7 @@ export default async function createJerniNextPlugin(config) {
   );
 
   // sync binary and clean start
-  scheduleCleanStartJerni(eventsFileAbsolutePath, sqliteFileAbsolutePath);
+  await scheduleCleanStartJerni(eventsFileAbsolutePath, sqliteFileAbsolutePath);
 
   return function jerniNextPlugin() {
     // watchRun hook executes a plugin during watch mode after
@@ -30,14 +30,14 @@ export default async function createJerniNextPlugin(config) {
         // reinitialize files to watch
         jerniDeps = await getFilesToWatch(initializerAbsoluteFilePath);
         // sync binary and clean start
-        scheduleCleanStartJerni(eventsFileAbsolutePath, sqliteFileAbsolutePath);
+        await scheduleCleanStartJerni(eventsFileAbsolutePath, sqliteFileAbsolutePath);
       }
 
       if (changedFiles.has(eventsFileAbsolutePath)) {
         // todo: determine whether to clean start or not
         // console.log("Events file changed, clean start");
         // FIXME: db projections is not fired right away
-        scheduleCleanStartJerni(eventsFileAbsolutePath, sqliteFileAbsolutePath);
+        await scheduleCleanStartJerni(eventsFileAbsolutePath, sqliteFileAbsolutePath);
       }
     });
   };

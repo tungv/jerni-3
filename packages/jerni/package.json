@@ -38,7 +38,8 @@
     "./lib/skip": "./src/lib/skip.ts",
     "./lib/begin": "./src/begin.ts",
     "./test/testWrapper": "./src/lib/testWrapper.ts",
-    "./dev-cli/appendEventsToMarkdown": "./src/dev-cli/appendEventsToMarkdown.ts"
+    "./dev-cli/appendEventsToMarkdown": "./src/dev-cli/appendEventsToMarkdown.ts",
+    "./dev-cli/readEventsFromMarkdown": "./src/dev-cli/readEventsFromMarkDown.ts"
   },
   "devDependencies": {
     "@types/bytes": "^3.1.4",

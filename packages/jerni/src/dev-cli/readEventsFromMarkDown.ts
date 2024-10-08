@@ -27,7 +27,15 @@ export default async function readEventsFromMarkDown(filePath: string) {
 
   return {
     events,
+    /**
+     * The checksum written in the markdown file.
+     * Expected to be the same as `realChecksum` if the file is not modified.
+     */
     fileChecksum,
+    /**
+     * The checksum calculated from all events in the markdown file.
+     * Expected to be the same as `fileChecksum` if the file is not modified.
+     */
     realChecksum,
   };
 }
