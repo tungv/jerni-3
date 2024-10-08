@@ -2,10 +2,16 @@ import fs from "node:fs";
 import Database from "better-sqlite3";
 import debounce from "../lib/debounce.mjs";
 import readEventsFromMarkdown from "@jerni/jerni-3/dev-cli/readEventsFromMarkdown";
+import rewriteChecksum from "@jerni/jerni-3/dev-cli/rewriteChecksum";
 
 export default debounce(async function scheduleCleanStartJerni(absoluteEventsFilePath, sqliteAbsoluteFilePath) {
   // read events from markdown file
-  const { events } = await readEventsFromMarkdown(absoluteEventsFilePath);
+  const { events, realChecksum, fileChecksum } = await readEventsFromMarkdown(absoluteEventsFilePath);
+
+  if (realChecksum !== fileChecksum) {
+    // todo: should not wait
+    await rewriteChecksum(absoluteEventsFilePath);
+  }
 
   try {
     cleanSqliteDatabase(sqliteAbsoluteFilePath);
