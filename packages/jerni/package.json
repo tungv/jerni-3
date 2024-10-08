@@ -1,6 +1,6 @@
 {
   "name": "@jerni/jerni-3",
-  "version": "v0.9.15",
+  "version": "v0.9.16",
   "type": "module",
   "main": "src/index.ts",
   "bin": {
@@ -37,7 +37,8 @@
     "./lib/errors/UnrecoverableError": "./src/UnrecoverableError.ts",
     "./lib/skip": "./src/lib/skip.ts",
     "./lib/begin": "./src/begin.ts",
-    "./test/testWrapper": "./src/lib/testWrapper.ts"
+    "./test/testWrapper": "./src/lib/testWrapper.ts",
+    "./dev-cli/appendEventsToMarkdown": "./src/dev-cli/appendEventsToMarkdown.ts"
   },
   "devDependencies": {
     "@types/bytes": "^3.1.4",

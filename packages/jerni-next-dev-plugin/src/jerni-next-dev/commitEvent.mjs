@@ -1,4 +1,4 @@
-import appendEventsToFileAsync from "./appendEventsToFile.mjs";
+import appendEventsToFileAsync from "@jerni/jerni-3/dev-cli/appendEventsToMarkdown";
 import writeEventToSqlite from "./writeEventToSqlite.mjs";
 
 export default async function commitEvent(sqliteFilePath, textFilePath, events) {
