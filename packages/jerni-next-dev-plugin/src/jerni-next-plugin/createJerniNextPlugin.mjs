@@ -1,10 +1,13 @@
 import path from "node:path";
 import scheduleCleanStartJerni from "./cleanStartJerniDev.mjs";
 import getFilesToWatch from "./getFilesToWatch.mjs";
+import ensureMarkdownFileExists from "@jerni/jerni-3/dev-cli/ensureMarkdownFileExists";
 
 export default async function createJerniNextPlugin(config) {
   const { initializerAbsoluteFilePath, eventsFileAbsolutePath, sqliteFileAbsolutePath } = config;
   console.log(JSON.stringify(config, null, 2));
+
+  ensureMarkdownFileExists(eventsFileAbsolutePath);
 
   /**
    * Get modules imported in the initializer file
