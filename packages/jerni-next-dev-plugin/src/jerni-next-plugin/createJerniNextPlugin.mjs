@@ -30,6 +30,7 @@ export default async function createJerniNextPlugin(config) {
       const changedFiles = new Set([...changed, ...removed]);
 
       if (changedFiles.size > 0 && jerniDeps.some((file) => changedFiles.has(file))) {
+        // todo: check this condition covers the below case `changedFiles.has(eventsFileAbsolutePath)`
         // reinitialize files to watch
         jerniDeps = await getFilesToWatch(initializerAbsoluteFilePath);
         // sync binary and clean start
