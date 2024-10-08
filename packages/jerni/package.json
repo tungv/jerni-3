@@ -39,9 +39,10 @@
     "./lib/skip": "./src/lib/skip.ts",
     "./lib/begin": "./src/begin.ts",
     "./test/testWrapper": "./src/lib/testWrapper.ts",
-    "./dev-cli/appendEventsToMarkdown": "./src/dev-cli/appendEventsToMarkdown.ts",
-    "./dev-cli/readEventsFromMarkdown": "./src/dev-cli/readEventsFromMarkDown.ts",
-    "./dev-cli/rewriteChecksum": "./src/dev-cli/rewriteChecksum.ts"
+    "./dev-cli/appendEventsToMarkdown": "./build/src/dev-cli/appendEventsToMarkdown.js",
+    "./dev-cli/readEventsFromMarkdown": "./build/src/dev-cli/readEventsFromMarkDown.js",
+    "./dev-cli/rewriteChecksum": "./build/src/dev-cli/rewriteChecksum.js",
+    "./dev-cli/ensureMarkdownFileExists": "./build/src/dev-cli/ensureMarkDownFileExists.js"
   },
   "devDependencies": {
     "@types/bytes": "^3.1.4",
