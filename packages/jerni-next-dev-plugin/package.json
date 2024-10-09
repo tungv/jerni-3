@@ -1,6 +1,6 @@
 {
   "name": "jerni-next-dev-plugin",
-  "version": "0.9.15-beta.2i",
+  "version": "0.9.15-beta.3a",
   "type": "module",
   "exports": {
     ".": "./src/jerni-next-plugin/withJerniNextDev.mjs",
@@ -15,8 +15,7 @@
     "typescript": "^5.6.2"
   },
   "dependencies": {
-    "better-sqlite3": "^8.4.0",
-    "hash-sum": "^2.0.0"
+    "better-sqlite3": "^8.4.0"
   },
   "peerDependencies": {
     "@jerni/jerni-3": "npm:@jsr/jerni__jerni-3@^0.9.14",
