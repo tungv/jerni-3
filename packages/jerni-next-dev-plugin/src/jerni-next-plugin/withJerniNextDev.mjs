@@ -45,7 +45,7 @@ export default async function withJerniNextDev(nextConfig, { initializerPath, ev
         // Apply alias to resolve `@jerni/jerni-3` to `jerni-next-dev-plugin/jerni-next-dev`
         if (webpackConfig.resolve.alias["@jerni/jerni-3$"]) {
           // warn if alias is already defined
-          console.warn("[jerni-next-dev] Alias `@jerni/jerni-3$` is overridden by `jerni-next-dev-plugin`.");
+          console.warn("[JERNI-PLUGIN] Alias `@jerni/jerni-3$` is overridden by `jerni-next-dev-plugin`.");
         }
         webpackConfig.resolve.alias["@jerni/jerni-3$"] = "jerni-next-dev-plugin/jerni-next-dev";
 

@@ -8282,7 +8282,6 @@ var pathResolver = import_enhanced_resolve.ResolverFactory.createResolver({
   plugins: [new import_tsconfig_paths_webpack_plugin.default({})],
 });
 async function getFilesToWatch(entryFile) {
-  console.log("entryFile", entryFile);
   const rootFile = path.resolve(entryFile);
   const filesToWatch = [];
   const nodes = [rootFile];
