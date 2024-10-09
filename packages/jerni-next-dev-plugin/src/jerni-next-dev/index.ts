@@ -15,7 +15,6 @@ import type {
   TypedJourneyCommittedEvent,
 } from "@jerni/jerni-3/types";
 import { noop } from "lodash/fp";
-import debounce from "../lib/debounce.mjs";
 import once from "../lib/once";
 import createWaiter from "../lib/waiter";
 import commitEvent from "./commitEvent.mjs";
@@ -145,7 +144,7 @@ export default function createJourneyDevInstance(config: JourneyConfig): Journey
     },
   };
 
-  const scheduleCleanStart = debounce(async () => {
+  const scheduleCleanStart = async () => {
     logger.log("[JERNI-DEV] Begin clean start");
 
     // @ts-expect-error
@@ -186,7 +185,7 @@ export default function createJourneyDevInstance(config: JourneyConfig): Journey
     await rewriteChecksumPromise;
 
     logger.log("[JERNI-DEV] Finish clean start");
-  }, 300);
+  };
 
   return journey;
 
