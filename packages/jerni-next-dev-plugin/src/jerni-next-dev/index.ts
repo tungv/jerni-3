@@ -23,6 +23,7 @@ import readEventsFromMarkdown from "@jerni/jerni-3/dev-cli/readEventsFromMarkdow
 import rewriteChecksum from "@jerni/jerni-3/dev-cli/rewriteChecksum";
 import cleanSqliteDatabase from "./cleanSqliteDatabase";
 import insertEventsIntoSqlite from "./insertEventsIntoSqlite";
+import { shouldCleanStartForBootUp, markBootUpCleanStartDone } from "../lib/requestCleanStartForBootUp.mjs";
 
 interface JourneyDevInstance extends JourneyInstance {}
 
@@ -151,7 +152,9 @@ export default function createJourneyDevInstance(config: JourneyConfig): Journey
   };
 
   // force clean start on boot up
-  const forceJerniCleanStartPromise = scheduleCleanStart();
+  const forceJerniCleanStartPromise = shouldCleanStartForBootUp()
+    ? scheduleCleanStart().then(markBootUpCleanStartDone)
+    : Promise.resolve();
 
   return journey;
 

@@ -2,12 +2,14 @@ import path from "node:path";
 import scheduleCleanStartJerni from "./cleanStartJerniDev.mjs";
 import getFilesToWatch from "./getFilesToWatch.mjs";
 import ensureMarkdownFileExists from "@jerni/jerni-3/dev-cli/ensureMarkdownFileExists";
+import { requestCleanStartForBootUp } from "./requestCleanStartForBootUp.mjs";
 
 export default async function createJerniNextPlugin(config) {
   const { initializerAbsoluteFilePath, eventsFileAbsolutePath, sqliteFileAbsolutePath } = config;
-  console.log(JSON.stringify(config, null, 2));
 
   ensureMarkdownFileExists(eventsFileAbsolutePath);
+
+  requestCleanStartForBootUp();
 
   /**
    * Get modules imported in the initializer file
@@ -37,12 +39,11 @@ export default async function createJerniNextPlugin(config) {
         await scheduleCleanStartJerni(eventsFileAbsolutePath, sqliteFileAbsolutePath);
       }
 
-      if (changedFiles.has(eventsFileAbsolutePath)) {
-        // todo: determine whether to clean start or not
-        // console.log("Events file changed, clean start");
-        // FIXME: db projections is not fired right away
-        await scheduleCleanStartJerni(eventsFileAbsolutePath, sqliteFileAbsolutePath);
-      }
-    });
-  };
+/**
+ * Jerni dev will read `globalThis.__JERNI_BOOTED_UP__` to determine whether to
+ * make a clean start when `createJourney()` invoked as a boot up to sync markdown file,
+ * sqlite file and data in stores.
+ */
+function requestCleanStartForBootUp() {
+  globalThis.__JERNI_BOOTED_UP__ = true;
 }
