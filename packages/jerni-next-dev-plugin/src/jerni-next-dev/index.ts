@@ -47,7 +47,9 @@ export default function createJourneyDevInstance(config: JourneyConfig): Journey
   const commit = async <T extends keyof CommittingEventDefinitions>(
     uncommittedEvent: ToBeCommittedJourneyEvent<T>,
   ): Promise<TypedJourneyCommittedEvent<T>> => {
-    // check to see if need to clean start
+    // wait for the boot up clean start to finish
+    await forceJerniCleanStartPromise;
+    // check again to see if need another clean start in case things happened while boot up
     if (await shouldCleanStart()) {
       await scheduleCleanStart();
     }
@@ -118,7 +120,9 @@ export default function createJourneyDevInstance(config: JourneyConfig): Journey
     },
     // biome-ignore lint/suspicious/noExplicitAny: because this is a placeholder, the client that uses jerni would override this type
     async getReader(model: any): Promise<any> {
-      // check to see if need to clean start
+      // wait for the boot up clean start to finish
+      await forceJerniCleanStartPromise;
+      // check again to see if need another clean start in case things happened while boot up
       if (await shouldCleanStart()) {
         await scheduleCleanStart();
       }
@@ -145,6 +149,9 @@ export default function createJourneyDevInstance(config: JourneyConfig): Journey
       }
     },
   };
+
+  // force clean start on boot up
+  const forceJerniCleanStartPromise = scheduleCleanStart();
 
   return journey;
 
