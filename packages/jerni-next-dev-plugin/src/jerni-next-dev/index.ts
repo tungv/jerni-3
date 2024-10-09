@@ -19,7 +19,11 @@ import debounce from "../lib/debounce.mjs";
 import once from "../lib/once";
 import createWaiter from "../lib/waiter";
 import commitEvent from "./commitEvent.mjs";
-import { shouldCleanStart } from "./shouldCleanStart";
+import shouldCleanStart from "./shouldCleanStart";
+import readEventsFromMarkdown from "@jerni/jerni-3/dev-cli/readEventsFromMarkdown";
+import rewriteChecksum from "@jerni/jerni-3/dev-cli/rewriteChecksum";
+import cleanSqliteDatabase from "./cleanSqliteDatabase";
+import insertEventsIntoSqlite from "./insertEventsIntoSqlite";
 
 interface JourneyDevInstance extends JourneyInstance {}
 
@@ -42,7 +46,10 @@ export default function createJourneyDevInstance(config: JourneyConfig): Journey
   const commit = async <T extends keyof CommittingEventDefinitions>(
     uncommittedEvent: ToBeCommittedJourneyEvent<T>,
   ): Promise<TypedJourneyCommittedEvent<T>> => {
-    await cleanStartPromise; // make sure clean start is done
+    // check to see if need to clean start
+    if (await shouldCleanStart()) {
+      await scheduleCleanStart();
+    }
     // persist event
     logger.log("[JERNI-DEV] Committing...");
     const eventId = await commitEvent(sqliteFilePath, eventsFilePath, [uncommittedEvent]);
@@ -63,7 +70,6 @@ export default function createJourneyDevInstance(config: JourneyConfig): Journey
     commit,
     append: commit,
     async waitFor(event: JourneyCommittedEvent, timeoutOrSignal?: number | AbortSignal) {
-      await cleanStartPromise; // make sure clean start is done
       logger.log("[JERNI-DEV] Waiting for event", event.id);
       if (!hasStartedWaiting) {
         hasStartedWaiting = true;
@@ -111,7 +117,10 @@ export default function createJourneyDevInstance(config: JourneyConfig): Journey
     },
     // biome-ignore lint/suspicious/noExplicitAny: because this is a placeholder, the client that uses jerni would override this type
     async getReader(model: any): Promise<any> {
-      await cleanStartPromise; // make sure clean start is done
+      // check to see if need to clean start
+      if (await shouldCleanStart()) {
+        await scheduleCleanStart();
+      }
       registerOnce();
       const store = modelToStoreMap.get(model);
 
@@ -138,16 +147,30 @@ export default function createJourneyDevInstance(config: JourneyConfig): Journey
 
   const scheduleCleanStart = debounce(async () => {
     logger.log("[JERNI-DEV] Begin clean start");
+
+    // @ts-expect-error
+    const eventsFileAbsolutePath = globalThis.__JERNI_EVENTS_FILE_PATH__;
+    // @ts-expect-error
+    const sqliteFileAbsolutePath = globalThis.__JERNI_SQL_FILE_PATH__;
+
+    // read events from markdown file to sync to sqlite
+    const { events } = await readEventsFromMarkdown(eventsFileAbsolutePath);
+
+    // rewrite checksum of markdown file in background
+    const rewriteChecksumPromise = rewriteChecksum(eventsFileAbsolutePath);
+
+    // clean and insert events into sqlite
+    cleanSqliteDatabase(sqliteFileAbsolutePath);
+    insertEventsIntoSqlite(events, sqliteFileAbsolutePath);
+
+    // clean stores
     let eventId = 1;
     for (const store of config.stores) {
       await store.clean();
     }
 
-    // @ts-expect-error
-    const seedingEvents = globalThis.__JERNI_EVENTS__;
-
     // project events
-    for (const event of seedingEvents) {
+    for (const event of events) {
       for (const store of config.stores) {
         // fixme: should call flushEvents
         const committedEvent = {
@@ -159,13 +182,11 @@ export default function createJourneyDevInstance(config: JourneyConfig): Journey
       eventId++;
     }
 
+    // wait for rewrite checksum to finish
+    await rewriteChecksumPromise;
+
     logger.log("[JERNI-DEV] Finish clean start");
-
-    // @ts-expect-error
-    globalThis.CLEAN_START_JERNI = false; // fixme: undocumented
   }, 300);
-
-  const cleanStartPromise = shouldCleanStart() ? scheduleCleanStart() : Promise.resolve();
 
   return journey;
 
