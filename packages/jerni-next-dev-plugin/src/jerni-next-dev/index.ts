@@ -144,7 +144,9 @@ export default function createJourneyDevInstance(config: JourneyConfig): Journey
     },
   };
 
-  const scheduleCleanStart = async () => {
+  return journey;
+
+  async function scheduleCleanStart() {
     logger.log("[JERNI-DEV] Begin clean start");
 
     // @ts-expect-error
@@ -185,9 +187,7 @@ export default function createJourneyDevInstance(config: JourneyConfig): Journey
     await rewriteChecksumPromise;
 
     logger.log("[JERNI-DEV] Finish clean start");
-  };
-
-  return journey;
+  }
 
   function registerModels() {
     // loop through all stores and map them to their models
