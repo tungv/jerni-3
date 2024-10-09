@@ -14,7 +14,7 @@ export default function insertEventsIntoSqlite(events: any[], sqliteFilePath: st
 
     return insertedCount;
   } catch (error) {
-    console.error(`Error in insertEvents: ${error.message}`);
+    console.error(`Error in insertEvents: ${(error as Error).message}`);
     throw error;
   } finally {
     db.close();

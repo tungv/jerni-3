@@ -1,6 +1,6 @@
 {
   "name": "jerni-next-dev-plugin",
-  "version": "0.9.15-beta.1m",
+  "version": "0.9.15-beta.1p",
   "type": "module",
   "exports": {
     ".": "./src/jerni-next-plugin/withJerniNextDev.mjs",
@@ -10,6 +10,7 @@
     "build-jerni-next-dev": "bunx tsc"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.11",
     "@types/node": "^22.5.4",
     "typescript": "^5.6.2"
   },

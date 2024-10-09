@@ -15,7 +15,7 @@ export default function cleanSqliteDatabase(sqliteFilePath: string) {
       type TEXT NOT NULL
     )`);
   } catch (error) {
-    console.error(`Error cleaning SQLite database: ${error.message}`);
+    console.error(`Error cleaning SQLite database: ${(error as Error).message}`);
     throw error;
   } finally {
     db.close();
