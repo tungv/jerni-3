@@ -42,6 +42,8 @@ export default function createJourneyDevInstance(config: JourneyConfig): Journey
   // @ts-expect-error
   const sqliteFilePath = globalThis.__JERNI_SQL_FILE_PATH__;
 
+  let isCleanStarting = false;
+
   const commit = async <T extends keyof CommittingEventDefinitions>(
     uncommittedEvent: ToBeCommittedJourneyEvent<T>,
   ): Promise<TypedJourneyCommittedEvent<T>> => {
@@ -149,6 +151,11 @@ export default function createJourneyDevInstance(config: JourneyConfig): Journey
   async function scheduleCleanStart() {
     logger.log("[JERNI-DEV] Begin clean start");
 
+    // prevent duplicate clean start
+    if (isCleanStarting) return;
+
+    isCleanStarting = true;
+
     // @ts-expect-error
     const eventsFileAbsolutePath = globalThis.__JERNI_EVENTS_FILE_PATH__;
     // @ts-expect-error
@@ -186,6 +193,7 @@ export default function createJourneyDevInstance(config: JourneyConfig): Journey
     // wait for rewrite checksum to finish
     await rewriteChecksumPromise;
 
+    isCleanStarting = false;
     logger.log("[JERNI-DEV] Finish clean start");
   }
 
