@@ -171,11 +171,25 @@ export default function createJourneyDevInstance(config: JourneyConfig): Journey
     cleanSqliteDatabase(sqliteFileAbsolutePath);
     insertEventsIntoSqlite(events, sqliteFileAbsolutePath);
 
-    // clean stores
-    let eventId = 1;
+    // persist events to stores
+    await clearStores();
+    await projectEvents(events);
+
+    // wait for rewrite checksum to finish
+    await rewriteChecksumPromise;
+
+    isCleanStarting = false;
+    logger.log("[JERNI-DEV] Finish clean start");
+  }
+
+  async function clearStores() {
     for (const store of config.stores) {
       await store.clean();
     }
+  }
+
+  async function projectEvents(events: any[]) {
+    let eventId = 1;
 
     // project events
     for (const event of events) {
@@ -189,12 +203,6 @@ export default function createJourneyDevInstance(config: JourneyConfig): Journey
       }
       eventId++;
     }
-
-    // wait for rewrite checksum to finish
-    await rewriteChecksumPromise;
-
-    isCleanStarting = false;
-    logger.log("[JERNI-DEV] Finish clean start");
   }
 
   function registerModels() {
