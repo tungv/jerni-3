@@ -74,6 +74,8 @@ export interface MongoDBStore {
   listen: () => AsyncGenerator<number, void, unknown>;
   clean: () => Promise<void>;
   dispose: () => Promise<void>;
+
+  isSafeForDev: () => Promise<boolean>;
 }
 
 // biome-ignore lint/suspicious/noExplicitAny: This type is only determined when integrate with jerni and it should not affect the type safety of the store

@@ -193,6 +193,8 @@ export default function createJourneyDevInstance(config: JourneyConfig): Journey
   }
 
   async function clearStores() {
+    // again ensure stores are safe for dev; better safe than sorry
+    await ensureStoresAreSafeForDev();
     for (const store of config.stores) {
       await store.clean();
     }
@@ -222,5 +224,38 @@ export default function createJourneyDevInstance(config: JourneyConfig): Journey
       store.registerModels(modelToStoreMap);
       logger.log("[JERNI-DEV] Store %s complete", store.toString());
     }
+  }
+
+  async function ensureStoresAreSafeForDev() {
+    const isSafeForDev = await areStoresSafeForDev();
+    if (!isSafeForDev) {
+      logger.error("[JERNI-DEV] Error: STORES_NOT_FOR_DEV. Terminating program...");
+      process.exit(1);
+    }
+  }
+
+  async function areStoresSafeForDev() {
+    // check if stores are safe for dev
+    const storesSafetyCheck = await Promise.all(
+      config.stores.map(async (store): Promise<boolean> => {
+        if ("isSafeForDev" in store === false) {
+          logger.error(
+            "[JERNI-DEV] Store %s does not support jerni-next-dev-plugin. Please upgrade your store.",
+            store.name,
+          );
+          return false;
+        }
+
+        // @ts-expect-error Old stores do not have `isSafeForDev()`
+        const isSafeForDev: boolean = await store.isSafeForDev();
+        if (!isSafeForDev) {
+          // todo: add instructions
+          logger.error("[JERNI-DEV] Store %s is not for dev.", store.name);
+        }
+        return isSafeForDev;
+      }),
+    );
+
+    return storesSafetyCheck.every(Boolean);
   }
 }
