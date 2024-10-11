@@ -1,6 +1,6 @@
 {
   "name": "@jerni/jerni-3",
-  "version": "v0.9.15",
+  "version": "0.10.0",
   "type": "module",
   "main": "src/index.ts",
   "bin": {
@@ -9,7 +9,10 @@
   "dependencies": {
     "bytes": "^3.1.2",
     "hash-sum": "^2.0.0",
+    "json5": "^2.2.3",
     "lodash": "^4.17.21",
+    "mdast-util-from-markdown": "^2.0.1",
+    "mdast-util-frontmatter": "^2.0.1",
     "mongodb": "^6.8.0",
     "ms": "^2.1.3",
     "nanoid": "^4.0.2",
@@ -24,7 +27,8 @@
     "//postinstall": "node ./scripts/download-binary.js",
     "bump-patch": "node ./scripts/bump-version.js patch",
     "bump-minor": "node ./scripts/bump-version.js minor",
-    "bump-major": "node ./scripts/bump-version.js major"
+    "bump-major": "node ./scripts/bump-version.js major",
+    "build-dev-tools": "bun build --entrypoints ./src/dev-cli/ensureMarkDownFileExists.ts ./src/dev-cli/appendEventsToMarkdown.ts ./src/dev-cli/readEventsFromMarkDown.ts ./src/dev-cli/rewriteChecksum.ts  --outdir ./build --target node --format esm --packages external --root ."
   },
   "exports": {
     ".": "./src/createJourney.ts",
@@ -34,7 +38,11 @@
     "./lib/errors/UnrecoverableError": "./src/UnrecoverableError.ts",
     "./lib/skip": "./src/lib/skip.ts",
     "./lib/begin": "./src/begin.ts",
-    "./test/testWrapper": "./src/lib/testWrapper.ts"
+    "./test/testWrapper": "./src/lib/testWrapper.ts",
+    "./dev-cli/appendEventsToMarkdown": "./src/dev-cli/appendEventsToMarkdown.ts",
+    "./dev-cli/readEventsFromMarkdown": "./src/dev-cli/readEventsFromMarkDown.ts",
+    "./dev-cli/rewriteChecksum": "./src/dev-cli/rewriteChecksum.ts",
+    "./dev-cli/ensureMarkdownFileExists": "./src/dev-cli/ensureMarkDownFileExists.ts"
   },
   "devDependencies": {
     "@types/bytes": "^3.1.4",

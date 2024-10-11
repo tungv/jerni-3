@@ -111,12 +111,20 @@ export default async function makeMongoDBStore(config: MongoDBStoreConfig): Prom
     clean,
     dispose,
     listen,
+    isSafeForDev,
     toString() {
       return `[@jerni/store-mongodb] - name: ${config.name} - URL: ${config.url} - DB: ${config.dbName}`;
     },
   };
 
   return store;
+
+  async function isSafeForDev(): Promise<boolean> {
+    // check if database name is prefixed with these
+    const checkDbNamePrefixPassed = ["dev__", "local__", "test__"].some((prefix) => dbName.startsWith(prefix));
+    // if dbName's prefix passed, it's safe for dev
+    return checkDbNamePrefixPassed;
+  }
 
   function registerModels(
     map: Map<

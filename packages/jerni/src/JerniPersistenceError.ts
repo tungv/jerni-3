@@ -1,7 +1,9 @@
 import type { JourneyCommittedEvent } from "./types/events";
 
 export default class JerniPersistenceError extends Error {
+  // @ts-ignore
   #event: JourneyCommittedEvent;
+  // @ts-ignore
   #elapsed: number;
 
   constructor(event: JourneyCommittedEvent, elapsed: number) {
