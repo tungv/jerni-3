@@ -18,7 +18,7 @@
     "better-sqlite3": "^8.4.0"
   },
   "peerDependencies": {
-    "@jerni/jerni-3": "npm:@jsr/jerni__jerni-3@^0.9.14",
+    "@jerni/jerni-3": "npm:@jsr/jerni__jerni-3@^0.9.16",
     "next": "^14.2.5"
   }
 }

@@ -1,6 +1,6 @@
 {
   "name": "@jerni/jerni-3",
-  "version": "0.9.15",
+  "version": "0.9.16",
   "exports": {
     ".": "./src/createJourney.ts",
     "./types": "./src/lib/exported_types.ts",
@@ -8,12 +8,11 @@
     "./lib/errors/JerniPersistenceError": "./src/JerniPersistenceError.ts",
     "./lib/errors/UnrecoverableError": "./src/UnrecoverableError.ts",
     "./lib/skip": "./src/lib/skip.ts",
-    "./test/testWrapper": "./src/lib/testWrapper.ts"
+    "./test/testWrapper": "./src/lib/testWrapper.ts",
+    "./dev-cli/appendEventsToMarkdown": "./build/src/dev-cli/appendEventsToMarkdown.js",
+    "./dev-cli/readEventsFromMarkdown": "./build/src/dev-cli/readEventsFromMarkDown.js",
+    "./dev-cli/rewriteChecksum": "./build/src/dev-cli/rewriteChecksum.js",
+    "./dev-cli/ensureMarkdownFileExists": "./build/src/dev-cli/ensureMarkDownFileExists.js"
   },
-  "exclude": [
-    "src/tests",
-    "src/worker.ts",
-    "src/cli.ts",
-    "src/begin.ts"
-  ]
+  "exclude": ["src/tests", "src/worker.ts", "src/cli.ts", "src/begin.ts"]
 }
