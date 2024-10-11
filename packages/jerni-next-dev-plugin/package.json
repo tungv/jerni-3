@@ -1,0 +1,21 @@
+{
+  "name": "@jerni/jerni-next-dev-plugin",
+  "version": "0.9.16-beta.1",
+  "type": "module",
+  "exports": {
+    ".": "./src/jerni-next-plugin/withJerniNextDev.mjs",
+    "./jerni-next-dev": "./src/jerni-next-dev/index.ts"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.11",
+    "@types/node": "^22.5.4",
+    "typescript": "^5.6.2"
+  },
+  "dependencies": {
+    "better-sqlite3": "^8.4.0"
+  },
+  "peerDependencies": {
+    "@jerni/jerni-3": "npm:@jsr/jerni__jerni-3@^0.9.16",
+    "next": "^14.2.5"
+  }
+}

@@ -1,6 +1,6 @@
-import { JourneyTestInstance } from "../types/JourneyTestInstance";
-import { JourneyConfig } from "../types/config";
-import {
+import type { JourneyTestInstance } from "../types/JourneyTestInstance";
+import type { JourneyConfig } from "../types/config";
+import type {
   CommittingEventDefinitions,
   JourneyCommittedEvent,
   JourneyEvent,
@@ -8,9 +8,9 @@ import {
   ToBeCommittedJourneyEvent,
   TypedJourneyCommittedEvent,
 } from "../types/events";
-import { GetReaderFn, JourneyInstance } from "../types/journey";
+import type { GetReaderFn, JourneyInstance } from "../types/journey";
 
-export {
+export type {
   JourneyCommittedEvent,
   JourneyConfig,
   JourneyEvent,

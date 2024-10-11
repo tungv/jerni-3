@@ -1,5 +1,5 @@
 {
-  "cSpell.words": ["INCMSG"],
+  "cSpell.words": ["INCMSG", "Jerni", "picocolors"],
   "typescript.tsdk": "node_modules/typescript/lib",
   "typescript.preferences.importModuleSpecifier": "relative",
   "editor.codeActionsOnSave": {
