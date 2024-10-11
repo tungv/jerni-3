@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import hash_sum from "hash-sum";
-import type { Root } from "mdast";
+import type { Root } from "@types/mdast";
 import { fromMarkdown } from "mdast-util-from-markdown";
 import { frontmatterFromMarkdown, frontmatterToMarkdown } from "mdast-util-frontmatter";
 import { toMarkdown } from "mdast-util-to-markdown";
