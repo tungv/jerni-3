@@ -1,4 +1,3 @@
-import path from "node:path";
 import getFilesToWatch from "./getFilesToWatch.mjs";
 import ensureMarkdownFileExists from "@jerni/jerni-3/dev-cli/ensureMarkdownFileExists";
 import { requestCleanStartForBootUp } from "../lib/requestCleanStartForBootUp.mjs";
