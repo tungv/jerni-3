@@ -14,7 +14,6 @@ import type {
   ToBeCommittedJourneyEvent,
   TypedJourneyCommittedEvent,
 } from "@jerni/jerni-3/types";
-import { noop } from "lodash/fp";
 import once from "../lib/once";
 import createWaiter from "../lib/waiter";
 import commitEvent from "./commitEvent.mjs";
@@ -140,7 +139,7 @@ export default function createJourneyDevInstance(config: JourneyConfig): Journey
       return {
         ...config,
         server: "localhost",
-        onError: noop,
+        onError: () => {}, // fixme: mimic the behavior of jerni-3
       };
     },
     async dispose() {
