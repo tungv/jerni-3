@@ -9,7 +9,6 @@ import yaml from "yaml";
 import type { ToBeCommittedJourneyEvent } from "../types/events";
 import getEventsFromAst from "./getEventsFromAst";
 
-// todo: modify CI to build dev tools
 export default async function appendEventsToMarkdown(filePath: string, events: ToBeCommittedJourneyEvent[]) {
   const fileContent = await fs.readFile(filePath, { encoding: "utf8" });
 
