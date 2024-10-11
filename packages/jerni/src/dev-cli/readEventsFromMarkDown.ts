@@ -6,7 +6,26 @@ import { frontmatter } from "micromark-extension-frontmatter";
 import yaml from "yaml";
 import getEventsFromAst from "./getEventsFromAst";
 
-export default async function readEventsFromMarkDown(filePath: string) {
+interface ReadEventsFromMarkDownResult {
+  events: {
+    id: number;
+    type: any;
+    payload: any;
+    meta: any;
+  }[];
+  /**
+   * The checksum written in the markdown file.
+   * Expected to be the same as `realChecksum` if the file is not modified.
+   */
+  fileChecksum: string;
+  /**
+   * The checksum calculated from all events in the markdown file.
+   * Expected to be the same as `fileChecksum` if the file is not modified.
+   */
+  realChecksum: string;
+}
+
+export default async function readEventsFromMarkDown(filePath: string): Promise<ReadEventsFromMarkDownResult> {
   const doc = await fs.readFile(filePath, "utf8");
 
   const ast = fromMarkdown(doc, {
