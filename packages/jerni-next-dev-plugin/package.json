@@ -1,10 +1,10 @@
 {
-  "name": "jerni-next-dev-plugin",
+  "name": "@jerni/jerni-next-dev-plugin",
   "version": "0.9.16-beta.1",
   "type": "module",
   "exports": {
     ".": "./src/jerni-next-plugin/withJerniNextDev.mjs",
-    "./jerni-next-dev": "./src/jerni-next-dev/index.js"
+    "./jerni-next-dev": "./src/jerni-next-dev/index.ts"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.11",

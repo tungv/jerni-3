@@ -1,0 +1,8 @@
+{
+  "name": "@jerni/jerni-next-dev-plugin",
+  "version": "0.9.16-beta.1",
+  "exports": {
+    ".": "./src/jerni-next-plugin/withJerniNextDev.mjs",
+    "./jerni-next-dev": "./src/jerni-next-dev/index.ts"
+  }
+}
