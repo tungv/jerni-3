@@ -1,5 +1,6 @@
 import JSON5 from "json5";
-import type { Code, RootContent } from "mdast";
+// @ts-ignore
+import type { Code, RootContent } from "@types/mdast";
 
 const isEvent = (node: RootContent): node is Code => {
   if (node.type !== "code") return false;
