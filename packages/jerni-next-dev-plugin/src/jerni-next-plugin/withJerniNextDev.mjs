@@ -4,8 +4,8 @@ import createJerniNextDevPlugin from "./createJerniNextPlugin.mjs";
 /**
  * @param {import("next").NextConfig} nextConfig
  * @param {Object} devConfig
- * @param {string} devConfig.initializerPath
- * @param {string} devConfig.eventsFile
+ * @param {string} devConfig.initializerPath Path to the jerni initializer file
+ * @param {string} devConfig.eventsFile Path to the markdown events file
  * @returns {import("next").NextConfig}
  */
 export default async function withJerniNextDev(nextConfig, { initializerPath, eventsFile }) {
