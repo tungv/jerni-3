@@ -57,6 +57,7 @@ export interface Store {
   listen: () => AsyncGenerator<number, void, unknown>;
   clean: () => Promise<void>;
   dispose: () => Promise<void>;
+  isSafeForDev?: () => Promise<boolean>; // old stores do not have this method
 }
 
 type OnError =

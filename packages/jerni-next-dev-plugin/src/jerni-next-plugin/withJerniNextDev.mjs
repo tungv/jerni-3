@@ -4,8 +4,8 @@ import createJerniNextDevPlugin from "./createJerniNextPlugin.mjs";
 /**
  * @param {import("next").NextConfig} nextConfig
  * @param {Object} devConfig
- * @param {string} devConfig.initializerPath
- * @param {string} devConfig.eventsFile
+ * @param {string} devConfig.initializerPath Path to the jerni initializer file
+ * @param {string} devConfig.eventsFile Path to the markdown events file
  * @returns {import("next").NextConfig}
  */
 export default async function withJerniNextDev(nextConfig, { initializerPath, eventsFile }) {
@@ -45,7 +45,7 @@ export default async function withJerniNextDev(nextConfig, { initializerPath, ev
           // warn if alias is already defined
           console.warn("[JERNI-PLUGIN] Alias `@jerni/jerni-3$` is overridden by `jerni-next-dev-plugin`.");
         }
-        webpackConfig.resolve.alias["@jerni/jerni-3$"] = "jerni-next-dev-plugin/jerni-next-dev";
+        webpackConfig.resolve.alias["@jerni/jerni-3$"] = "@jerni/jerni-next-dev-plugin/jerni-next-dev";
 
         // WORKAROUND: mark `better-sqlite3` as external package in order to load it at runtime instead of bundling it
         // to overcome the issue that `bindings` package throws error
@@ -54,7 +54,6 @@ export default async function withJerniNextDev(nextConfig, { initializerPath, ev
           : ["better-sqlite3"];
 
         // Define the global variables dynamically
-        // IMPORTANT: there is another runtime value `globalThis.__JERNI_EVENTS__` in `jerni-next-dev`
         // IMPORTANT: there is another runtime value `globalThis.__JERNI_BOOTED_UP__` in `jerni-next-dev`
         webpackConfig.plugins.push(
           new options.webpack.DefinePlugin({
