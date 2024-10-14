@@ -54,7 +54,6 @@ export default async function withJerniNextDev(nextConfig, { initializerPath, ev
           : ["better-sqlite3"];
 
         // Define the global variables dynamically
-        // IMPORTANT: there is another runtime value `globalThis.__JERNI_EVENTS__` in `jerni-next-dev`
         // IMPORTANT: there is another runtime value `globalThis.__JERNI_BOOTED_UP__` in `jerni-next-dev`
         webpackConfig.plugins.push(
           new options.webpack.DefinePlugin({
