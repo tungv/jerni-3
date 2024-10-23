@@ -157,6 +157,10 @@ async function* retrieveJourneyCommittedEvents(
   signal: AbortSignal,
 ): AsyncGenerator<EventStreamReturnType, void, unknown> {
   signal.throwIfAborted();
+
+  const innerController = new AbortController();
+  signal.addEventListener("abort", () => innerController.abort());
+
   try {
     // passing signal to fetch will throw uncatchable error, instead, add the signal to body.pipeThrough
     const resp = await fetch(url.toString(), {
@@ -165,6 +169,7 @@ async function* retrieveJourneyCommittedEvents(
         "burst-count": String(batchSize),
         "last-event-id": String(lastSeenId),
       },
+      signal: innerController.signal,
     });
 
     if (!resp.ok) {
@@ -180,7 +185,7 @@ async function* retrieveJourneyCommittedEvents(
       connected_at: Date.now(),
     };
 
-    const stream = resp.body.pipeThrough(new TextDecoderStream(), { signal });
+    const stream = resp.body.pipeThrough(new TextDecoderStream(), { signal: innerController.signal });
 
     const pending = [] as string[];
 
@@ -259,6 +264,7 @@ async function* retrieveJourneyCommittedEvents(
       }
     }
   } finally {
+    innerController.abort();
     Bun.gc(true);
   }
 }
