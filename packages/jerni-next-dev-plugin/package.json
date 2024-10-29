@@ -12,7 +12,7 @@
     "typescript": "^5.6.2"
   },
   "dependencies": {
-    "better-sqlite3": "^8.4.0"
+    "better-sqlite3": "^11.5.0"
   },
   "peerDependencies": {
     "@jerni/jerni-3": "npm:@jsr/jerni__jerni-3@^0.10.0",
