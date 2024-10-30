@@ -7,6 +7,4 @@
    - `bun run bump-minor`: run this to bump the minor version.
    - `bun run bump-major`: run this to bump the major version.
 
-3. Once the version is bumped, push your branch to the remote repository. CI/CD will automatically build the package and publish it to JSR.
-
-4. Once the package is published, you can merge your branch to `main`.
+3. Once the version is bumped, create a PR and get it merged. CI/CD will automatically build the package and publish it to JSR.
