@@ -123,6 +123,11 @@ export default async function makeMongoDBStore(config: MongoDBStoreConfig): Prom
     // check if database name is prefixed with these
     const checkDbNamePrefixPassed = ["dev__", "local__", "test__"].some((prefix) => dbName.startsWith(prefix));
     // if dbName's prefix passed, it's safe for dev
+    if (!checkDbNamePrefixPassed) {
+      logger.error(
+        `[@jerni/store-mongodb] Database name must be prefixed with "dev__", "local__", or "test__" to mark as safe for development. Your database name is "${dbName}".`,
+      );
+    }
     return checkDbNamePrefixPassed;
   }
 
