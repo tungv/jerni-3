@@ -15,6 +15,25 @@ interface SnapshotDocument {
 const defaultLogger = console;
 const testLogger = makeTestLogger();
 
+declare global {
+  namespace NodeJS {
+    interface ProcessEnv {
+      /**
+       * Maximum time (in milliseconds) to keep a MongoDB client connection before automatically releasing it.
+       * If not specified, defaults to 5 minutes (300000ms).
+       */
+      JERNI_STORE_MONGODB_MAX_SHARED_CLIENT_TIMEOUT?: string;
+    }
+  }
+}
+
+const providedMaxSharedClientTimeout = process.env.JERNI_STORE_MONGODB_MAX_SHARED_CLIENT_TIMEOUT;
+const DEFAULT_MAX_SHARED_CLIENT_TIMEOUT = 5 * 60 * 1000; // 5 minutes
+
+const MAX_SHARED_CLIENT_TIMEOUT = providedMaxSharedClientTimeout
+  ? Number.parseInt(providedMaxSharedClientTimeout, 10)
+  : DEFAULT_MAX_SHARED_CLIENT_TIMEOUT;
+
 export default async function makeMongoDBStore(config: MongoDBStoreConfig): Promise<MongoDBStore> {
   const { url, dbName } = config;
   let connCount = 0;
@@ -22,43 +41,72 @@ export default async function makeMongoDBStore(config: MongoDBStoreConfig): Prom
 
   let lastSuccessfulEventId = 0;
 
-  async function runDb<T>(cb: (client: MongoClient, db: Db) => Promise<T> | T) {
+  type ConnectionInfo = {
+    createdAt: number;
+    stack: string;
+  };
+  const connectionInfoMap = new Map<number, ConnectionInfo>();
+  let connectionId = 0;
+
+  async function getSharedClient(forceRelease: boolean) {
     connCount++;
-    // logger.debug("connCount", connCount);
+    const currentId = connectionId++;
 
     if (!conn) {
-      // first connection
-      // logger.debug("connecting to mongodb");
       conn = new MongoClient(url);
-      conn.connect();
+      await conn.connect();
     }
 
-    const db = conn.db(dbName);
+    const info = {
+      createdAt: Date.now(),
+      stack: new Error().stack || "No stack trace available",
+    };
+    connectionInfoMap.set(currentId, info);
 
-    try {
-      return await cb(conn, db);
-    } finally {
-      connCount--;
+    if (forceRelease) {
+      setTimeout(MAX_SHARED_CLIENT_TIMEOUT).then(() => {
+        const info = connectionInfoMap.get(currentId);
+        if (!info) return;
 
-      if (connCount === 0) {
-        // logger.debug("schedule to close mongodb connection");
-        setTimeout(1000).then(async () => {
-          if (connCount === 0 && conn) {
-            // logger.debug("closing mongodb connection");
-            await conn.close();
-            conn = null;
-          }
-        });
-      }
+        const timeOpen = (Date.now() - info.createdAt) / 1000;
+        logger.warn(
+          `MongoDB connection was not properly released after ${timeOpen.toFixed(
+            1,
+          )}s. This may indicate a missing await on dispose() or using .dispose() instead of .asyncDispose. Connection was created at:\n${
+            info.stack
+          }`,
+        );
+
+        releaseSharedClient(currentId);
+      });
+    }
+
+    return { client: conn, id: currentId };
+  }
+
+  async function releaseSharedClient(id: number) {
+    connectionInfoMap.delete(id);
+    connCount--;
+
+    if (connCount === 0) {
+      setTimeout(1000).then(async () => {
+        if (connCount === 0 && conn) {
+          await conn.close();
+          conn = null;
+        }
+      });
     }
   }
 
-  async function getCollection() {
-    const client = new MongoClient(url);
-    await client.connect();
+  async function runDb<T>(cb: (client: MongoClient, db: Db) => Promise<T> | T) {
+    const { client, id } = await getSharedClient(false);
     const db = client.db(dbName);
 
-    return [client, db] as const;
+    try {
+      return await cb(client, db);
+    } finally {
+      await releaseSharedClient(id);
+    }
   }
 
   let hasStopped = false;
@@ -166,15 +214,12 @@ export default async function makeMongoDBStore(config: MongoDBStoreConfig): Prom
   }
 
   async function getDriver<T extends Document>(model: MongoDBModel<T>): Promise<Collection<T> & AsyncDisposable> {
-    const [client, db] = await getCollection();
-    const collection = db.collection<T>(getCollectionName(model));
+    const { client, id } = await getSharedClient(true);
+    const collection = client.db(dbName).collection<T>(getCollectionName(model));
 
-    // add [Symbol.asyncDispose] to the return value
-    // so that the driver can be disposed by the caller
-    // when it's no longer needed
     const disposable = Object.assign(collection, {
       [Symbol.asyncDispose]: async () => {
-        await client.close();
+        await releaseSharedClient(id);
       },
     });
 
