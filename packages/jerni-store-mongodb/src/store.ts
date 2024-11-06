@@ -15,19 +15,8 @@ interface SnapshotDocument {
 const defaultLogger = console;
 const testLogger = makeTestLogger();
 
-declare global {
-  namespace NodeJS {
-    interface ProcessEnv {
-      /**
-       * Maximum time (in milliseconds) to keep a MongoDB client connection before automatically releasing it.
-       * If not specified, defaults to 5 minutes (300000ms).
-       */
-      JERNI_STORE_MONGODB_MAX_SHARED_CLIENT_TIMEOUT?: string;
-    }
-  }
-}
-
-const providedMaxSharedClientTimeout = process.env.JERNI_STORE_MONGODB_MAX_SHARED_CLIENT_TIMEOUT;
+// biome-ignore lint/complexity/useLiteralKeys: conflict with typescript
+const providedMaxSharedClientTimeout = process.env["JERNI_STORE_MONGODB_MAX_SHARED_CLIENT_TIMEOUT"];
 const DEFAULT_MAX_SHARED_CLIENT_TIMEOUT = 5 * 60 * 1000; // 5 minutes
 
 const MAX_SHARED_CLIENT_TIMEOUT = providedMaxSharedClientTimeout
