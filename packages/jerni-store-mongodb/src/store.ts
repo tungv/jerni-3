@@ -80,8 +80,9 @@ export default async function makeMongoDBStore(config: MongoDBStoreConfig): Prom
     if (connCount === 0) {
       setTimeout(1000).then(async () => {
         if (connCount === 0 && conn) {
-          await conn.close();
+          const _c = conn;
           conn = null;
+          await _c.close();
         }
       });
     }
