@@ -470,9 +470,15 @@ export default async function makeMongoDBStore(config: MongoDBStoreConfig): Prom
       const snapshotCollection = db.collection<SnapshotDocument>("jerni__snapshot");
 
       const registeredModels = await snapshotCollection
-        .find({
-          full_collection_name: { $in: models.map(getCollectionName) },
-        })
+        .find(
+          {
+            full_collection_name: { $in: models.map(getCollectionName) },
+          },
+          {
+            // always read from primary to avoid stale read
+            readPreference: "primary",
+          },
+        )
         .toArray();
 
       if (registeredModels.length === 0) return 0;
