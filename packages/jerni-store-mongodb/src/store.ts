@@ -42,8 +42,13 @@ export default async function makeMongoDBStore(config: MongoDBStoreConfig): Prom
     const currentId = connectionId++;
 
     if (!conn) {
-      conn = new MongoClient(url);
-      await conn.connect();
+      try {
+        conn = new MongoClient(url);
+        await conn.connect();
+      } catch (error) {
+        conn = null; // failed to connect, assign $conn back to null
+        throw error;
+      }
     }
 
     const info = {
