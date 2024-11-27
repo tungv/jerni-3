@@ -78,12 +78,13 @@ export default async function testWrapper(
       await store.handleEvents(eventsToFlush);
     }
     // update the last projected event id
+    // biome-ignore lint/style/noNonNullAssertion: last event is guaranteed to exist
     lastProjectedEventId = eventsToFlush.at(-1)!.id;
 
     isFlushing = false;
   }
 
-  async function waitForEvent(event: JourneyCommittedEvent, timeout: number, elapsed: number = 0) {
+  async function waitForEvent(event: JourneyCommittedEvent, timeout: number, elapsed = 0) {
     const start = Date.now();
     // check if the event is already projected
     if (event.id <= lastProjectedEventId) return;
