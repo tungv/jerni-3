@@ -59,7 +59,17 @@ export default async function testWrapper(
   }
 
   let lastProjectedEventId = 0; // id of the last projected event
+  let isFlushing = false; // flag to indicate if a flush is in progress
   async function flush() {
+    // if a flush is already in progress, reschedule this flush.
+    if (isFlushing) {
+      // Don't use process.nextTick() to avoid infinite loop
+      setImmediate(flush);
+      return;
+    }
+
+    isFlushing = true;
+
     const eventsToFlush = [...flushQueue];
     flushQueue.length = 0; // clear the queue for the next round of flush() scheduling
 
@@ -68,10 +78,13 @@ export default async function testWrapper(
       await store.handleEvents(eventsToFlush);
     }
     // update the last projected event id
+    // biome-ignore lint/style/noNonNullAssertion: last event is guaranteed to exist
     lastProjectedEventId = eventsToFlush.at(-1)!.id;
+
+    isFlushing = false;
   }
 
-  async function waitForEvent(event: JourneyCommittedEvent, timeout: number, elapsed: number = 0) {
+  async function waitForEvent(event: JourneyCommittedEvent, timeout: number, elapsed = 0) {
     const start = Date.now();
     // check if the event is already projected
     if (event.id <= lastProjectedEventId) return;
