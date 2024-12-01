@@ -33,7 +33,32 @@ interface StoreMeta {
   includes: string[];
 }
 
-export interface Store {
+/**
+ * [ReaderIdentifierType, ReaderType]
+ * Where:
+ * - ReaderIdentifierType is the type of the identifier of the reader.
+ * - ReaderType is the type of the reader.
+ *
+ * This helps journey.getReader() to return the correct type of reader.
+ *
+ * @example
+ * - [number, number]
+ * - [MongoDBModel<{id: number}>, Collection<{id: number, name: string, age: number}>]
+ */
+export type ReaderTuple = [unknown, unknown];
+
+/**
+ * A store must declare its reader tuple type.
+ *
+ * @example
+ * ```ts
+ * interface MyStore extends Store<["key1", "reader 1"] | [123, "reader 2"]> {};
+ * // journey.getReader("key1") => "reader 1"
+ * // journey.getReader(123) => "reader 2"
+ * // journey.getReader("unknown-reader-identifier") => typescript error
+ * ```
+ */
+export interface Store<RT extends ReaderTuple = ReaderTuple> {
   name: string;
   meta: StoreMeta;
 
