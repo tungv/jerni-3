@@ -2,8 +2,8 @@ import type skip from "../lib/skip";
 import type { Logger } from "./Logger";
 import type { JourneyCommittedEvent } from "./events";
 
-export type JourneyConfig = ServerOrWriteTo & {
-  stores: Store[];
+export type JourneyConfig<Stores extends Store<ReaderTuple>[] = Store<ReaderTuple>[]> = ServerOrWriteTo & {
+  stores: Stores;
   dev?: boolean;
   onError: OnError;
   onReport?: OnReport;
