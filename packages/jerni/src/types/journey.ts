@@ -6,7 +6,7 @@ import type {
   TypedJourneyCommittedEvent,
 } from "./events";
 
-export interface JourneyInstance {
+export interface JourneyInstance<Config extends JourneyConfig> {
   /**
    * @deprecated use `append` instead
    * @param event uncommitted event
@@ -23,7 +23,7 @@ export interface JourneyInstance {
 
   getReader: GetReaderFn;
 
-  getConfig: () => JourneyConfig;
+  getConfig: () => Config;
 
   dispose: () => Promise<void>;
 }
