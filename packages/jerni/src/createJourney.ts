@@ -17,7 +17,7 @@ import createWaiter from "./waiter";
 const defaultLogger = console;
 const noop = () => {};
 
-export default function createJourney(config: JourneyConfig): JourneyInstance {
+export default function createJourney<Config extends JourneyConfig>(config: Config): JourneyInstance<Config> {
   let hasStartedWaiting = false;
 
   // biome-ignore lint/suspicious/noExplicitAny: this could be any model, there is no way to know the type
