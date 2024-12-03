@@ -2,7 +2,7 @@ import type skip from "../lib/skip";
 import type { Logger } from "./Logger";
 import type { JourneyCommittedEvent } from "./events";
 
-export type JourneyConfig<Stores extends Store<ReaderTuple>[] = Store<ReaderTuple>[]> = ServerOrWriteTo & {
+export type JourneyConfig<Stores extends Store[] = Store[]> = ServerOrWriteTo & {
   stores: Stores;
   dev?: boolean;
   onError: OnError;
@@ -45,7 +45,7 @@ interface StoreMeta {
  * - [number, number]
  * - [MongoDBModel<{id: number}>, Collection<{id: number, name: string, age: number}>]
  */
-export type ReaderTuple = [unknown, unknown];
+type ReaderTuple = [unknown, unknown];
 
 /**
  * A store must declare its reader tuple type.

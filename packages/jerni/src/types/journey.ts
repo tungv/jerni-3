@@ -1,4 +1,4 @@
-import type { JourneyConfig, ReaderTuple, Store } from "./config";
+import type { JourneyConfig, Store } from "./config";
 import type {
   CommittingEventDefinitions,
   JourneyCommittedEvent,
@@ -6,7 +6,7 @@ import type {
   TypedJourneyCommittedEvent,
 } from "./events";
 
-type ExtractReaderIdentifiersFromStores<Stores extends Store<ReaderTuple>[]> = Stores[number] extends Store<infer RT>
+type ExtractReaderIdentifiersFromStores<Stores extends Store[]> = Stores[number] extends Store<infer RT>
   ? RT[0]
   : never;
 
