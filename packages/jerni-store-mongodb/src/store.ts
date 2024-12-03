@@ -29,7 +29,7 @@ const MAX_SHARED_CLIENT_TIMEOUT = providedMaxSharedClientTimeout
   ? Number.parseInt(providedMaxSharedClientTimeout, 10)
   : DEFAULT_MAX_SHARED_CLIENT_TIMEOUT;
 
-export default async function makeMongoDBStore<Config extends MongoDBStoreConfig<MongoDBModel<any>[]>>(
+export default async function makeMongoDBStore<Config extends MongoDBStoreConfig>(
   config: Config,
 ): Promise<MongoDBStore<ExtractReaderTuplesFromModels<Config["models"]>>> {
   const { url, dbName } = config;
