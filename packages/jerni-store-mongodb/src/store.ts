@@ -7,6 +7,12 @@ import getBulkOperations from "./optimistic/getBulkOperations";
 import { Signal, clearModelSlots, runWithModel } from "./read";
 import type { Changes, JourneyCommittedEvent, MongoDBStore, MongoDBStoreConfig } from "./types";
 
+type ExtractReaderTuplesFromModels<Models extends MongoDBModel<any>[]> = Models extends (infer M)[]
+  ? M extends MongoDBModel<infer T>
+    ? [M, Collection<T>]
+    : never
+  : never;
+
 interface SnapshotDocument {
   __v: number;
   full_collection_name: string;
@@ -23,7 +29,9 @@ const MAX_SHARED_CLIENT_TIMEOUT = providedMaxSharedClientTimeout
   ? Number.parseInt(providedMaxSharedClientTimeout, 10)
   : DEFAULT_MAX_SHARED_CLIENT_TIMEOUT;
 
-export default async function makeMongoDBStore(config: MongoDBStoreConfig): Promise<MongoDBStore> {
+export default async function makeMongoDBStore<Config extends MongoDBStoreConfig<MongoDBModel<any>[]>>(
+  config: Config,
+): Promise<MongoDBStore<ExtractReaderTuplesFromModels<Config["models"]>>> {
   const { url, dbName } = config;
   let connCount = 0;
   let conn: MongoClient | null = null;
