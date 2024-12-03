@@ -16,13 +16,13 @@ export interface Changes {
   deleted: number;
 }
 
-export interface MongoDBStoreConfig {
+// biome-ignore lint/suspicious/noExplicitAny: this can be any collection, however, if using Document, it will cause Typescript constraint error
+export interface MongoDBStoreConfig<Models extends MongoDBModel<any>[]> {
   name: string;
   dbName: string;
   url: string;
 
-  // biome-ignore lint/suspicious/noExplicitAny: this can be any collection, however, if using Document, it will cause Typescript constraint error
-  models: MongoDBModel<any>[];
+  models: Models;
 
   logger?: Logger;
 }
