@@ -44,9 +44,10 @@ export interface StoreMeta {
   includes: string[];
 }
 
-// biome-ignore lint/suspicious/noExplicitAny: this can be any collection, however, if using Document, it will cause Typescript constraint error
-export interface MongoDBStore<MongoReaderTuple extends [MongoDBModel<any>, Collection<any>]>
-  extends Store<MongoReaderTuple> {}
+export interface MongoDBStore<
+  // biome-ignore lint/suspicious/noExplicitAny: this can be any collection. Using Document causes ts error
+  MongoReaderTuple extends [MongoDBModel<any>, Collection<any>] = [MongoDBModel<any>, Collection<any>],
+> extends Store<MongoReaderTuple> {}
 
 // biome-ignore lint/suspicious/noExplicitAny: This type is only determined when integrate with jerni and it should not affect the type safety of the store
 type JerniDeterminedType = any;
