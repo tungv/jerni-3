@@ -1,3 +1,4 @@
+import type { Store } from "@jerni/jerni-3/types";
 import type {
   Collection,
   DeleteManyModel,
@@ -43,40 +44,9 @@ export interface StoreMeta {
   includes: string[];
 }
 
-export interface MongoDBStore {
-  name: string;
-  meta: StoreMeta;
-
-  /**
-   * journey instance will call this method to register models.
-   * Registration of a model will tell which store this model belongs to.
-   *
-   * This is useful when journey.getReader() is called.
-   */
-  registerModels: (
-    map: Map<
-      {
-        name: string;
-        version: string;
-      },
-      MongoDBStore
-    >,
-  ) => void;
-
-  getDriver<T extends Document>(model: MongoDBModel<T>): Promise<Collection<T> & AsyncDisposable>;
-  handleEvents: (
-    events: JourneyCommittedEvent[],
-    signal?: AbortSignal,
-  ) => Promise<{ [modelIdentifier: string]: Changes }>;
-  getLastSeenId: () => Promise<number>;
-  toString(): string;
-
-  listen: () => AsyncGenerator<number, void, unknown>;
-  clean: () => Promise<void>;
-  dispose: () => Promise<void>;
-
-  isSafeForDev: () => Promise<boolean>;
-}
+// biome-ignore lint/suspicious/noExplicitAny: this can be any collection, however, if using Document, it will cause Typescript constraint error
+export interface MongoDBStore<MongoReaderTuple extends [MongoDBModel<any>, Collection<any>]>
+  extends Store<MongoReaderTuple> {}
 
 // biome-ignore lint/suspicious/noExplicitAny: This type is only determined when integrate with jerni and it should not affect the type safety of the store
 type JerniDeterminedType = any;
