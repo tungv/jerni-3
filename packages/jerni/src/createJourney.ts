@@ -4,7 +4,7 @@ import { DBG, INF } from "./cli-utils/log-headers";
 import commitToServer from "./lib/commit";
 import normalizeUrl from "./lib/normalize-url";
 import once from "./lib/once";
-import type { JourneyConfig } from "./types/config";
+import type { JourneyConfig, Store } from "./types/config";
 import type {
   CommittingEventDefinitions,
   JourneyCommittedEvent,
@@ -17,7 +17,11 @@ import createWaiter from "./waiter";
 const defaultLogger = console;
 const noop = () => {};
 
-export default function createJourney<Config extends JourneyConfig>(config: Config): JourneyInstance<Config> {
+type ExtractReaderTupleFromStores<Stores extends Store[]> = Stores[number] extends Store<infer Tuple> ? Tuple : never;
+
+export default function createJourney<Config extends JourneyConfig>(
+  config: Config,
+): JourneyInstance<Config, ExtractReaderTupleFromStores<Config["stores"]>> {
   let hasStartedWaiting = false;
 
   // biome-ignore lint/suspicious/noExplicitAny: this could be any model, there is no way to know the type
@@ -111,8 +115,7 @@ export default function createJourney<Config extends JourneyConfig>(config: Conf
         logger.debug("event", event.id, "is ready");
       }
     },
-    // biome-ignore lint/suspicious/noExplicitAny: because this is a placeholder, the client that uses jerni would override this type
-    async getReader(model: any): Promise<any> {
+    getReader(model) {
       registerOnce();
       const store = modelToStoreMap.get(model);
 

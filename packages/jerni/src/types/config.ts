@@ -45,7 +45,7 @@ interface StoreMeta {
  * - [number, number]
  * - [MongoDBModel<{id: number}>, Collection<{id: number, name: string, age: number}>]
  */
-type ReaderTuple = [unknown, unknown];
+export type ReaderTuple = [unknown, unknown];
 
 /**
  * A store must declare its reader tuple type.
@@ -76,7 +76,9 @@ export interface Store<RT extends ReaderTuple = ReaderTuple> {
   // biome-ignore lint/suspicious/noExplicitAny: Jerni can take any model and store, there is no way to enforce the type here. However, the type of mongodb store is enforced in the store-mongodb package
   registerModels: (map: Map<any, Store>) => void;
 
-  getDriver(model: any): Promise<any>;
+  getDriver<Tuple extends RT, ReaderIdentifier extends Tuple[0]>(
+    model: ReaderIdentifier,
+  ): Promise<Tuple extends [ReaderIdentifier, infer Reader] ? Reader : never>;
   // biome-ignore lint/suspicious/noExplicitAny: the return type is dependent on the implementation of the store
   handleEvents: (events: JourneyCommittedEvent[], signal?: AbortSignal) => Promise<any>;
   getLastSeenId: () => Promise<number>;

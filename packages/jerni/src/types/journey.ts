@@ -1,4 +1,4 @@
-import type { JourneyConfig, Store } from "./config";
+import type { JourneyConfig, ReaderTuple } from "./config";
 import type {
   CommittingEventDefinitions,
   JourneyCommittedEvent,
@@ -6,11 +6,7 @@ import type {
   TypedJourneyCommittedEvent,
 } from "./events";
 
-type ExtractReaderIdentifiersFromStores<Stores extends Store[]> = Stores[number] extends Store<infer RT>
-  ? RT[0]
-  : never;
-
-export interface JourneyInstance<Config extends JourneyConfig> {
+export interface JourneyInstance<Config extends JourneyConfig, RT extends ReaderTuple> {
   /**
    * @deprecated use `append` instead
    * @param event uncommitted event
@@ -25,13 +21,9 @@ export interface JourneyInstance<Config extends JourneyConfig> {
 
   waitFor(event: JourneyCommittedEvent, timeoutOrSignal?: number | AbortSignal): Promise<void>;
 
-  getReader: <ReaderIdentifier extends ExtractReaderIdentifiersFromStores<Config["stores"]>>(
+  getReader: <Tuple extends RT, ReaderIdentifier extends Tuple[0]>(
     identifier: ReaderIdentifier,
-  ) => Config["stores"][number] extends Store<infer RT>
-    ? RT extends [ReaderIdentifier, infer Reader]
-      ? Reader
-      : never
-    : never;
+  ) => Promise<Tuple extends [ReaderIdentifier, infer Reader] ? Reader : never>;
 
   getConfig: () => Config;
 
