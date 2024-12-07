@@ -117,7 +117,9 @@ export default async function getEventStreamFromUrl(
           errorCount++;
           retryTime = RETRY_TIMES[errorCount] ?? RETRY_TIMES.at(-1);
           logger.error(`${ERR} [DOWNLOADING_EVENT] error occurred ${errorCount} times.`);
-          logger.debug({ downloading_event_error: ex });
+          if (ex instanceof Error) {
+            logger.debug({ downloading_event_error: ex.name });
+          }
           logger.error(`${ERR} [DOWNLOADING_EVENT] retry in ${retryTime}s`);
         }
 
