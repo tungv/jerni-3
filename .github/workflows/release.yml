@@ -6,12 +6,25 @@ on:
       tag:
         description: 'Tag to release'
         required: true
+      publish_npm:
+        description: 'Publish to npm'
+        required: false
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
 
   workflow_call:
     inputs:
       tag:
         description: 'Tag to publish'
         required: true
+        type: string
+      publish_npm:
+        description: 'Publish to npm'
+        required: false
+        default: 'true'
         type: string
 
 jobs:
@@ -22,7 +35,7 @@ jobs:
     with:
       tag: ${{ github.event.inputs.tag }}
 
-  publish:
+  publish_jsr:
     # use the published_jsr.yml workflow to publish to JSR
     needs: build
     uses: ./.github/workflows/publish_jsr.yml
@@ -31,3 +44,16 @@ jobs:
       id-token: write
     with:
       tag: ${{ github.event.inputs.tag }}
+      
+  publish_npm:
+    # use the publish_npm.yml workflow to publish to npm
+    needs: build
+    if: ${{ github.event.inputs.publish_npm != 'false' }}
+    uses: ./.github/workflows/publish_npm.yml
+    permissions: 
+      contents: read
+      id-token: write
+    with:
+      tag: ${{ github.event.inputs.tag }}
+    secrets:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
