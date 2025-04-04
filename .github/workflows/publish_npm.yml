@@ -32,24 +32,65 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          registry-url: 'https://registry.npmjs.org'
+          node-version: "20"
+          registry-url: "https://registry.npmjs.org"
 
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: 1.1.38
+          bun-version: latest
 
       - name: Install dependencies
         run: chmod +x ./scripts/install-dependencies.sh && ./scripts/install-dependencies.sh
 
-      - name: Build npm package
-        working-directory: ./packages/jerni
-        run: |
-          chmod +x ./scripts/build-npm.js
-          node ./scripts/build-npm.js
+      - name: Parse release body
+        id: parse
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = context.payload.release.body;
+            const lines = body.split('\n');
 
-      - name: Publish package to npm
-        working-directory: ./packages/jerni/dist
-        run: npm publish --access public
+            let jerniMatch = body.match(/^@jerni\/jerni-3:\s*(major|minor|patch|none)\s*$/m);
+            let nextDevMatch = body.match(/^@jerni\/next-dev:\s*(major|minor|patch|none)\s*$/m);
+            let mongodbStoreMatch = body.match(/^@jerni\/store-mongodb:\s*(major|minor|patch|none)\s*$/m);
+
+            core.setOutput('jerni_bump', jerniMatch ? jerniMatch[1] : 'none');
+            core.setOutput('next_dev_bump', nextDevMatch ? nextDevMatch[1] : 'none');
+            core.setOutput('mongodb_store_bump', mongodbStoreMatch ? mongodbStoreMatch[1] : 'none');
+
+      - name: Release @jerni/jerni-3
+        if: steps.parse.outputs.jerni_bump != 'none'
+        working-directory: packages/jerni
+        run: |
+          BUMP_TYPE=${{ steps.parse.outputs.jerni_bump }}
+          bun run bump-$BUMP_TYPE
+          bun run release
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Release @jerni/store-mongodb
+        if: steps.parse.outputs.mongodb_store_bump != 'none'
+        working-directory: packages/jerni-store-mongodb
+        run: |
+          BUMP_TYPE=${{ steps.parse.outputs.mongodb_store_bump }}
+          bun run bump-$BUMP_TYPE
+          bun run release
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Release @jerni/next-dev
+        if: steps.parse.outputs.next_dev_bump != 'none'
+        working-directory: packages/jerni-next-dev-plugin
+        run: |
+          BUMP_TYPE=${{ steps.parse.outputs.next_dev_bump }}
+          bun run bump-$BUMP_TYPE
+          bun run release
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Push version changes
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          git push
+          git push --tags

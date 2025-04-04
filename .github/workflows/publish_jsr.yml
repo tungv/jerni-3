@@ -1,4 +1,4 @@
-name: Pulbish to JSR
+name: Publish to JSR
 
 on:
   release:
@@ -32,11 +32,38 @@ jobs:
 
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: 1.1.38
+          bun-version: latest
 
       - name: Install dependencies
         run: chmod +x ./scripts/install-dependencies.sh && ./scripts/install-dependencies.sh
 
-      - name: Publish package
-        working-directory: ./packages/jerni
+      - name: Parse release body
+        id: parse
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = context.payload.release.body;
+            const lines = body.split('\n');
+
+            let jerniMatch = body.match(/^@jerni\/jerni-3:\s*(major|minor|patch|none)\s*$/m);
+            let nextDevMatch = body.match(/^@jerni\/next-dev:\s*(major|minor|patch|none)\s*$/m);
+            let mongodbStoreMatch = body.match(/^@jerni\/store-mongodb:\s*(major|minor|patch|none)\s*$/m);
+
+            core.setOutput('jerni_bump', jerniMatch ? jerniMatch[1] : 'none');
+            core.setOutput('next_dev_bump', nextDevMatch ? nextDevMatch[1] : 'none');
+            core.setOutput('mongodb_store_bump', mongodbStoreMatch ? mongodbStoreMatch[1] : 'none');
+
+      - name: Publish @jerni/jerni-3 to JSR
+        if: steps.parse.outputs.jerni_bump != 'none'
+        working-directory: packages/jerni
+        run: bunx jsr publish --allow-dirty
+
+      - name: Publish @jerni/store-mongodb to JSR
+        if: steps.parse.outputs.mongodb_store_bump != 'none'
+        working-directory: packages/jerni-store-mongodb
+        run: bunx jsr publish --allow-dirty
+
+      - name: Publish @jerni/next-dev to JSR
+        if: steps.parse.outputs.next_dev_bump != 'none'
+        working-directory: packages/jerni-next-dev-plugin
         run: bunx jsr publish --allow-dirty
