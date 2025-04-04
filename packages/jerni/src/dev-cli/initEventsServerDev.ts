@@ -131,43 +131,31 @@ async function streamingResponse(req: Request, sqliteFileName: string) {
 
   const lastEventId = url.searchParams.get("lastEventId");
 
+  const db = sqlite.open(sqliteFileName);
+
   return new Response(
     new ReadableStream({
-      type: "direct",
-      async pull(controller) {
+      async start(controller: ReadableStreamDefaultController) {
         let lastReturnedIndex = lastEventId ? Number.parseInt(lastEventId, 10) : 0;
-
-        // write metadata
-        controller.write(":ok\n\n");
 
         do {
           const rows = getEventsFromSqlite(sqliteFileName, lastReturnedIndex);
 
-          // update lastReturned to mark the first event for the next batch
-          lastReturnedIndex += rows.length;
-
-          // if empty, wait for 1 second
           if (rows.length === 0) {
             await Bun.sleep(300);
             continue;
           }
 
-          const last = rows[rows.length - 1];
+          const last = rows[0];
+          lastReturnedIndex = last.id;
 
-          // check if client is still connected
-          if (signal.aborted) {
-            return controller.close();
-          }
-
-          // flush to client
-          controller.write(`id: ${last.id}\nevent: INCMSG\ndata: ${JSON.stringify(rows)}\n\n`);
-
-          // flush immediately
-          controller.flush();
-
-          // sleep for 1 second
-          // await Bun.sleep(subscriptionInterval);
+          controller.enqueue(`id: ${last.id}\nevent: INCMSG\ndata: ${JSON.stringify(rows)}\n\n`);
         } while (!signal.aborted);
+
+        controller.close();
+      },
+      cancel() {
+        // ... existing code ...
       },
     }),
     { status: 200, headers },

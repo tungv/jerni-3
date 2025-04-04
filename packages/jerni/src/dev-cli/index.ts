@@ -18,12 +18,12 @@ const [_bun, _script, initFileName, textDbFile, sqliteDbFile] = process.argv;
 await guardErrors(
   async () => {
     // TODO: move reading port to args instead of env, or just randomize it
-    const port = process.env.PORT ? Number.parseInt(process.env.PORT, 10) : 5001;
+    const port = process.env["PORT"] ? Number.parseInt(process.env["PORT"], 10) : 5001;
 
     const textFilePath = textDbFile ? textDbFile : "./events.yaml";
     const sqliteFilePath = sqliteDbFile ? sqliteDbFile : "./events.sqlite";
 
-    process.env.EVENTS_SERVER = `http://localhost:${port}`;
+    process.env["EVENTS_SERVER"] = `http://localhost:${port}`;
 
     const { start: startJourney, stop: stopJourney } = await initJerniDev(initFileName);
 

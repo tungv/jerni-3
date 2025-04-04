@@ -88,12 +88,10 @@ export default function createServer(events: JourneyCommittedEvent[], subscripti
 
     return new Response(
       new ReadableStream({
-        type: "direct",
-        async pull(controller) {
+        async start(controller: ReadableStreamDefaultController) {
           let lastReturnedIndex = 0;
 
-          // write metadata
-          controller.write(":ok\n\n");
+          controller.enqueue(":ok\n\n");
 
           do {
             // get a batch of events to send
@@ -111,22 +109,25 @@ export default function createServer(events: JourneyCommittedEvent[], subscripti
             // only include events that are in the include list
             const rows = batch.filter(isInIncludeList);
 
+            if (rows.length === 0) {
+              continue;
+            }
+
             const last = rows[rows.length - 1];
 
             // check if client is still connected
             if (signal.aborted) {
-              return controller.close();
+              controller.close();
+              return;
             }
 
-            // flush to client
-            controller.write(`id: ${last.id}\nevent: INCMSG\ndata: ${JSON.stringify(rows)}\n\n`);
-
-            // flush immediately
-            controller.flush();
-
-            // sleep for 1 second
-            // await Bun.sleep(subscriptionInterval);
+            controller.enqueue(`id: ${last.id}\nevent: INCMSG\ndata: ${JSON.stringify(rows)}\n\n`);
           } while (!signal.aborted);
+
+          controller.close();
+        },
+        cancel() {
+          // ... existing code ...
         },
       }),
       { status: 200, headers },

@@ -40,8 +40,8 @@ export default async function commitToServer<T extends keyof CommittingEventDefi
   };
 
   if (parentPackage) {
-    event.meta.client = parentPackage.packageJson.name;
-    event.meta.client_version = parentPackage.packageJson.version;
+    event.meta["client"] = parentPackage.packageJson.name;
+    event.meta["client_version"] = parentPackage.packageJson.version;
   }
 
   onReport("committing", {

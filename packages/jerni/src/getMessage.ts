@@ -31,11 +31,11 @@ export default function messageListFromString(input: string) {
           retry,
         });
       }
-      // @ts-expect-error trust me, this is fine
+      // @ts-ignore trust me, this is fine
       id = void 0;
-      // @ts-expect-error trust me, this is fine
+      // @ts-ignore trust me, this is fine
       data = void 0;
-      // @ts-expect-error trust me, this is fine
+      // @ts-ignore trust me, this is fine
       event = void 0;
       retry = void 0;
       pendingIndex = pIndex;

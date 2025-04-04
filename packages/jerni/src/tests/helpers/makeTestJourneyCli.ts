@@ -1,16 +1,16 @@
 import { initJourney } from "./initJourney";
 
 function getEventsServerUrl() {
-  if (!process.env.EVENTS_SERVER) {
-    return "";
+  if (!process.env["EVENTS_SERVER"]) {
+    throw new Error("EVENTS_SERVER is required");
   }
 
-  const eventsServerUrl = new URL(process.env.EVENTS_SERVER);
-  if (process.env.EVENTS_SERVER_KEY) {
-    eventsServerUrl.username = process.env.EVENTS_SERVER_KEY;
+  const eventsServerUrl = new URL(process.env["EVENTS_SERVER"]);
+  if (process.env["EVENTS_SERVER_KEY"]) {
+    eventsServerUrl.username = process.env["EVENTS_SERVER_KEY"];
   }
-  if (process.env.EVENTS_SERVER_SECRET) {
-    eventsServerUrl.password = process.env.EVENTS_SERVER_SECRET;
+  if (process.env["EVENTS_SERVER_SECRET"]) {
+    eventsServerUrl.password = process.env["EVENTS_SERVER_SECRET"];
   }
 
   return eventsServerUrl.toString();
