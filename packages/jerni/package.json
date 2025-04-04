@@ -1,5 +1,5 @@
 {
-  "name": "@jerni/core",
+  "name": "@jerni/jerni-3",
   "version": "1.0.0",
   "type": "module",
   "main": "./dist/createJourney.js",

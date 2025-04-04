@@ -1,4 +1,4 @@
-import type { JourneyInstance } from "@jerni/core/types";
+import type { JourneyInstance } from "@jerni/jerni-3/types";
 
 export default async function clearDatabase(journey: JourneyInstance) {
   const config = journey.getConfig();

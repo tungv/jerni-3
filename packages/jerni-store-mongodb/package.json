@@ -28,5 +28,11 @@
   "exports": {
     ".": "./src/index.ts",
     "./types": "./src/types.ts"
+  },
+  "scripts": {
+    "bump-patch": "npm version patch",
+    "bump-minor": "npm version minor",
+    "bump-major": "npm version major",
+    "release": "npm publish"
   }
 }

@@ -1,6 +1,6 @@
 {
   "name": "@jerni/next-dev",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "exports": {
     ".": "./src/jerni-next-plugin/withJerniNextDev.mjs",
@@ -13,6 +13,12 @@
     "access": "public",
     "registry": "https://registry.npmjs.org/"
   },
+  "scripts": {
+    "bump-patch": "npm version patch",
+    "bump-minor": "npm version minor",
+    "bump-major": "npm version major",
+    "release": "npm publish"
+  },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.11",
     "@types/node": "^22.5.4",
@@ -22,7 +28,7 @@
     "better-sqlite3": "^11.5.0"
   },
   "peerDependencies": {
-    "@jerni/core": "^1.0.0",
+    "@jerni/jerni-3": "^1.0.0",
     "next": "^14.2.5"
   }
 }
