@@ -1,10 +1,17 @@
 {
-  "name": "@jerni/jerni-next-dev-plugin",
-  "version": "0.10.2-beta",
+  "name": "@jerni/next-dev",
+  "version": "1.0.0",
   "type": "module",
   "exports": {
     ".": "./src/jerni-next-plugin/withJerniNextDev.mjs",
     "./jerni-next-dev": "./src/jerni-next-dev/index.ts"
+  },
+  "engines": {
+    "bun": "1.2.8"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.11",
@@ -15,7 +22,7 @@
     "better-sqlite3": "^11.5.0"
   },
   "peerDependencies": {
-    "@jerni/jerni-3": "npm:@jsr/jerni__jerni-3@^0.10.0",
+    "@jerni/core": "^1.0.0",
     "next": "^14.2.5"
   }
 }

@@ -1,11 +1,24 @@
 {
-  "name": "@jerni/jerni-3",
-  "version": "v0.11.0",
+  "name": "@jerni/core",
+  "version": "1.0.0",
   "type": "module",
-  "main": "src/index.ts",
+  "main": "./dist/createJourney.js",
+  "types": "./dist/createJourney.d.ts",
   "bin": {
-    "start-jerni": "./scripts/run-cli.js"
+    "jerni": "./dist/cli.js"
   },
+  "engines": {
+    "bun": "1.2.8"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "dependencies": {
     "@types/mdast": "^4.0.4",
     "bytes": "^3.1.2",
@@ -28,24 +41,64 @@
   },
   "scripts": {
     "//postinstall": "node ./scripts/download-binary.js",
-    "bump-patch": "node ./scripts/bump-version.js patch",
-    "bump-minor": "node ./scripts/bump-version.js minor",
-    "bump-major": "node ./scripts/bump-version.js major",
-    "build-dev-tools": "bun build --entrypoints ./src/dev-cli/ensureMarkDownFileExists.ts ./src/dev-cli/appendEventsToMarkdown.ts ./src/dev-cli/readEventsFromMarkDown.ts ./src/dev-cli/rewriteChecksum.ts  --outdir ./build --target node --format esm --packages external --root ."
+    "bump-patch": "bun ./scripts/bump-version.js patch",
+    "bump-minor": "bun ./scripts/bump-version.js minor",
+    "bump-major": "bun ./scripts/bump-version.js major",
+    "build-dev-tools": "bun build --entrypoints ./src/dev-cli/ensureMarkDownFileExists.ts ./src/dev-cli/appendEventsToMarkdown.ts ./src/dev-cli/readEventsFromMarkDown.ts ./src/dev-cli/rewriteChecksum.ts  --outdir ./build --target bun --format esm --packages external --root .",
+    "build": "bun ./scripts/build-npm.js",
+    "prepublishOnly": "bun run build",
+    "clean": "rm -rf dist",
+    "release": "bun run build && npm publish ./dist"
   },
   "exports": {
-    ".": "./src/createJourney.ts",
-    "./types": "./src/lib/exported_types.ts",
-    "./lib/mapEvents": "./src/lib/mapEvents.ts",
-    "./lib/errors/JerniPersistenceError": "./src/JerniPersistenceError.ts",
-    "./lib/errors/UnrecoverableError": "./src/UnrecoverableError.ts",
-    "./lib/skip": "./src/lib/skip.ts",
-    "./lib/begin": "./src/begin.ts",
-    "./test/testWrapper": "./src/lib/testWrapper.ts",
-    "./dev-cli/appendEventsToMarkdown": "./src/dev-cli/appendEventsToMarkdown.ts",
-    "./dev-cli/readEventsFromMarkdown": "./src/dev-cli/readEventsFromMarkDown.ts",
-    "./dev-cli/rewriteChecksum": "./src/dev-cli/rewriteChecksum.ts",
-    "./dev-cli/ensureMarkdownFileExists": "./src/dev-cli/ensureMarkDownFileExists.ts"
+    ".": {
+      "types": "./dist/createJourney.d.ts",
+      "default": "./dist/createJourney.js"
+    },
+    "./types": {
+      "types": "./dist/lib/exported_types.d.ts",
+      "default": "./dist/lib/exported_types.js"
+    },
+    "./lib/mapEvents": {
+      "types": "./dist/lib/mapEvents.d.ts",
+      "default": "./dist/lib/mapEvents.js"
+    },
+    "./lib/errors/JerniPersistenceError": {
+      "types": "./dist/JerniPersistenceError.d.ts",
+      "default": "./dist/JerniPersistenceError.js"
+    },
+    "./lib/errors/UnrecoverableError": {
+      "types": "./dist/UnrecoverableError.d.ts",
+      "default": "./dist/UnrecoverableError.js"
+    },
+    "./lib/skip": {
+      "types": "./dist/lib/skip.d.ts",
+      "default": "./dist/lib/skip.js"
+    },
+    "./lib/begin": {
+      "types": "./dist/begin.d.ts",
+      "default": "./dist/begin.js"
+    },
+    "./test/testWrapper": {
+      "types": "./dist/lib/testWrapper.d.ts",
+      "default": "./dist/lib/testWrapper.js"
+    },
+    "./dev-cli/appendEventsToMarkdown": {
+      "types": "./dist/dev-cli/appendEventsToMarkdown.d.ts",
+      "default": "./dist/dev-cli/appendEventsToMarkdown.js"
+    },
+    "./dev-cli/readEventsFromMarkdown": {
+      "types": "./dist/dev-cli/readEventsFromMarkDown.d.ts",
+      "default": "./dist/dev-cli/readEventsFromMarkDown.js"
+    },
+    "./dev-cli/rewriteChecksum": {
+      "types": "./dist/dev-cli/rewriteChecksum.d.ts",
+      "default": "./dist/dev-cli/rewriteChecksum.js"
+    },
+    "./dev-cli/ensureMarkdownFileExists": {
+      "types": "./dist/dev-cli/ensureMarkDownFileExists.d.ts",
+      "default": "./dist/dev-cli/ensureMarkDownFileExists.js"
+    }
   },
   "devDependencies": {
     "@types/bytes": "^3.1.4",

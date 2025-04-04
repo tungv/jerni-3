@@ -1,11 +1,18 @@
 {
   "name": "@jerni/store-mongodb",
-  "version": "0.5.3",
+  "version": "1.0.0",
   "type": "module",
   "main": "/src/index.ts",
   "files": [
     "src"
   ],
+  "engines": {
+    "bun": "1.2.8"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
   "dependencies": {
     "hash-sum": "^2.0.0",
     "mongodb": "^6.8.0",
