@@ -1,0 +1,23 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "declaration": true,
+    "sourceMap": true,
+    "removeComments": false,
+    "noEmit": false,
+    "allowImportingTsExtensions": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "skipLibCheck": true,
+    "strict": false,
+    "ignoreDeprecations": "5.0",
+    "useUnknownInCatchVariables": false,
+    "noImplicitAny": false,
+    "noPropertyAccessFromIndexSignature": false,
+    "noImplicitThis": false
+  },
+  "include": ["src/**/*"],
+  "exclude": ["src/**/*.test.ts", "src/**/*.spec.ts", "src/**/__tests__/*", "src/cli.ts"]
+}
