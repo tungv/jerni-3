@@ -1,10 +1,13 @@
 {
   "name": "@jerni/store-mongodb",
-  "version": "1.0.0",
+  "version": "1.0.5",
   "type": "module",
-  "main": "/src/index.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "files": [
-    "src"
+    "dist",
+    "LICENSE.md",
+    "README.md"
   ],
   "engines": {
     "bun": "1.2.8"
@@ -26,13 +29,21 @@
     "typescript": "^5.1.6"
   },
   "exports": {
-    ".": "./src/index.ts",
-    "./types": "./src/types.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./types": {
+      "types": "./dist/types.d.ts",
+      "default": "./dist/types.js"
+    }
   },
   "scripts": {
+    "build": "bun ./scripts/build-npm.js",
     "bump-patch": "npm version patch",
     "bump-minor": "npm version minor",
     "bump-major": "npm version major",
-    "release": "npm publish"
+    "prepublishOnly": "bun run build",
+    "release": "npm publish ./dist"
   }
 }
