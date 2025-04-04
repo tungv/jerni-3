@@ -1,7 +1,7 @@
 import { setTimeout } from "node:timers/promises";
 import { type AnyBulkWriteOperation, type Collection, type Db, type Document, MongoClient } from "mongodb";
-import makeTestLogger from "../tests/helpers/makeTestLogger";
 import getCollectionName from "./getCollectionName";
+import { defaultLogger, makeTestLogger } from "./logger";
 import type MongoDBModel from "./model";
 import getBulkOperations from "./optimistic/getBulkOperations";
 import { Signal, clearModelSlots, runWithModel } from "./read";
@@ -11,9 +11,6 @@ interface SnapshotDocument {
   __v: number;
   full_collection_name: string;
 }
-
-const defaultLogger = console;
-const testLogger = makeTestLogger();
 
 // biome-ignore lint/complexity/useLiteralKeys: conflict with typescript
 const providedMaxSharedClientTimeout = process.env["JERNI_STORE_MONGODB_MAX_SHARED_CLIENT_TIMEOUT"];
@@ -109,7 +106,7 @@ export default async function makeMongoDBStore(config: MongoDBStoreConfig): Prom
   const models = config.models;
 
   // use test logger if NODE_ENV is test
-  const logger = process.env.NODE_ENV === "test" ? testLogger : config.logger || defaultLogger;
+  const logger = process.env.NODE_ENV === "test" ? makeTestLogger() : config.logger || defaultLogger;
 
   await runDb(async (_, db) => {
     const snapshotCollection = db.collection<SnapshotDocument>("jerni__snapshot");

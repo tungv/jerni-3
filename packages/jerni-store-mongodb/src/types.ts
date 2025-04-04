@@ -26,12 +26,16 @@ export interface MongoDBStoreConfig {
   logger?: Logger;
 }
 
-interface Logger {
-  debug: Console["debug"];
-  log: Console["log"];
-  info: Console["info"];
-  warn: Console["warn"];
-  error: Console["error"];
+export interface Logger {
+  debug(...args: unknown[]): void;
+  info(...args: unknown[]): void;
+  log(...args: unknown[]): void;
+  warn(...args: unknown[]): void;
+  error(...args: unknown[]): void;
+  getLogs?(): string[];
+  getWarns?(): string[];
+  getErrors?(): string[];
+  clearLogs?(): void;
 }
 
 export interface TransformFn<DocumentType extends Document> {
