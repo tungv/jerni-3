@@ -37,9 +37,9 @@ export default async function withJerniNextDev(nextConfig, { initializerPath, ev
       // Use this webpack config for further processing.
       const webpackConfig = typeof nextConfig.webpack === "function" ? nextConfig.webpack(config, options) : {};
 
-      const { isServer, dev } = options;
+      const { isServer } = options;
 
-      if (isServer && dev) {
+      if (isServer) {
         // Apply alias to resolve `@jerni/jerni-3` to `jerni-next-dev-plugin/jerni-next-dev`
         if (webpackConfig.resolve.alias["@jerni/jerni-3$"]) {
           // warn if alias is already defined
