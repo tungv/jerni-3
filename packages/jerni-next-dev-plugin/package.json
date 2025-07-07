@@ -1,6 +1,6 @@
 {
   "name": "@jerni/jerni-next-dev-plugin",
-  "version": "0.10.2-beta",
+  "version": "0.12.0",
   "type": "module",
   "exports": {
     ".": "./src/jerni-next-plugin/withJerniNextDev.mjs",
