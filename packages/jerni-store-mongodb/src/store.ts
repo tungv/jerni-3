@@ -111,6 +111,14 @@ export default async function makeMongoDBStore(config: MongoDBStoreConfig): Prom
   // use test logger if NODE_ENV is test
   const logger = process.env.NODE_ENV === "test" ? testLogger : config.logger || defaultLogger;
 
+  // run initial setup for the store. currently there are 2 things:
+  // 1. ensure snapshot collection for each model exists with the newest version
+  // 2. ensure theses indexes are created:
+  //    - { __v: 1, __op: 1 } for optimistic concurrency control
+  //    - { __v: -1, __op: -1 } for sorting by version number
+  //    - { __v: 1 }
+  //    => for mongodb compound index rule, only `{ __v: 1, __op: 1 }` is enough
+
   await runDb(async (_, db) => {
     const snapshotCollection = db.collection<SnapshotDocument>("jerni__snapshot");
 
@@ -131,6 +139,12 @@ export default async function makeMongoDBStore(config: MongoDBStoreConfig): Prom
           upsert: true,
         },
       );
+    }
+
+    // ensure indexes
+    for (const model of models) {
+      const fullCollectionName = getCollectionName(model);
+      await db.collection(fullCollectionName).createIndex({ __v: 1, __op: 1 }, { name: "jerni__optimistic" });
     }
   });
 
