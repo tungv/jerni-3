@@ -144,7 +144,7 @@ export default async function makeMongoDBStore(config: MongoDBStoreConfig): Prom
     // ensure indexes
     for (const model of models) {
       const fullCollectionName = getCollectionName(model);
-      await db.collection(fullCollectionName).createIndex({ __v: 1, __op: 1 });
+      await db.collection(fullCollectionName).createIndex({ __v: 1, __op: 1 }, { name: "jerni__optimistic" });
     }
   });
 
