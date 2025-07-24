@@ -18,11 +18,6 @@ import once from "../lib/once";
 import createWaiter from "../lib/waiter";
 import commitEvent from "./commitEvent.mjs";
 import shouldCleanStart from "./shouldCleanStart";
-import readEventsFromMarkdown from "@jerni/jerni-3/dev-cli/readEventsFromMarkdown";
-import rewriteChecksum from "@jerni/jerni-3/dev-cli/rewriteChecksum";
-import cleanSqliteDatabase from "./cleanSqliteDatabase";
-import insertEventsIntoSqlite from "./insertEventsIntoSqlite";
-import { shouldCleanStartForBootUp, markBootUpCleanStartDone } from "../lib/requestCleanStartForBootUp.mjs";
 
 interface JourneyDevInstance extends JourneyInstance {}
 
@@ -38,9 +33,6 @@ export default function createJourneyDevInstance(config: JourneyConfig): Journey
 
   // @ts-expect-error
   const eventsFilePath = globalThis.__JERNI_EVENTS_FILE_PATH__;
-
-  // @ts-expect-error
-  const sqliteFilePath = globalThis.__JERNI_SQL_FILE_PATH__;
 
   let isCleanStarting = false;
 
@@ -167,18 +159,12 @@ export default function createJourneyDevInstance(config: JourneyConfig): Journey
 
     // @ts-expect-error
     const eventsFileAbsolutePath = globalThis.__JERNI_EVENTS_FILE_PATH__;
-    // @ts-expect-error
-    const sqliteFileAbsolutePath = globalThis.__JERNI_SQL_FILE_PATH__;
 
     // read events from markdown file to sync to sqlite
     const { events } = await readEventsFromMarkdown(eventsFileAbsolutePath);
 
     // rewrite checksum of markdown file in background
     const rewriteChecksumPromise = rewriteChecksum(eventsFileAbsolutePath);
-
-    // clean and insert events into sqlite
-    cleanSqliteDatabase(sqliteFileAbsolutePath);
-    insertEventsIntoSqlite(events, sqliteFileAbsolutePath);
 
     // persist events to stores
     await clearStores();

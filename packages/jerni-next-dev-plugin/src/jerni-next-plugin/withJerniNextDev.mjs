@@ -16,7 +16,6 @@ export default async function withJerniNextDev(nextConfig, { initializerPath, ev
   const jerniDevPlugin = await createJerniNextDevPlugin({
     initializerAbsoluteFilePath,
     eventsFileAbsolutePath,
-    sqliteFileAbsolutePath,
   });
 
   const extendedConfig = {
