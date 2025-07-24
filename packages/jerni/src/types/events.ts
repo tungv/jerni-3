@@ -4,13 +4,9 @@ export type JourneyEvent<Payload = unknown, Metadata = unknown> = {
   meta?: Metadata;
 };
 
-export type JourneyCommittedEvent<
-  EventType extends keyof LocalEvents = keyof LocalEvents,
-  Payload = LocalEvents[EventType],
-  Metadata = unknown,
-> = {
+export type JourneyCommittedEvent<Payload = unknown, Metadata = unknown> = {
   id: number;
-  type: EventType;
+  type: string;
   payload: Payload;
   meta?: Metadata;
 };
