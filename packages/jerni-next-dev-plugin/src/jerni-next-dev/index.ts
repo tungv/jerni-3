@@ -16,7 +16,7 @@ import type {
 } from "@jerni/jerni-3/types";
 import once from "../lib/once";
 import createWaiter from "../lib/waiter";
-import commitEvent from "./commitEvent.mjs";
+import { scheduleCommitEvents } from "./scheduleCommit";
 import shouldCleanStart from "./shouldCleanStart";
 
 interface JourneyDevInstance extends JourneyInstance {}
@@ -47,7 +47,7 @@ export default function createJourneyDevInstance(config: JourneyConfig): Journey
     }
     // persist event
     logger.log("[JERNI-DEV] Committing...");
-    const eventId = await commitEvent(sqliteFilePath, eventsFilePath, [uncommittedEvent]);
+    const eventId = await scheduleCommitEvents(eventsFilePath, [uncommittedEvent]);
     const committedEvent: TypedJourneyCommittedEvent<T> = {
       ...uncommittedEvent,
       id: eventId,
@@ -56,7 +56,7 @@ export default function createJourneyDevInstance(config: JourneyConfig): Journey
     // project event
     for (const store of config.stores) {
       // fixme: should call flushEvents
-      await store.handleEvents([committedEvent]);
+      void store.handleEvents([committedEvent]);
     }
     return committedEvent;
   };
