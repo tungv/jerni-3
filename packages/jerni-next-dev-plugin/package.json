@@ -1,6 +1,6 @@
 {
   "name": "@jerni/jerni-next-dev-plugin",
-  "version": "0.12.0",
+  "version": "0.13.1",
   "type": "module",
   "exports": {
     ".": "./src/jerni-next-plugin/withJerniNextDev.mjs",
@@ -12,10 +12,19 @@
     "typescript": "^5.6.2"
   },
   "dependencies": {
-    "better-sqlite3": "^11.5.0"
+    "async-mutex": "^0.5.0",
+    "better-sqlite3": "^11.5.0",
+    "hash-sum": "^2.0.0",
+    "json5": "^2.2.3",
+    "mdast": "^3.0.0",
+    "mdast-util-from-markdown": "^2.0.2",
+    "mdast-util-frontmatter": "^2.0.1",
+    "mdast-util-to-markdown": "^2.1.2",
+    "micromark-extension-frontmatter": "^2.0.0",
+    "yaml": "^2.8.0"
   },
   "peerDependencies": {
-    "@jerni/jerni-3": "npm:@jsr/jerni__jerni-3@^0.10.0",
+    "@jerni/jerni-3": "npm:@jsr/jerni__jerni-3@^0.11.0",
     "next": "^14.2.5"
   }
 }
