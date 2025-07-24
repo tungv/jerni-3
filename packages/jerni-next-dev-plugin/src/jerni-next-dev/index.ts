@@ -15,7 +15,10 @@ import type {
   TypedJourneyCommittedEvent,
 } from "@jerni/jerni-3/types";
 import once from "../lib/once";
+import { markBootUpCleanStartDone, shouldCleanStartForBootUp } from "../lib/requestCleanStartForBootUp.mjs";
 import createWaiter from "../lib/waiter";
+import readEventsFromMarkdown from "./readEventsFromMarkdown";
+import rewriteChecksum from "./rewriteChecksum";
 import { scheduleCommitEvents } from "./scheduleCommit";
 import shouldCleanStart from "./shouldCleanStart";
 
@@ -185,20 +188,9 @@ export default function createJourneyDevInstance(config: JourneyConfig): Journey
     }
   }
 
-  async function projectEvents(events: any[]) {
-    let eventId = 1;
-
-    // project events
-    for (const event of events) {
-      for (const store of config.stores) {
-        // fixme: should call flushEvents
-        const committedEvent = {
-          ...event,
-          id: eventId,
-        };
-        await store.handleEvents([committedEvent]);
-      }
-      eventId++;
+  async function projectEvents(events: JourneyCommittedEvent[]) {
+    for (const store of config.stores) {
+      await store.handleEvents(events);
     }
   }
 

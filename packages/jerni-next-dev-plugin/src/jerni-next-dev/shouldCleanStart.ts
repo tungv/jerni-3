@@ -1,4 +1,4 @@
-import readEventsFromMarkdown from "@jerni/jerni-3/dev-cli/readEventsFromMarkdown";
+import readEventsFromMarkdown from "./readEventsFromMarkdown";
 
 export default async function shouldCleanStart(): Promise<boolean> {
   // @ts-expect-error
