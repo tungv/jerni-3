@@ -2,8 +2,9 @@
   "name": "jerni-repo",
   "version": "3.0.0",
   "devDependencies": {
-    "@biomejs/biome": "1.7.3",
-    "@types/bun": "^1.1.6"
+    "@biomejs/biome": "^2.1.2",
+    "@types/bun": "^1.1.6",
+    "@types/webpack": "^5.28.5"
   },
   "peerDependencies": {
     "typescript": "5.3"
