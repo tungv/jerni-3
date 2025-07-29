@@ -1,21 +1,43 @@
+import fs from "node:fs/promises";
 import path from "node:path";
-import createJerniNextDevPlugin from "./createJerniNextPlugin.mjs";
+import createJerniNextDevPlugin from "./createJerniNextPlugin.js";
 
 /**
  * @param {import("next").NextConfig} nextConfig
  * @param {Object} devConfig
  * @param {string} devConfig.initializerPath Path to the jerni initializer file
  * @param {string} devConfig.eventsFile Path to the markdown events file
+ * @param {string} [devConfig.devFilesDir] Directory to store dev files (event ID, initial backup). Defaults to events file directory.
  * @returns {import("next").NextConfig}
  */
-export default async function withJerniNextDev(nextConfig, { initializerPath, eventsFile }) {
-  const initializerAbsoluteFilePath = path.resolve(process.cwd(), initializerPath);
-  const eventsFileAbsolutePath = path.resolve(process.cwd(), eventsFile);
-  const sqliteFileAbsolutePath = path.resolve(process.cwd(), "events.sqlite");
+export default async function withJerniNextDev(nextConfig, options) {
+  const initializerAbsoluteFilePath = path.resolve(process.cwd(), options.initializerPath);
+  const eventsFileAbsolutePath = path.resolve(process.cwd(), options.eventsFile);
+
+  // Determine the directory for dev files - either specified or default to events file directory
+  const devFilesDirAbsolutePath = options.devFilesDir
+    ? path.resolve(process.cwd(), options.devFilesDir)
+    : path.resolve(process.cwd(), ".jerni-dev-files");
+
+  // Create the dev files directory if it doesn't exist
+  await fs.mkdir(devFilesDirAbsolutePath, { recursive: true });
+
+  const eventsFileName = path.basename(options.eventsFile);
+  const backupPath = path.join(devFilesDirAbsolutePath, `${eventsFileName}.initial`);
+
+  // check if the backup file exists, if not, copy the events file to the backup file
+  (async () => {
+    try {
+      await fs.stat(backupPath);
+    } catch {
+      await fs.copyFile(eventsFileAbsolutePath, backupPath);
+    }
+  })();
 
   const jerniDevPlugin = await createJerniNextDevPlugin({
     initializerAbsoluteFilePath,
     eventsFileAbsolutePath,
+    devFilesDirAbsolutePath,
   });
 
   const extendedConfig = {
@@ -66,10 +88,11 @@ export default async function withJerniNextDev(nextConfig, { initializerPath, ev
             ),
           }),
         );
+
         webpackConfig.plugins.push(
           new options.webpack.DefinePlugin({
-            "globalThis.__JERNI_SQL_FILE_PATH__": options.webpack.DefinePlugin.runtimeValue(() => {
-              return JSON.stringify(sqliteFileAbsolutePath); // todo: should be internal in node_modules?
+            "globalThis.__JERNI_DEV_FILES_DIR__": options.webpack.DefinePlugin.runtimeValue(() => {
+              return JSON.stringify(devFilesDirAbsolutePath);
             }),
           }),
         );
