@@ -6,7 +6,7 @@ import { fromMarkdown } from "mdast-util-from-markdown";
 import { frontmatterFromMarkdown } from "mdast-util-frontmatter";
 import { frontmatter } from "micromark-extension-frontmatter";
 import yaml from "yaml";
-import { withLock } from "./file-lock";
+import { withReadLock } from "./file-lock";
 import getEventsFromAst from "./getEventsFromAst";
 
 interface ReadEventsFromMarkDownResult {
@@ -16,8 +16,8 @@ interface ReadEventsFromMarkDownResult {
 }
 
 export default async function readEventsFromMarkdown(filePath: string): Promise<ReadEventsFromMarkDownResult> {
-  return withLock(filePath, async () => {
-    const doc = await fs.readFile(filePath, "utf8");
+  return withReadLock(async () => {
+    const doc = await fs.readFile(filePath, { encoding: "utf8" });
 
     const ast = fromMarkdown(doc, {
       extensions: [frontmatter(["yaml"])],
@@ -37,5 +37,5 @@ export default async function readEventsFromMarkdown(filePath: string): Promise<
       fileChecksum,
       realChecksum,
     };
-  });
+  }, "readEventsFromMarkdown");
 }

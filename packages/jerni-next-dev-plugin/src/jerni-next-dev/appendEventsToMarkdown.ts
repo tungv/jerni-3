@@ -7,37 +7,42 @@ import { frontmatterFromMarkdown, frontmatterToMarkdown } from "mdast-util-front
 import { toMarkdown } from "mdast-util-to-markdown";
 import { frontmatter } from "micromark-extension-frontmatter";
 import yaml from "yaml";
+import { withWriteLock } from "./file-lock";
 import getEventsFromAst from "./getEventsFromAst";
 
 export default async function appendEventsToMarkdown(filePath: string, events: ToBeCommittedJourneyEvent[]) {
-  const fileContent = await fs.readFile(filePath, { encoding: "utf8" });
+  return withWriteLock(async () => {
+    const fileContent = await fs.readFile(filePath, { encoding: "utf8" });
 
-  const ast = fromMarkdown(fileContent, {
-    extensions: [frontmatter(["yaml"])],
-    mdastExtensions: [frontmatterFromMarkdown(["yaml"])],
-  });
+    const ast = fromMarkdown(fileContent, {
+      extensions: [frontmatter(["yaml"])],
+      mdastExtensions: [frontmatterFromMarkdown(["yaml"])],
+    });
 
-  for (const event of events) {
-    addEventToAst(ast, event);
-  }
+    for (const event of events) {
+      addEventToAst(ast, event);
+    }
 
-  const allEvents = getEventsFromAst(ast.children as Root["children"]);
+    const allEvents = getEventsFromAst(ast.children as Root["children"]);
 
-  const checksum = hash_sum(allEvents);
+    const checksum = hash_sum(allEvents);
 
-  const frontmatterNode = ast.children[0];
-  if (frontmatterNode.type !== "yaml") {
-    throw new Error("frontmatter node not found");
-  }
-  const parsedFrontmatter = yaml.parse(frontmatterNode.value);
-  parsedFrontmatter.checksum = checksum;
-  frontmatterNode.value = yaml.stringify(parsedFrontmatter);
+    const frontmatterNode = ast.children[0];
+    if (frontmatterNode.type !== "yaml") {
+      throw new Error("frontmatter node not found");
+    }
+    const parsedFrontmatter = yaml.parse(frontmatterNode.value);
+    parsedFrontmatter.checksum = checksum;
+    frontmatterNode.value = yaml.stringify(parsedFrontmatter);
 
-  const newMarkdown = toMarkdown(ast, {
-    extensions: [frontmatterToMarkdown(["yaml"])],
-  });
+    const newMarkdown = toMarkdown(ast, {
+      extensions: [frontmatterToMarkdown(["yaml"])],
+    });
 
-  await fs.writeFile(filePath, newMarkdown);
+    await fs.writeFile(filePath, newMarkdown);
+
+    return allEvents.length;
+  }, "appendEventsToMarkdown");
 }
 
 function addEventToAst(ast: Root, event: ToBeCommittedJourneyEvent) {

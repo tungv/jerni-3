@@ -9,7 +9,7 @@ const isEvent = (node: RootContent): node is Code => {
   let params: URLSearchParams;
   try {
     params = new URLSearchParams(node.meta ?? "");
-  } catch (error) {
+  } catch {
     // the format is not valid => not an event
     return false;
   }

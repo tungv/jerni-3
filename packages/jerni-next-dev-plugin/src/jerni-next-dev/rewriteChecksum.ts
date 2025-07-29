@@ -6,36 +6,39 @@ import { frontmatterFromMarkdown, frontmatterToMarkdown } from "mdast-util-front
 import { toMarkdown } from "mdast-util-to-markdown";
 import { frontmatter } from "micromark-extension-frontmatter";
 import yaml from "yaml";
+import { withWriteLock } from "./file-lock";
 import getEventsFromAst from "./getEventsFromAst";
 
 export default async function rewriteChecksum(filePath: string) {
-  const fileContent = await fs.readFile(filePath, "utf8");
+  return withWriteLock(async () => {
+    const fileContent = await fs.readFile(filePath, { encoding: "utf8" });
 
-  // get all events from the markdown file
-  const ast = fromMarkdown(fileContent, {
-    extensions: [frontmatter(["yaml"])],
-    mdastExtensions: [frontmatterFromMarkdown(["yaml"])],
-  });
+    // get all events from the markdown file
+    const ast = fromMarkdown(fileContent, {
+      extensions: [frontmatter(["yaml"])],
+      mdastExtensions: [frontmatterFromMarkdown(["yaml"])],
+    });
 
-  const events = getEventsFromAst(ast.children);
+    const events = getEventsFromAst(ast.children);
 
-  const newHash = hash_sum(events);
+    const newHash = hash_sum(events);
 
-  const yamlNode = ast.children.find((node): node is Yaml => node.type === "yaml");
+    const yamlNode = ast.children.find((node): node is Yaml => node.type === "yaml");
 
-  if (!yamlNode) {
-    throw new Error("Invalid file format");
-  }
+    if (!yamlNode) {
+      throw new Error("Invalid file format");
+    }
 
-  // rewrite the checksum
-  const parsedYaml = yaml.parse(yamlNode.value);
-  parsedYaml.checksum = newHash;
+    // rewrite the checksum
+    const parsedYaml = yaml.parse(yamlNode.value);
+    parsedYaml.checksum = newHash;
 
-  yamlNode.value = yaml.stringify(parsedYaml);
+    yamlNode.value = yaml.stringify(parsedYaml);
 
-  const newMarkdown = toMarkdown(ast, {
-    extensions: [frontmatterToMarkdown(["yaml"])],
-  });
+    const newMarkdown = toMarkdown(ast, {
+      extensions: [frontmatterToMarkdown(["yaml"])],
+    });
 
-  await fs.writeFile(filePath, newMarkdown);
+    await fs.writeFile(filePath, newMarkdown);
+  }, "rewriteChecksum");
 }
