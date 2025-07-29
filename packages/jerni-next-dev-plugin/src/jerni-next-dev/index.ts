@@ -15,14 +15,18 @@ import type {
   TypedJourneyCommittedEvent,
 } from "@jerni/jerni-3/types";
 import once from "../lib/once";
-import { markBootUpCleanStartDone, shouldCleanStartForBootUp } from "../lib/requestCleanStartForBootUp.mjs";
 import createWaiter from "../lib/waiter";
+import { markCleanStartDone } from "./cleanStartRequestHelpers";
+import { writeLastEventId } from "./eventIdManager";
+import { getDevFilesDir } from "./getDevFilesUtils";
+import { globalJerniDevLock } from "./global-lock";
 import readEventsFromMarkdown from "./readEventsFromMarkdown";
 import rewriteChecksum from "./rewriteChecksum";
 import { scheduleCommitEvents } from "./scheduleCommit";
 import shouldCleanStart from "./shouldCleanStart";
 
 interface JourneyDevInstance extends JourneyInstance {}
+let cleanStartPromise: Promise<void> | null = null;
 
 export default function createJourneyDevInstance(config: JourneyConfig): JourneyDevInstance {
   // biome-ignore lint/suspicious/noExplicitAny: this could be any model, there is no way to know the type
@@ -37,20 +41,32 @@ export default function createJourneyDevInstance(config: JourneyConfig): Journey
   // @ts-expect-error
   const eventsFilePath = globalThis.__JERNI_EVENTS_FILE_PATH__;
 
-  let isCleanStarting = false;
-
   const commit = async <T extends keyof CommittingEventDefinitions>(
     uncommittedEvent: ToBeCommittedJourneyEvent<T>,
   ): Promise<TypedJourneyCommittedEvent<T>> => {
-    // wait for the boot up clean start to finish
-    await forceJerniCleanStartPromise;
-    // check again to see if need another clean start in case things happened while boot up
-    if (await shouldCleanStart()) {
-      await scheduleCleanStart();
+    const cleanStartStartTime = Date.now();
+    const shouldCleanStartResult = await shouldCleanStart();
+    const cleanStartEndTime = Date.now();
+    const cleanStartElapsed = cleanStartEndTime - cleanStartStartTime;
+    console.log("[JERNI-DEV] commit: clean start check took", cleanStartElapsed, "ms");
+
+    if (shouldCleanStartResult) {
+      console.log("clean start requested when committing");
+      await cleanStart();
     }
+
+    // should wait for clean start to finish before allow committing
+    const now = Date.now();
+    logger.log("[JERNI-DEV] [LOCK] commit: waiting for global dev lock...");
+    await globalJerniDevLock.waitForUnlock();
+
+    const end = Date.now();
+    const elapsed = end - now;
+    logger.log("[JERNI-DEV] [LOCK] commit: acquired global dev lock in", elapsed, "ms");
+
     // persist event
     logger.log("[JERNI-DEV] Committing...");
-    const eventId = await scheduleCommitEvents(eventsFilePath, [uncommittedEvent]);
+    const eventId = await scheduleCommitEvents(eventsFilePath, uncommittedEvent);
     const committedEvent: TypedJourneyCommittedEvent<T> = {
       ...uncommittedEvent,
       id: eventId,
@@ -58,9 +74,10 @@ export default function createJourneyDevInstance(config: JourneyConfig): Journey
     logger.log("[JERNI-DEV] Committed event: #%d - %s", committedEvent.id, committedEvent.type);
     // project event
     for (const store of config.stores) {
-      // fixme: should call flushEvents
+      // fixme: should call void
       void store.handleEvents([committedEvent]);
     }
+
     return committedEvent;
   };
 
@@ -68,6 +85,10 @@ export default function createJourneyDevInstance(config: JourneyConfig): Journey
     commit,
     append: commit,
     async waitFor(event: JourneyCommittedEvent, timeoutOrSignal?: number | AbortSignal) {
+      logger.log("[JERNI-DEV] [LOCK] waitFor: waiting for global dev lock...");
+      await globalJerniDevLock.waitForUnlock();
+      logger.log("[JERNI-DEV] [LOCK] waitFor: acquired global dev lock");
+
       logger.log("[JERNI-DEV] Waiting for event", event.id);
       if (!hasStartedWaiting) {
         hasStartedWaiting = true;
@@ -115,12 +136,21 @@ export default function createJourneyDevInstance(config: JourneyConfig): Journey
     },
     // biome-ignore lint/suspicious/noExplicitAny: because this is a placeholder, the client that uses jerni would override this type
     async getReader(model: any): Promise<any> {
-      // wait for the boot up clean start to finish
-      await forceJerniCleanStartPromise;
-      // check again to see if need another clean start in case things happened while boot up
-      if (await shouldCleanStart()) {
-        await scheduleCleanStart();
+      const shouldCleanStartResult = await shouldCleanStart();
+
+      if (shouldCleanStartResult) {
+        console.log("clean start requested when getting reader");
+        await cleanStart();
       }
+
+      const now = Date.now();
+      logger.log("[JERNI-DEV] [LOCK] getReader: waiting for global dev lock...");
+      // should wait for clean start to finish before allow reading from stores
+      await globalJerniDevLock.waitForUnlock();
+      const end = Date.now();
+      const elapsed = end - now;
+      logger.log("[JERNI-DEV] [LOCK] getReader: acquired global dev lock in", elapsed, "ms");
+
       registerOnce();
       const store = modelToStoreMap.get(model);
 
@@ -145,39 +175,56 @@ export default function createJourneyDevInstance(config: JourneyConfig): Journey
     },
   };
 
-  // force clean start on boot up
-  const forceJerniCleanStartPromise = shouldCleanStartForBootUp()
-    ? scheduleCleanStart().then(markBootUpCleanStartDone)
-    : Promise.resolve();
-
   return journey;
 
-  async function scheduleCleanStart() {
-    logger.log("[JERNI-DEV] Begin clean start");
+  async function cleanStart() {
+    if (cleanStartPromise) {
+      logger.log("[JERNI-DEV] [LOCK] scheduleCleanStart: already running, skipping this request");
+      return cleanStartPromise;
+    }
 
-    // prevent duplicate clean start
-    if (isCleanStarting) return;
+    cleanStartPromise = (async () => {
+      logger.log("[JERNI-DEV] [LOCK] scheduleCleanStart: waiting for global dev lock...");
+      await globalJerniDevLock
+        .runExclusive(async () => {
+          logger.log("[JERNI-DEV] [LOCK] scheduleCleanStart: acquired global dev lock");
+          logger.log("[JERNI-DEV] Begin clean start");
+          logger.log("[JERNI-DEV] clean starting jerni dev with config: ", JSON.stringify(config, null, 2));
 
-    isCleanStarting = true;
+          // @ts-expect-error
+          const eventsFileAbsolutePath = globalThis.__JERNI_EVENTS_FILE_PATH__;
+          const devFilesDir = getDevFilesDir();
 
-    // @ts-expect-error
-    const eventsFileAbsolutePath = globalThis.__JERNI_EVENTS_FILE_PATH__;
+          // read events from markdown file to sync to sqlite
+          const { events, fileChecksum, realChecksum } = await readEventsFromMarkdown(eventsFileAbsolutePath);
 
-    // read events from markdown file to sync to sqlite
-    const { events } = await readEventsFromMarkdown(eventsFileAbsolutePath);
+          // Reset event ID counter to the last event ID from the events file
+          const lastEventId = events.length > 0 ? events[events.length - 1].id : 0;
+          logger.log(`[JERNI-DEV] Resetting event ID counter to ${lastEventId}`);
+          await writeLastEventId(lastEventId);
 
-    // rewrite checksum of markdown file in background
-    const rewriteChecksumPromise = rewriteChecksum(eventsFileAbsolutePath);
+          // persist events to stores
+          await clearStores();
+          await projectEvents(events);
 
-    // persist events to stores
-    await clearStores();
-    await projectEvents(events);
+          // rewrite checksum of markdown file if it's modified manually
+          if (fileChecksum !== realChecksum) {
+            await rewriteChecksum(eventsFileAbsolutePath);
+          }
 
-    // wait for rewrite checksum to finish
-    await rewriteChecksumPromise;
+          logger.log("[JERNI-DEV] Finish clean start");
+          markCleanStartDone(devFilesDir);
+        })
+        .finally(() => {
+          logger.log("[JERNI-DEV] [LOCK] scheduleCleanStart: released global dev lock");
+        });
+    })();
 
-    isCleanStarting = false;
-    logger.log("[JERNI-DEV] Finish clean start");
+    try {
+      await cleanStartPromise;
+    } finally {
+      cleanStartPromise = null;
+    }
   }
 
   async function clearStores() {
