@@ -40,5 +40,5 @@ export default async function rewriteChecksum(filePath: string) {
     });
 
     await fs.writeFile(filePath, newMarkdown);
-  }, "rewriteChecksum");
+  });
 }

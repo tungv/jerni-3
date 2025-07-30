@@ -17,13 +17,13 @@ import type {
 import once from "../lib/once";
 import createWaiter from "../lib/waiter";
 import { markCleanStartDone } from "./cleanStartRequestHelpers";
-import { writeLastEventId } from "./eventIdManager";
 import { getDevFilesDir } from "./getDevFilesUtils";
 import { globalJerniDevLock } from "./global-lock";
 import readEventsFromMarkdown from "./readEventsFromMarkdown";
 import rewriteChecksum from "./rewriteChecksum";
 import { scheduleCommitEvents } from "./scheduleCommit";
-import shouldCleanStart from "./shouldCleanStart";
+import { shouldCleanStartForCommit, shouldCleanStartForReader } from "./shouldCleanStart";
+import { writeLastEventId } from "./sqliteEventIdManager";
 
 interface JourneyDevInstance extends JourneyInstance {}
 let cleanStartPromise: Promise<void> | null = null;
@@ -44,34 +44,22 @@ export default function createJourneyDevInstance(config: JourneyConfig): Journey
   const commit = async <T extends keyof CommittingEventDefinitions>(
     uncommittedEvent: ToBeCommittedJourneyEvent<T>,
   ): Promise<TypedJourneyCommittedEvent<T>> => {
-    const cleanStartStartTime = Date.now();
-    const shouldCleanStartResult = await shouldCleanStart();
-    const cleanStartEndTime = Date.now();
-    const cleanStartElapsed = cleanStartEndTime - cleanStartStartTime;
-    console.log("[JERNI-DEV] commit: clean start check took", cleanStartElapsed, "ms");
+    const shouldCleanStartResult = await shouldCleanStartForCommit();
 
     if (shouldCleanStartResult) {
       console.log("clean start requested when committing");
       await cleanStart();
     }
 
-    // should wait for clean start to finish before allow committing
-    const now = Date.now();
-    logger.log("[JERNI-DEV] [LOCK] commit: waiting for global dev lock...");
+    // main commit logic here, should be protected by global dev lock
     await globalJerniDevLock.waitForUnlock();
 
-    const end = Date.now();
-    const elapsed = end - now;
-    logger.log("[JERNI-DEV] [LOCK] commit: acquired global dev lock in", elapsed, "ms");
-
     // persist event
-    logger.log("[JERNI-DEV] Committing...");
     const eventId = await scheduleCommitEvents(eventsFilePath, uncommittedEvent);
     const committedEvent: TypedJourneyCommittedEvent<T> = {
       ...uncommittedEvent,
       id: eventId,
     };
-    logger.log("[JERNI-DEV] Committed event: #%d - %s", committedEvent.id, committedEvent.type);
     // project event
     for (const store of config.stores) {
       // fixme: should call void
@@ -85,11 +73,7 @@ export default function createJourneyDevInstance(config: JourneyConfig): Journey
     commit,
     append: commit,
     async waitFor(event: JourneyCommittedEvent, timeoutOrSignal?: number | AbortSignal) {
-      logger.log("[JERNI-DEV] [LOCK] waitFor: waiting for global dev lock...");
       await globalJerniDevLock.waitForUnlock();
-      logger.log("[JERNI-DEV] [LOCK] waitFor: acquired global dev lock");
-
-      logger.log("[JERNI-DEV] Waiting for event", event.id);
       if (!hasStartedWaiting) {
         hasStartedWaiting = true;
 
@@ -116,40 +100,21 @@ export default function createJourneyDevInstance(config: JourneyConfig): Journey
         if (ex instanceof Error && ex.name === "AbortError") {
           const end = Date.now();
           const elapsed = end - start;
-          logger.error("[JERNI-DEV] Event", event.id, "is not ready in", elapsed, "ms");
           throw new JerniPersistenceError(event, elapsed);
         }
-      }
-
-      if (
-        event.meta &&
-        typeof event.meta === "object" &&
-        "committed_at" in event.meta &&
-        typeof event.meta.committed_at === "number"
-      ) {
-        const waited = Date.now();
-        const turnaround = waited - event.meta.committed_at;
-        logger.log("[JERNI-DEV] Event", event.id, "is ready in", turnaround, "ms");
-      } else {
-        logger.log("[JERNI-DEV] Event", event.id, "is ready");
       }
     },
     // biome-ignore lint/suspicious/noExplicitAny: because this is a placeholder, the client that uses jerni would override this type
     async getReader(model: any): Promise<any> {
-      const shouldCleanStartResult = await shouldCleanStart();
+      const shouldCleanStartResult = await shouldCleanStartForReader();
 
       if (shouldCleanStartResult) {
         console.log("clean start requested when getting reader");
         await cleanStart();
       }
 
-      const now = Date.now();
-      logger.log("[JERNI-DEV] [LOCK] getReader: waiting for global dev lock...");
       // should wait for clean start to finish before allow reading from stores
       await globalJerniDevLock.waitForUnlock();
-      const end = Date.now();
-      const elapsed = end - now;
-      logger.log("[JERNI-DEV] [LOCK] getReader: acquired global dev lock in", elapsed, "ms");
 
       registerOnce();
       const store = modelToStoreMap.get(model);
@@ -179,45 +144,38 @@ export default function createJourneyDevInstance(config: JourneyConfig): Journey
 
   async function cleanStart() {
     if (cleanStartPromise) {
-      logger.log("[JERNI-DEV] [LOCK] scheduleCleanStart: already running, skipping this request");
+      logger.log("[JERNI-DEV] scheduleCleanStart: already running, skipping this request");
       return cleanStartPromise;
     }
 
     cleanStartPromise = (async () => {
-      logger.log("[JERNI-DEV] [LOCK] scheduleCleanStart: waiting for global dev lock...");
-      await globalJerniDevLock
-        .runExclusive(async () => {
-          logger.log("[JERNI-DEV] [LOCK] scheduleCleanStart: acquired global dev lock");
-          logger.log("[JERNI-DEV] Begin clean start");
-          logger.log("[JERNI-DEV] clean starting jerni dev with config: ", JSON.stringify(config, null, 2));
+      await globalJerniDevLock.runExclusive(async () => {
+        logger.log("[JERNI-DEV] Begin clean start");
 
-          // @ts-expect-error
-          const eventsFileAbsolutePath = globalThis.__JERNI_EVENTS_FILE_PATH__;
-          const devFilesDir = getDevFilesDir();
+        // @ts-expect-error
+        const eventsFileAbsolutePath = globalThis.__JERNI_EVENTS_FILE_PATH__;
+        const devFilesDir = getDevFilesDir();
 
-          // read events from markdown file to sync to sqlite
-          const { events, fileChecksum, realChecksum } = await readEventsFromMarkdown(eventsFileAbsolutePath);
+        // read events from markdown file to sync to sqlite
+        const { events, fileChecksum, realChecksum } = await readEventsFromMarkdown(eventsFileAbsolutePath);
 
-          // Reset event ID counter to the last event ID from the events file
-          const lastEventId = events.length > 0 ? events[events.length - 1].id : 0;
-          logger.log(`[JERNI-DEV] Resetting event ID counter to ${lastEventId}`);
-          await writeLastEventId(lastEventId);
+        // Reset event ID counter to the last event ID from the events file
+        const lastEventId = events.length > 0 ? events[events.length - 1].id : 0;
+        logger.log(`[JERNI-DEV] Resetting event ID counter to ${lastEventId}`);
+        writeLastEventId(lastEventId);
 
-          // persist events to stores
-          await clearStores();
-          await projectEvents(events);
+        // persist events to stores
+        await clearStores();
+        await projectEvents(events);
 
-          // rewrite checksum of markdown file if it's modified manually
-          if (fileChecksum !== realChecksum) {
-            await rewriteChecksum(eventsFileAbsolutePath);
-          }
+        // rewrite checksum of markdown file if it's modified manually
+        if (fileChecksum !== realChecksum) {
+          await rewriteChecksum(eventsFileAbsolutePath);
+        }
 
-          logger.log("[JERNI-DEV] Finish clean start");
-          markCleanStartDone(devFilesDir);
-        })
-        .finally(() => {
-          logger.log("[JERNI-DEV] [LOCK] scheduleCleanStart: released global dev lock");
-        });
+        logger.log("[JERNI-DEV] Finish clean start");
+        markCleanStartDone(devFilesDir);
+      });
     })();
 
     try {
@@ -243,17 +201,14 @@ export default function createJourneyDevInstance(config: JourneyConfig): Journey
 
   function registerModels() {
     // loop through all stores and map them to their models
-    logger.log("[JERNI-DEV] Registering models...");
     for (const store of config.stores) {
       store.registerModels(modelToStoreMap);
-      logger.log("[JERNI-DEV] Store %s complete", store.toString());
     }
   }
 
   async function ensureStoresAreSafeForDev() {
     const isSafeForDev = await areStoresSafeForDev();
     if (!isSafeForDev) {
-      logger.error("[JERNI-DEV] Error: STORES_NOT_FOR_DEV. Terminating program...");
       process.exit(1);
     }
   }
@@ -263,19 +218,11 @@ export default function createJourneyDevInstance(config: JourneyConfig): Journey
     const storesSafetyCheck = await Promise.all(
       config.stores.map(async (store): Promise<boolean> => {
         if ("isSafeForDev" in store === false) {
-          logger.error(
-            "[JERNI-DEV] Store %s does not support jerni-next-dev-plugin. Please upgrade your store.",
-            store.name,
-          );
           return false;
         }
 
         // @ts-expect-error Old stores do not have `isSafeForDev()`
         const isSafeForDev: boolean = await store.isSafeForDev();
-        if (!isSafeForDev) {
-          // todo: add instructions
-          logger.error("[JERNI-DEV] Store %s is not for dev.", store.name);
-        }
         return isSafeForDev;
       }),
     );

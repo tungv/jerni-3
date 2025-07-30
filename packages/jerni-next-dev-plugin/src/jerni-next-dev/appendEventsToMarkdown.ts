@@ -42,7 +42,7 @@ export default async function appendEventsToMarkdown(filePath: string, events: T
     await fs.writeFile(filePath, newMarkdown);
 
     return allEvents.length;
-  }, "appendEventsToMarkdown");
+  });
 }
 
 function addEventToAst(ast: Root, event: ToBeCommittedJourneyEvent) {
