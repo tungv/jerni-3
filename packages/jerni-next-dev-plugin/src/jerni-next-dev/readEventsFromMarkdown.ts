@@ -16,26 +16,26 @@ interface ReadEventsFromMarkDownResult {
 }
 
 export default async function readEventsFromMarkdown(filePath: string): Promise<ReadEventsFromMarkDownResult> {
-  return withReadLock(async () => {
-    const doc = await fs.readFile(filePath, { encoding: "utf8" });
+  const doc = await withReadLock(() => {
+    return fs.readFile(filePath, { encoding: "utf8" });
+  });
 
-    const ast = fromMarkdown(doc, {
-      extensions: [frontmatter(["yaml"])],
-      mdastExtensions: [frontmatterFromMarkdown(["yaml"])],
-    });
+  const ast = fromMarkdown(doc, {
+    extensions: [frontmatter(["yaml"])],
+    mdastExtensions: [frontmatterFromMarkdown(["yaml"])],
+  });
 
-    if (ast.children.length === 0 || ast.children[0].type !== "yaml") {
-      throw new Error("missing frontmatter");
-    }
+  if (ast.children.length === 0 || ast.children[0].type !== "yaml") {
+    throw new Error("missing frontmatter");
+  }
 
-    const fileChecksum = yaml.parse(ast.children[0].value).checksum;
-    const events = getEventsFromAst(ast.children as Root["children"]);
-    const realChecksum = hash_sum(events);
+  const fileChecksum = yaml.parse(ast.children[0].value).checksum;
+  const events = getEventsFromAst(ast.children as Root["children"]);
+  const realChecksum = hash_sum(events);
 
-    return {
-      events,
-      fileChecksum,
-      realChecksum,
-    };
-  }, "readEventsFromMarkdown");
+  return {
+    events,
+    fileChecksum,
+    realChecksum,
+  };
 }
