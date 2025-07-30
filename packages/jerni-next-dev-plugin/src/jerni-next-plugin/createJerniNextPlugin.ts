@@ -21,9 +21,6 @@ class JerniNextPlugin {
 
   constructor(config: JerniNextPluginConfig) {
     this.config = config;
-
-    // should always clean start on startup
-    requestCleanStart(config.devFilesDirAbsolutePath);
   }
 
   async apply(compiler: Compiler) {
@@ -33,6 +30,9 @@ class JerniNextPlugin {
     await fs.mkdir(devFilesDirAbsolutePath, { recursive: true });
 
     ensureMarkdownFileExists(eventsFileAbsolutePath);
+
+    // should always clean start on startup
+    requestCleanStart(devFilesDirAbsolutePath);
 
     /**
      * Get modules imported in the initializer file
