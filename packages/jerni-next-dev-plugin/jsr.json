@@ -1,6 +1,6 @@
 {
   "name": "@jerni/jerni-next-dev-plugin",
-  "version": "0.13.3",
+  "version": "0.13.4",
   "exports": {
     ".": "./src/jerni-next-plugin/withJerniNextDev.ts",
     "./jerni-next-dev": "./src/jerni-next-dev/index.ts",
