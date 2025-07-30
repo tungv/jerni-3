@@ -3,6 +3,9 @@
   "workspaces": {
     "": {
       "name": "jerni-repo",
+      "dependencies": {
+        "better-sqlite3": "^12.2.0",
+      },
       "devDependencies": {
         "@biomejs/biome": "^2.1.2",
         "@types/bun": "^1.1.6",
@@ -80,10 +83,10 @@
     },
     "packages/jerni-next-dev-plugin": {
       "name": "@jerni/jerni-next-dev-plugin",
-      "version": "0.13.2-alpha.29",
+      "version": "0.13.2-alpha.43",
       "dependencies": {
         "async-mutex": "^0.5.0",
-        "better-sqlite3": "^11.5.0",
+        "better-sqlite3": "^12.2.0",
         "hash-sum": "^2.0.0",
         "json5": "^2.2.3",
         "lodash": "^4.17.21",
@@ -339,7 +342,7 @@
 
     "base64-js": ["base64-js@1.5.1", "", {}, "sha512-AKpaYlHn8t4SVbOHCy+b5+KKgvR4vrsD8vbvrbiQJps7fKDTkjkDry6ji0rUJjC0kzbNePLwzxq8iypo41qeWA=="],
 
-    "better-sqlite3": ["better-sqlite3@11.10.0", "", { "dependencies": { "bindings": "^1.5.0", "prebuild-install": "^7.1.1" } }, "sha512-EwhOpyXiOEL/lKzHz9AW1msWFNzGc/z+LzeB3/jnFJpxu+th2yqvzsSWas1v9jgs9+xiXJcD5A8CJxAG2TaghQ=="],
+    "better-sqlite3": ["better-sqlite3@12.2.0", "", { "dependencies": { "bindings": "^1.5.0", "prebuild-install": "^7.1.1" } }, "sha512-eGbYq2CT+tos1fBwLQ/tkBt9J5M3JEHjku4hbvQUePCckkvVf14xWj+1m7dGoK81M/fOjFT7yM9UMeKT/+vFLQ=="],
 
     "binary-extensions": ["binary-extensions@1.13.1", "", {}, "sha512-Un7MIEDdUC5gNpcGDV97op1Ywk748MpHcFTHoYs6qnj1Z3j7I53VG3nwZhKzoBZmbdRNnb6WRdFlwl7tSDuZGw=="],
 

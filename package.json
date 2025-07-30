@@ -15,5 +15,8 @@
   "type": "module",
   "workspaces": [
     "packages/*"
-  ]
+  ],
+  "dependencies": {
+    "better-sqlite3": "^12.2.0"
+  }
 }

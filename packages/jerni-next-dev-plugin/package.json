@@ -14,14 +14,16 @@
   },
   "dependencies": {
     "async-mutex": "^0.5.0",
-    "better-sqlite3": "^11.5.0",
+    "better-sqlite3": "^12.2.0",
     "hash-sum": "^2.0.0",
     "json5": "^2.2.3",
+    "lodash": "^4.17.21",
     "mdast": "^3.0.0",
     "mdast-util-from-markdown": "^2.0.2",
     "mdast-util-frontmatter": "^2.0.1",
     "mdast-util-to-markdown": "^2.1.2",
     "micromark-extension-frontmatter": "^2.0.0",
+    "nanoid": "^5.1.5",
     "yaml": "^2.8.0"
   },
   "peerDependencies": {
