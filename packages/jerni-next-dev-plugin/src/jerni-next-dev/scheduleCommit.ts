@@ -12,7 +12,7 @@ import { getNextEventId } from "./sqliteEventIdManager";
 export async function scheduleCommitEvents(filePath: string, event: ToBeCommittedJourneyEvent) {
   const thisEventId = getNextEventId();
 
-  await globalJerniDevLock.runExclusive(() => {
+  globalJerniDevLock.runExclusive(() => {
     return appendEventsToMarkdown(filePath, [event]);
   });
 

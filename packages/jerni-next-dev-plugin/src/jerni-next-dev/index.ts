@@ -14,7 +14,6 @@ import type {
   ToBeCommittedJourneyEvent,
   TypedJourneyCommittedEvent,
 } from "@jerni/jerni-3/types";
-import once from "../lib/once";
 import createWaiter from "../lib/waiter";
 import { markCleanStartDone } from "./cleanStartRequestHelpers";
 import { getDevFilesDir } from "./getDevFilesUtils";
@@ -33,7 +32,7 @@ export default function createJourneyDevInstance(config: JourneyConfig): Journey
   const modelToStoreMap = new Map<any, JourneyConfig["stores"][number]>();
   const logger = config.logger || console;
 
-  const registerOnce = once(registerModels);
+  registerModels();
 
   const waiter = createWaiter(config.stores.length);
   let hasStartedWaiting = false;
@@ -63,7 +62,12 @@ export default function createJourneyDevInstance(config: JourneyConfig): Journey
     // project event
     for (const store of config.stores) {
       // fixme: should call void
-      void store.handleEvents([committedEvent]);
+      const result = await store.handleEvents([committedEvent]);
+      console.log("[JERNI-DEV] handleEvents result", result);
+      if (Object.keys(result).length === 0) {
+        console.log("[JERNI-DEV] handleEvents result is empty, this SHOULD NOT HAPPEN in dev mode!!!");
+        throw new Error("handleEvents result is empty, this SHOULD NOT HAPPEN in dev mode!!!");
+      }
     }
 
     return committedEvent;
@@ -116,7 +120,6 @@ export default function createJourneyDevInstance(config: JourneyConfig): Journey
       // should wait for clean start to finish before allow reading from stores
       await globalJerniDevLock.waitForUnlock();
 
-      registerOnce();
       const store = modelToStoreMap.get(model);
 
       if (!store) {
