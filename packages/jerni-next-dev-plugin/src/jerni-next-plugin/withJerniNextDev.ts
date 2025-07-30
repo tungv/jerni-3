@@ -1,38 +1,34 @@
-import fs from "node:fs/promises";
 import path from "node:path";
+import type { NextConfig } from "next";
 import createJerniNextDevPlugin from "./createJerniNextPlugin.js";
 
 /**
- * @param {import("next").NextConfig} nextConfig
- * @param {Object} devConfig
- * @param {string} devConfig.initializerPath Path to the jerni initializer file
- * @param {string} devConfig.eventsFile Path to the markdown events file
- * @param {string} [devConfig.devFilesDir] Directory to store dev files (event ID, initial backup). Defaults to events file directory.
- * @returns {import("next").NextConfig}
+ * Configuration options for Jerni Next.js development plugin
  */
-export default async function withJerniNextDev(nextConfig, options) {
+interface JerniNextDevOptions {
+  /** Path to the jerni initializer file */
+  initializerPath: string;
+  /** Path to the markdown events file */
+  eventsFile: string;
+  /** Directory to store dev files (event ID, initial backup). Defaults to events file directory. */
+  devFilesDir: string;
+}
+
+/**
+ * Configures Next.js to work with Jerni development mode
+ * @param nextConfig - The Next.js configuration object
+ * @param options - Jerni development configuration options
+ * @returns Enhanced Next.js configuration with Jerni development support
+ */
+export default async function withJerniNextDev(
+  nextConfig: NextConfig,
+  options: JerniNextDevOptions,
+): Promise<NextConfig> {
   const initializerAbsoluteFilePath = path.resolve(process.cwd(), options.initializerPath);
   const eventsFileAbsolutePath = path.resolve(process.cwd(), options.eventsFile);
 
   // Determine the directory for dev files - either specified or default to events file directory
-  const devFilesDirAbsolutePath = options.devFilesDir
-    ? path.resolve(process.cwd(), options.devFilesDir)
-    : path.resolve(process.cwd(), ".jerni-dev-files");
-
-  // Create the dev files directory if it doesn't exist
-  await fs.mkdir(devFilesDirAbsolutePath, { recursive: true });
-
-  const eventsFileName = path.basename(options.eventsFile);
-  const backupPath = path.join(devFilesDirAbsolutePath, `${eventsFileName}.initial`);
-
-  // check if the backup file exists, if not, copy the events file to the backup file
-  (async () => {
-    try {
-      await fs.stat(backupPath);
-    } catch {
-      await fs.copyFile(eventsFileAbsolutePath, backupPath);
-    }
-  })();
+  const devFilesDirAbsolutePath = path.resolve(process.cwd(), options.devFilesDir);
 
   const jerniDevPlugin = await createJerniNextDevPlugin({
     initializerAbsoluteFilePath,
@@ -40,7 +36,7 @@ export default async function withJerniNextDev(nextConfig, options) {
     devFilesDirAbsolutePath,
   });
 
-  const extendedConfig = {
+  const extendedConfig: NextConfig = {
     ...nextConfig,
 
     // in prior to nextjs v15, page router does not bundle external packages.
@@ -56,11 +52,19 @@ export default async function withJerniNextDev(nextConfig, options) {
     webpack: (config, options) => {
       // If nextConfig.webpack is a function, call it with config and options.
       // Use this webpack config for further processing.
-      const webpackConfig = typeof nextConfig.webpack === "function" ? nextConfig.webpack(config, options) : {};
+      const webpackConfig = typeof nextConfig.webpack === "function" ? nextConfig.webpack(config, options) : config;
 
       const { isServer } = options;
 
       if (isServer) {
+        // Ensure resolve.alias exists
+        if (!webpackConfig.resolve) {
+          webpackConfig.resolve = {};
+        }
+        if (!webpackConfig.resolve.alias) {
+          webpackConfig.resolve.alias = {};
+        }
+
         // Apply alias to resolve `@jerni/jerni-3` to `jerni-next-dev-plugin/jerni-next-dev`
         if (webpackConfig.resolve.alias["@jerni/jerni-3$"]) {
           // warn if alias is already defined
@@ -73,6 +77,11 @@ export default async function withJerniNextDev(nextConfig, options) {
         webpackConfig.externals = Array.isArray(webpackConfig.externals)
           ? ["better-sqlite3", ...webpackConfig.externals]
           : ["better-sqlite3"];
+
+        // Ensure plugins array exists
+        if (!webpackConfig.plugins) {
+          webpackConfig.plugins = [];
+        }
 
         // Define the global variables dynamically
         // IMPORTANT: there is another runtime value `globalThis.__JERNI_BOOTED_UP__` in `jerni-next-dev`
