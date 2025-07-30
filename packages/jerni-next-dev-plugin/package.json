@@ -3,8 +3,9 @@
   "version": "0.13.1",
   "type": "module",
   "exports": {
-    ".": "./src/jerni-next-plugin/withJerniNextDev.mjs",
-    "./jerni-next-dev": "./src/jerni-next-dev/index.ts"
+    ".": "./src/jerni-next-plugin/withJerniNextDev.ts",
+    "./jerni-next-dev": "./src/jerni-next-dev/index.ts",
+    "./dev-utils": "./src/utils.ts"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.11",
