@@ -1,9 +1,12 @@
 {
   "name": "@jerni/jerni-next-dev-plugin",
-  "version": "0.13.1",
+  "version": "0.13.2",
   "exports": {
     ".": "./src/jerni-next-plugin/withJerniNextDev.ts",
     "./jerni-next-dev": "./src/jerni-next-dev/index.ts",
     "./dev-utils": "./src/utils.ts"
+  },
+  "imports": {
+    "next": "npm:next@^14.2.5"
   }
 }

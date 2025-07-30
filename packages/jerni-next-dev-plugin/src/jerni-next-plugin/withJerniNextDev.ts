@@ -1,6 +1,6 @@
 import path from "node:path";
 import type { NextConfig } from "next";
-import createJerniNextDevPlugin from "./createJerniNextPlugin.js";
+import createJerniNextDevPlugin from "./createJerniNextPlugin";
 
 /**
  * Configuration options for Jerni Next.js development plugin
