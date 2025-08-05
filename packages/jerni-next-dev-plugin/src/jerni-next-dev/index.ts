@@ -32,6 +32,34 @@ export default function createJourneyDevInstance(config: JourneyConfig): Journey
   const modelToStoreMap = new Map<any, JourneyConfig["stores"][number]>();
   const logger = config.logger || console;
 
+  // when starting the server, create journey instance, check if the events in the db has matched the events in the markdown file
+  // if the db is ahead or behind the markdown file, clean start
+  // if yes, do nothing
+  async function checkIfDbIsInSync() {
+    const storesLatestEventIds = await Promise.all(
+      config.stores.map(async (store) => {
+        const latestEventId = await store.getLastSeenId();
+        return {
+          store,
+          latestEventId,
+        };
+      }),
+    );
+
+    const lastEventId = max(storesLatestEventIds.map((store) => store.latestEventId));
+
+    // @ts-expect-error
+    const eventsFileAbsolutePath = globalThis.__JERNI_EVENTS_FILE_PATH__;
+
+    const { events } = await readEventsFromMarkdown(eventsFileAbsolutePath);
+
+    if (lastEventId !== events.length) {
+      await requestCleanStart(getDevFilesDir());
+    }
+  }
+
+  const firstRunCheckPromise = checkIfDbIsInSync();
+
   registerModels();
 
   const waiter = createWaiter(config.stores.length);
@@ -43,6 +71,8 @@ export default function createJourneyDevInstance(config: JourneyConfig): Journey
   const commit = async <T extends keyof CommittingEventDefinitions>(
     uncommittedEvent: ToBeCommittedJourneyEvent<T>,
   ): Promise<TypedJourneyCommittedEvent<T>> => {
+    await firstRunCheckPromise;
+
     const shouldCleanStartResult = await shouldCleanStartForCommit();
 
     if (shouldCleanStartResult) {
@@ -77,6 +107,8 @@ export default function createJourneyDevInstance(config: JourneyConfig): Journey
     commit,
     append: commit,
     async waitFor(event: JourneyCommittedEvent, timeoutOrSignal?: number | AbortSignal) {
+      await firstRunCheckPromise;
+
       await globalJerniDevLock.waitForUnlock();
       if (!hasStartedWaiting) {
         hasStartedWaiting = true;
@@ -110,8 +142,10 @@ export default function createJourneyDevInstance(config: JourneyConfig): Journey
     },
     // biome-ignore lint/suspicious/noExplicitAny: because this is a placeholder, the client that uses jerni would override this type
     async getReader(model: any): Promise<any> {
-      const shouldCleanStartResult = await shouldCleanStartForReader();
+      await firstRunCheckPromise;
 
+      const shouldCleanStartResult = await shouldCleanStartForReader();
+      console.log("should clean start for reader", shouldCleanStartResult);
       if (shouldCleanStartResult) {
         console.log("clean start requested when getting reader");
         await cleanStart();
