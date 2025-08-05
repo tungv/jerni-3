@@ -1,6 +1,5 @@
 import type { ToBeCommittedJourneyEvent } from "@jerni/jerni-3/types";
 import appendEventsToMarkdown from "./appendEventsToMarkdown";
-import { globalJerniDevLock } from "./global-lock";
 import { getNextEventId } from "./sqliteEventIdManager";
 
 /**
@@ -12,9 +11,7 @@ import { getNextEventId } from "./sqliteEventIdManager";
 export async function scheduleCommitEvents(filePath: string, event: ToBeCommittedJourneyEvent) {
   const thisEventId = getNextEventId();
 
-  globalJerniDevLock.runExclusive(() => {
-    return appendEventsToMarkdown(filePath, [event]);
-  });
+  await appendEventsToMarkdown(filePath, [event]);
 
   return thisEventId;
 }

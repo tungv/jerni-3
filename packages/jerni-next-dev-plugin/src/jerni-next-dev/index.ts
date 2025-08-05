@@ -14,8 +14,9 @@ import type {
   ToBeCommittedJourneyEvent,
   TypedJourneyCommittedEvent,
 } from "@jerni/jerni-3/types";
+import { max } from "lodash";
 import createWaiter from "../lib/waiter";
-import { markCleanStartDone } from "./cleanStartRequestHelpers";
+import { markCleanStartDone, requestCleanStart } from "./cleanStartRequestHelpers";
 import { getDevFilesDir } from "./getDevFilesUtils";
 import { globalJerniDevLock } from "./global-lock";
 import readEventsFromMarkdown from "./readEventsFromMarkdown";
@@ -80,24 +81,37 @@ export default function createJourneyDevInstance(config: JourneyConfig): Journey
       await cleanStart();
     }
 
-    // main commit logic here, should be protected by global dev lock
-    await globalJerniDevLock.waitForUnlock();
+    let projectionSuccess = true;
 
-    // persist event
-    const eventId = await scheduleCommitEvents(eventsFilePath, uncommittedEvent);
-    const committedEvent: TypedJourneyCommittedEvent<T> = {
-      ...uncommittedEvent,
-      id: eventId,
-    };
-    // project event
-    for (const store of config.stores) {
-      // fixme: should call void
-      const result = await store.handleEvents([committedEvent]);
-      console.log("[JERNI-DEV] handleEvents result", result);
-      if (Object.keys(result).length === 0) {
-        console.log("[JERNI-DEV] handleEvents result is empty, this SHOULD NOT HAPPEN in dev mode!!!");
-        throw new Error("handleEvents result is empty, this SHOULD NOT HAPPEN in dev mode!!!");
+    // main commit logic here, should be protected by global dev lock
+    const committedEvent = await globalJerniDevLock.runExclusive(async () => {
+      // persist event
+      const eventId = await scheduleCommitEvents(eventsFilePath, uncommittedEvent);
+      const committedEvent: TypedJourneyCommittedEvent<T> = {
+        ...uncommittedEvent,
+        id: eventId,
+      };
+      // project event
+      for (const store of config.stores) {
+        // fixme: should call void
+        const result = await store.handleEvents([committedEvent]);
+        console.log("[JERNI-DEV] handleEvents result", result);
+        if (Object.keys(result).length === 0) {
+          console.log("[JERNI-DEV] handleEvents result is empty, this SHOULD NOT HAPPEN in dev mode!!!");
+          // throw new Error("handleEvents result is empty, this SHOULD NOT HAPPEN in dev mode!!!");
+          projectionSuccess = false;
+        }
       }
+
+      return committedEvent;
+    });
+
+    if (!projectionSuccess) {
+      await cleanStart();
+
+      const { events } = await readEventsFromMarkdown(eventsFilePath);
+
+      return events.at(-1) as TypedJourneyCommittedEvent<T>;
     }
 
     return committedEvent;
@@ -185,10 +199,9 @@ export default function createJourneyDevInstance(config: JourneyConfig): Journey
       return cleanStartPromise;
     }
 
+    logger.log("[JERNI-DEV] Begin clean start");
     cleanStartPromise = (async () => {
       await globalJerniDevLock.runExclusive(async () => {
-        logger.log("[JERNI-DEV] Begin clean start");
-
         // @ts-expect-error
         const eventsFileAbsolutePath = globalThis.__JERNI_EVENTS_FILE_PATH__;
         const devFilesDir = getDevFilesDir();
