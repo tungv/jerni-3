@@ -95,7 +95,7 @@ export default function createJourneyDevInstance(config: JourneyConfig): Journey
       for (const store of config.stores) {
         // fixme: should call void
         const result = await store.handleEvents([committedEvent]);
-        console.log("[JERNI-DEV] handleEvents result", result);
+
         if (Object.keys(result).length === 0) {
           console.log("[JERNI-DEV] handleEvents result is empty, this SHOULD NOT HAPPEN in dev mode!!!");
           // throw new Error("handleEvents result is empty, this SHOULD NOT HAPPEN in dev mode!!!");
@@ -159,7 +159,7 @@ export default function createJourneyDevInstance(config: JourneyConfig): Journey
       await firstRunCheckPromise;
 
       const shouldCleanStartResult = await shouldCleanStartForReader();
-      console.log("should clean start for reader", shouldCleanStartResult);
+
       if (shouldCleanStartResult) {
         console.log("clean start requested when getting reader");
         await cleanStart();

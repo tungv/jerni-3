@@ -17,7 +17,6 @@ export default async function createJerniNextPlugin(config: JerniNextPluginConfi
   // Create the dev files directory if it doesn't exist
   await fs.mkdir(devFilesDirAbsolutePath, { recursive: true });
 
-  console.log("request clean start every time server starts");
   // should always clean start on startup
   await requestCleanStart(devFilesDirAbsolutePath);
 
